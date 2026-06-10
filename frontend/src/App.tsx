@@ -9,6 +9,7 @@ import ReportsView from './views/ReportsView'
 import DashboardView from './views/DashboardView'
 import MessagesView from './views/MessagesView'
 import MailRouteAdapter from './views/mail/MailRouteAdapter'
+import ChannelsView from './views/messaging/ChannelsView'
 import NotificationsView from './views/NotificationsView'
 import ProfileView from './views/ProfileView'
 import NotificationBell from './components/NotificationBell'
@@ -656,6 +657,7 @@ export default function App() {
                 <Route path="/ask"                element={<AskGaaexView />} />
                 <Route path="/messages"           element={<MessagesView capabilities={capabilities} />} />
                 <Route path="/mail"               element={<MailRouteAdapter />} />
+                <Route path="/channels"           element={<ChannelsView />} />
                 <Route path="/notifications"      element={<NotificationsView />} />
                 <Route path="/profile"            element={<ProfileView />} />
                 <Route path="/activity-feed"      element={<ActivityFeedView onNavigate={(target) => {

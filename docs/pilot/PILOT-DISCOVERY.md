@@ -20,14 +20,44 @@ doesn't get built against a shape that later changes (rework avoidance).
 
 ---
 
-## 0. Pilot identity
+## 0. Pilot identity — ✅ HouseNet (confirmed 2026-06-10 by Gev + housenet.am)
+
+**Pilot = HouseNet** (https://www.housenet.am). FTTH ISP in Armenia.
+Coverage: Vagharshapat (Etchmiadzin), Armavir, Metsamor, Nalbandyan, Bambakashat, Jrashen.
+
+### ✅ CONFIRMED (Gev 2026-06-10 + public site)
+
+| Area | HouseNet |
+|---|---|
+| **Customer types** | Residential + Business *(no reseller/gov confirmed yet — assume these two)* |
+| **Services** | Internet only + IPTV. **NO VoIP/phone.** Internet residential: Lite 40 / Plus 100 / Max 200 / Ultra 300 / Ultimate 500 Mbps (6,000–12,900 AMD/mo). Business: Corp Start 40 / Elite 80 / Pro 100 / Premium 300 (7,000–40,000 AMD/mo). IPTV: 129–130 channels (standalone 4,000 AMD/mo; Premium = Dolby Atmos). |
+| **Bundles** | **Fixed packages** (operator-defined; customer does not mix-and-match). Internet+TV bundled into the named plans. |
+| **Provisioning** | **Platform DEFAULT flow** — HouseNet uses the system's standard provisioning lifecycle (no custom variant). |
+| **Equipment** | VSOL HG5020 (WiFi6 router/ONU) · Xiaomi Mi Router 4A · Google Chromecast w/ Google TV · onn Android TV 4K box. |
+| **Integrations — notifications** | **SMS + Telegram + WhatsApp** (customer messaging). Email = the GAAhex Mail module (per-tenant SMTP, ✅ shipped). |
+| **RADIUS / BNG** | **NONE.** HouseNet does not use RADIUS → M1 Phase 2.D (FreeRADIUS) is OUT for this pilot. |
+| **Monitoring / network** | **Built-in GAAhex NMS section** (no external system). Everything connects to HouseNet's **VSOL OLTs** (provision + monitor via VSOL CLI — see [[vsol-v1600-cli-dialect]]). |
+
+### ✅ DISCOVERY COMPLETE (Gev 2026-06-10)
+1. **Payment** — HouseNet accepts **ALL** methods: Idram · Telcell · bank transfer · cash at office · card. (Existing payment-gateway adapters cover these — REMAINING-WORK item P.)
+2. **Custom entities** — **ZERO.** Standard {customer, invoice, ticket, service} + the built-in NMS cover HouseNet entirely. → **M1 Phase 3 (custom entity catalog) is TRIVIAL / effectively a no-op for this pilot.**
+
+### 🔨 ENGINEERING surfaced — the next major build: PER-TENANT MESSAGING CHANNELS
+Gev's directive: build SMS / Telegram / WhatsApp **exactly like the Mail module — per-tenant, multi-tenant from day one** ("imagine 5 customers tomorrow, each with their OWN separate" channel credentials). Each tenant ISP configures its own bot/sender/credentials, encrypted at rest, RLS-scoped, routed through `channels.dispatch` per-tenant — the `mail_account` → `SmtpEmailGateway` pattern applied to messaging.
+- **Telegram** — HouseNet already uses it → per-tenant Bot API (bot token + chat resolution).
+- **SMS** — HouseNet has none; wants it via **Viva Armenia (Viva-MTS)** SMS gateway → per-tenant Viva API credentials.
+- **WhatsApp** — new; per-tenant WhatsApp Business Cloud API credentials.
+- (Existing `channels.py` SMS=Twilio / email adapters are GLOBAL env-based; this module makes channels **per-tenant** like Mail.)
+- **NMS ↔ VSOL wiring** — the NMS section actually driving HouseNet's VSOL OLTs (provision/monitor via the documented VSOL CLI) — separate track.
+
+---
+
+### Original framework fields (legacy — superseded by the confirmed table above)
 
 | Field | Value |
 |---|---|
-| Pilot ISP name | ⬜ PILOT INPUT |
-| Primary contact | ⬜ PILOT INPUT |
+| Pilot ISP name | **HouseNet** (housenet.am) |
 | Rough subscriber count | ⬜ PILOT INPUT |
-| Geographic footprint | ⬜ PILOT INPUT |
 | Current system being replaced | ⬜ PILOT INPUT |
 | Pre-existing data to migrate (Y/N + rough volume) | ⬜ PILOT INPUT |
 | Target cutover window | ⬜ PILOT INPUT |

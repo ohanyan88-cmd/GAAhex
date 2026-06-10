@@ -170,6 +170,24 @@ async def _tenant_system_sender(s: AsyncSession, tenant_id):
         return None
 
 
+async def _tenant_channel_account(s: AsyncSession, tenant_id, channel: str):
+    """The tenant's default active TenantChannelAccount for a channel (SMS/TELEGRAM/WHATSAPP), or None.
+    Fail-soft — any error ⇒ None ⇒ the legacy/global path runs unchanged. This is what makes each
+    tenant's SMS/Telegram/WhatsApp leave from ITS OWN bot/sender (per-tenant, like the mail accounts)."""
+    try:
+        from .models import TenantChannelAccount
+        return (await s.execute(
+            select(TenantChannelAccount).where(
+                TenantChannelAccount.tenant_id == tenant_id,
+                TenantChannelAccount.channel == channel.upper(),
+                TenantChannelAccount.is_active.is_(True),
+                TenantChannelAccount.deletion_state == "ACTIVE",
+            ).order_by(TenantChannelAccount.is_default.desc())
+        )).scalars().first()
+    except Exception:
+        return None
+
+
 # ---- dispatch ----
 
 async def dispatch(s: AsyncSession, *, tenant_id, channel: str, to: str | None,
@@ -223,6 +241,30 @@ async def dispatch(s: AsyncSession, *, tenant_id, channel: str, to: str | None,
                 return msg
             except Exception:
                 logger.exception("failed to record OutboundMessage (channel=email, mail account)")
+                return None
+
+    # -- Messaging module: route SMS/Telegram/WhatsApp through the tenant's OWN channel account --
+    # Additive + fail-soft: a tenant with a configured TenantChannelAccount for this channel sends via
+    # ITS creds (Telegram bot / Viva SMS / WhatsApp). Tenants without one fall through to the existing
+    # OOP/legacy adapter path UNCHANGED (every current test). Telegram is live; Viva-SMS/WhatsApp raise
+    # MessagingNotConfigured (stub) → recorded FAILED, never crashes the caller.
+    if channel in ("sms", "telegram", "whatsapp") and to:
+        _ch = await _tenant_channel_account(s, tenant_id, channel)
+        if _ch is not None:
+            status, error = "SENT", None
+            try:
+                from .services.messaging import gateway_for_channel_account  # noqa: PLC0415
+                await gateway_for_channel_account(_ch).send(to=to, text=body or "", subject=subject)
+            except Exception as exc:                 # fail-soft — incl. MessagingNotConfigured stubs
+                status, error = "FAILED", str(exc)[:500]
+            try:
+                msg = OutboundMessage(tenant_id=tenant_id, channel=channel, to_addr=to, subject=subject,
+                                      body=body, status=status, def_key=def_key, user_id=user_id, error=error)
+                s.add(msg)
+                await s.flush()
+                return msg
+            except Exception:
+                logger.exception("failed to record OutboundMessage (channel=%s, tenant account)", channel)
                 return None
 
     # -- E23: try the OOP adapter registry first --

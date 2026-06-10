@@ -53,7 +53,7 @@ from .seed_regions import seed_demo_regions_if_empty
 from .seed_nav_registry import seed_nav_registry_if_empty
 from .migrate_interactions import migrate_interactions
 from .scheduler import start_scheduler, stop_scheduler
-from .routers import auth, meta, records, reports, notifications, notification_defs, dashboards, views, approvals, search, comm, export, activity, ops, billing_subscription, billing_invoice, billing_payment, billing_credit_note, billing_product, bulk, report_builder, orders, customer360, webhooks, apikeys, services, respool, usage, documents, i18n, accounts, analytics, ai, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests, search_assist, helpdesk, users, workitems, payment_gateway, calendar as calendar_router, portal_auth, portal, portal_billing, portal_support, portal_service, roles, automations, events, page_config, me, org_nodes, metrics, audit_log, studio_pages, feature_flags, page_bindings, assignments, mandatory_approvals, regions, kpis, customer_timeline, workflows, nav_registry, assets, procurement, contract_expiring, workspace, tariff_plans, credit_notes, dunning, revenue_assurance, payment_methods, install_board, noc_dashboard, noc_inventory, comments, watchers, tasks, slas, attachments, communications, configurations, escalations, relationships, imports_exports, lifecycle, privacy, mail
+from .routers import auth, meta, records, reports, notifications, notification_defs, dashboards, views, approvals, search, comm, export, activity, ops, billing_subscription, billing_invoice, billing_payment, billing_credit_note, billing_product, bulk, report_builder, orders, customer360, webhooks, apikeys, services, respool, usage, documents, i18n, accounts, analytics, ai, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests, search_assist, helpdesk, users, workitems, payment_gateway, calendar as calendar_router, portal_auth, portal, portal_billing, portal_support, portal_service, roles, automations, events, page_config, me, org_nodes, metrics, audit_log, studio_pages, feature_flags, page_bindings, assignments, mandatory_approvals, regions, kpis, customer_timeline, workflows, nav_registry, assets, procurement, contract_expiring, workspace, tariff_plans, credit_notes, dunning, revenue_assurance, payment_methods, install_board, noc_dashboard, noc_inventory, comments, watchers, tasks, slas, attachments, communications, configurations, escalations, relationships, imports_exports, lifecycle, privacy, mail, messaging
 
 
 _log = logging.getLogger("gaahex")
@@ -303,6 +303,7 @@ app.include_router(approvals.router)
 app.include_router(search.router)
 app.include_router(comm.router)
 app.include_router(mail.router)                  # /api/mail/* — Mail module (per-tenant email client); fixed path, before generic records
+app.include_router(messaging.router)             # /api/messaging/* — per-tenant SMS/Telegram/WhatsApp channels
 app.include_router(comments.router)              # /api/comments + /api/{entityKey}/{id}/comments — file 04 Comment Standard
 app.include_router(watchers.router)              # /api/{entityKey}/{id}/watchers — file 05 Watcher Standard
 app.include_router(tasks.router)                 # /api/tasks — file 05 Task Standard

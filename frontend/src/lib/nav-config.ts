@@ -63,6 +63,9 @@ export const NAV_SECTIONS: NavSectionDef[] = [
   // not a second nav item.
   s('mail', 'Mail', MailIcon, [], { standalone: true, viewType: 'mail' }),
 
+  // Channels — per-tenant SMS / Telegram / WhatsApp configuration (config surface).
+  s('channels', 'Channels', MessageIcon, [], { standalone: true, viewType: 'channels' }),
+
   s('crm', 'CRM', UsersIcon, [
     i('crm-leads',          'Leads',          InboxIcon,      'entity', { slug: 'leads' }),
     i('crm-pipeline',       'Pipeline',       ArrowRightIcon, 'lead-pipeline'),
