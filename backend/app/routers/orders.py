@@ -379,8 +379,27 @@ async def update_order(order_id: uuid.UUID, payload: dict, user: User = Depends(
 # ---- lifecycle ----
 
 async def _set_status(s, user: User, order: Order, frm: str, to: str):
-    order.status = to
-    await workflow.emit(s, user.tenant_id, "TRANSITION", "order", order.id, user.id, {"from": frm, "to": to})
+    # PERFECT-TARGET I3 — the order transitions through the SHARED transition kernel
+    # (`workflow.complete_transition`), the same primitive Records and convert.py use. The order is the
+    # "OrderAdapter": it quacks like a record (`.id` + `.status`). One transition path for every entity;
+    # the kernel sets status, emits the TRANSITION Event, and runs any on-enter actions configured on
+    # the order WorkflowDef (the seam where activation side-effects become config actions in a later
+    # phase). Falls back to a synthesized transition when the (from→to) isn't declared in config.
+    try:
+        order_ent = await _entity(s, user.tenant_id, "orders")
+        _trs = await workflow.get_transitions(s, order_ent.id)
+    except HTTPException:
+        _trs = None
+    if _trs is not None:
+        tr = workflow.find_transition(_trs, frm, to) or {"from": frm, "to": to}
+        await workflow.complete_transition(s, tenant_id=user.tenant_id, entity_key="order",
+                                           record=order, transition=tr, actor_user_id=user.id)
+    else:
+        # Transitional fallback: the order entity config (entity_def/WorkflowDef) isn't present in this
+        # environment (e.g. the minimal test seed). Apply the transition directly. Drops once the order's
+        # config is guaranteed in every env (PERFECT-TARGET I2/I6 — order fully participates in config).
+        order.status = to
+        await workflow.emit(s, user.tenant_id, "TRANSITION", "order", order.id, user.id, {"from": frm, "to": to})
 
 
 @router.post("/orders/{order_id}/submit")
