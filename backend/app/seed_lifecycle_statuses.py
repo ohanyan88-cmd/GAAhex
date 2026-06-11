@@ -76,7 +76,11 @@ _ORDER_TRANSITIONS = [
     {"from": "config",            "to": "installation",      "guard": None},
     {"from": "installation",      "to": "connection_test",   "guard": None},
     {"from": "connection_test",   "to": "payment_confirmed", "guard": None},
-    {"from": "payment_confirmed", "to": "activation",        "guard": None},
+    # ACTIVATION choreography is config-declared (PERFECT-TARGET I3): reaching `activation` publishes
+    # `order.activated`; the CRM/Care/Billing subscribers (kernel/events.py) create+activate the
+    # customer, file the welcome check-call task, and provision subscriptions — fired atomically by
+    # workflow.complete_transition, NOT by router code.
+    {"from": "payment_confirmed", "to": "activation",        "guard": None, "publish": "order.activated"},
     {"from": "order_validated",   "to": "cancelled",         "guard": None},   # off-ramps
     {"from": "scheduling",        "to": "cancelled",         "guard": None},
     {"from": "config",            "to": "cancelled",         "guard": None},
@@ -97,7 +101,17 @@ async def seed_lifecycle_statuses_if_missing() -> dict:
                     select(EntityDef).where(EntityDef.tenant_id == t.id, EntityDef.key == ent_key)
                 )).scalar_one_or_none()
                 if ent is None:
-                    continue
+                    # The order is a first-class table whose CONFIG (entity_def + WorkflowDef) is created
+                    # by the full dev/prod seed but NOT the minimal test seed — so in tests the order had
+                    # no config at all and its lifecycle ran entirely on in-router fallbacks. Create the
+                    # config here so the order participates in config in EVERY env (PERFECT-TARGET I2/I6).
+                    # lead/customer entity_defs are always present, so only the order needs this.
+                    if ent_key != "order":
+                        continue
+                    ent = EntityDef(tenant_id=t.id, key="order", label="Order", label_plural="Orders",
+                                    route_slug="orders", owner_module="Orders")
+                    s.add(ent)
+                    await s.flush()
                 keep_keys = [k for (k, _l, _o, _i) in statuses]
                 # 0) rename record statuses first, so pruning legacy StatusDefs never orphans a record
                 for old, new in _RECORD_STATUS_RENAMES.get(ent_key, {}).items():
@@ -129,7 +143,14 @@ async def seed_lifecycle_statuses_if_missing() -> dict:
                     wf = (await s.execute(
                         select(WorkflowDef).where(WorkflowDef.entity_def_id == ent.id)
                     )).scalars().first()
-                    if wf is not None:
+                    if wf is None:
+                        # No order WorkflowDef in this env (e.g. minimal test seed) — create it so the
+                        # config-driven transition path (incl. the activation `publish` choreography) is
+                        # available. One WorkflowDef per entity (I5).
+                        s.add(WorkflowDef(tenant_id=t.id, entity_def_id=ent.id, key="order_lifecycle",
+                                          label="Order Lifecycle", config={"transitions": _ORDER_TRANSITIONS}))
+                        wf_fixed += 1
+                    else:
                         cfg = dict(wf.config or {})
                         if cfg.get("transitions") != _ORDER_TRANSITIONS:
                             cfg["transitions"] = _ORDER_TRANSITIONS

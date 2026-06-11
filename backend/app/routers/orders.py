@@ -426,13 +426,16 @@ async def update_order(order_id: uuid.UUID, payload: dict, user: User = Depends(
 
 # ---- lifecycle ----
 
-async def _set_status(s, user: User, order: Order, frm: str, to: str):
+async def _set_status(s, user: User, order: Order, frm: str, to: str) -> dict:
     # PERFECT-TARGET I3 — the order transitions through the SHARED transition kernel
     # (`workflow.complete_transition`), the same primitive Records and convert.py use. The order is the
     # "OrderAdapter": it quacks like a record (`.id` + `.status`). One transition path for every entity;
-    # the kernel sets status, emits the TRANSITION Event, and runs any on-enter actions configured on
-    # the order WorkflowDef (the seam where activation side-effects become config actions in a later
-    # phase). Falls back to a synthesized transition when the (from→to) isn't declared in config.
+    # the kernel sets status, emits the TRANSITION Event, runs any on-enter actions, and fires the
+    # transition's config-declared `publish` domain event (e.g. activation → `order.activated`). The
+    # publish context carries the order + user so the CRM/Care/Billing subscribers have what they need.
+    # Returns the choreography reactions ({handler_name: result}, e.g. {"billing.provision": [...]}); {}
+    # for transitions that declare no `publish`. Falls back to a direct set when the order config is
+    # absent (minimal env) — no choreography there.
     try:
         order_ent = await _entity(s, user.tenant_id, "orders")
         _trs = await workflow.get_transitions(s, order_ent.id)
@@ -440,14 +443,73 @@ async def _set_status(s, user: User, order: Order, frm: str, to: str):
         _trs = None
     if _trs is not None:
         tr = workflow.find_transition(_trs, frm, to) or {"from": frm, "to": to}
-        await workflow.complete_transition(s, tenant_id=user.tenant_id, entity_key="order",
-                                           record=order, transition=tr, actor_user_id=user.id)
-    else:
-        # Transitional fallback: the order entity config (entity_def/WorkflowDef) isn't present in this
-        # environment (e.g. the minimal test seed). Apply the transition directly. Drops once the order's
-        # config is guaranteed in every env (PERFECT-TARGET I2/I6 — order fully participates in config).
-        order.status = to
-        await workflow.emit(s, user.tenant_id, "TRANSITION", "order", order.id, user.id, {"from": frm, "to": to})
+        result = await workflow.complete_transition(
+            s, tenant_id=user.tenant_id, entity_key="order", record=order, transition=tr,
+            actor_user_id=user.id, publish_context={"order": order, "user": user})
+        return (result or {}).get("reactions") or {}
+    # Transitional fallback: the order entity config (entity_def/WorkflowDef) isn't present in this
+    # environment (e.g. the minimal test seed). Apply the transition directly. Drops once the order's
+    # config is guaranteed in every env (PERFECT-TARGET I2/I6 — order fully participates in config).
+    order.status = to
+    await workflow.emit(s, user.tenant_id, "TRANSITION", "order", order.id, user.id, {"from": frm, "to": to})
+    return {}
+
+
+async def _apply_order_transition(s, user: User, order: Order, to: str) -> dict:
+    """Config-driven order stage move — the single decision point shared by the unified `/transition`
+    route (explicit ``{to}``). Resolve the legal ``{from→to}`` edge from the order WorkflowDef, evaluate
+    its guard (named, e.g. ``control_gate:stage8``, or GXL) via the SHARED kernel evaluator (the same
+    one the generic Record endpoint uses), then apply it through ``_set_status`` (which fires the
+    transition's config-declared ``publish`` choreography). Returns the choreography reactions. Raises
+    409 for an undefined edge or a blocked named gate, 422 for a failed GXL guard. NO hardcoded business
+    logic — every decision is read from config."""
+    order_ent = await _entity(s, user.tenant_id, "orders")
+    trs = await workflow.get_transitions(s, order_ent.id)
+    tr = workflow.find_transition(trs, order.status, to)
+    if not tr:
+        raise HTTPException(409, f"No transition from '{order.status}' to '{to}'")
+    guard = tr.get("guard")
+    if guard:
+        ok, reason = await workflow.evaluate_guard(s, entity_id=order_ent.id, record=order, guard=guard)
+        if not ok:
+            raise HTTPException(409 if workflow.is_named_guard(guard) else 422,
+                                reason or f"Guard blocked {order.status} -> {to}")
+    return await _set_status(s, user, order, order.status, to)
+
+
+@router.post("/orders/{order_id}/transition")
+async def transition_order(order_id: uuid.UUID, payload: dict, user: User = Depends(current_user),
+                           s: AsyncSession = Depends(get_session)):
+    """Unified config-driven order stage move — the SAME contract as the generic
+    ``POST /api/{slug}/{id}/transition`` (a ``{to}`` body), for the first-class Order. NO hardcoded
+    stage chain and NO per-verb endpoints: the legal edge, its guard (named, e.g. ``control_gate:stage8``),
+    and its on-enter ``publish`` (the ``order.activated`` choreography) all come from the order
+    WorkflowDef config. This is the surface the frontend points at; submit/advance/cancel/release
+    collapse into it (one ``{to}`` per move)."""
+    to = payload.get("to")
+    if not to:
+        raise HTTPException(422, "Missing 'to' status")
+    order = await _get_order(s, user, order_id)
+    grants = await load_grants(s, user)
+    if not can(grants, "order", "edit", await _node_path(s, order.owner_node_id)):
+        _deny("order.edit")
+    # SPEC §0.1 single-owner (first-class) — only Orders may write order.
+    await _owner_gate(s, table_name="order", writer_module="Orders")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="edit", entity_key="order",
+                         region_id=getattr(order, "region_id", None), owner_user_id=order.control_pass_by)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
+
+    reactions = await _apply_order_transition(s, user, order, to)
+    provisioned = reactions.get("billing.provision") or []
+    await s.commit()
+    await s.refresh(order)
+    result = _order(order, await _items(s, order.id))
+    if provisioned:
+        result["provisioned_subscriptions"] = provisioned
+    return result
 
 
 @router.post("/orders/{order_id}/submit")
@@ -521,7 +583,12 @@ async def advance_order(order_id: uuid.UUID, user: User = Depends(current_user),
         _trs = await workflow.get_transitions(s, order_ent.id)
     except HTTPException:
         _trs = []
-    _forwards = [t.get("to") for t in _trs if t.get("from") == order.status and t.get("to") != "cancelled"]
+    # order_created → order_validated is the /submit step (manual draft submit), NOT a forward /advance
+    # step — exclude it so a fresh order must still be submitted first. (This per-verb split collapses
+    # into the unified /transition route at cutover step 5; until then /advance stays the chain mover.)
+    _forwards = [t.get("to") for t in _trs
+                 if t.get("from") == order.status and t.get("to") != "cancelled"
+                 and t.get("from") != ORDER_INITIAL]
     nxt = _forwards[0] if _forwards else _FORWARD_FALLBACK.get(order.status)
     if not nxt:
         raise HTTPException(409, f"Cannot advance an order in status {order.status}")
@@ -540,16 +607,15 @@ async def advance_order(order_id: uuid.UUID, user: User = Depends(current_user),
         if not _ok:
             raise HTTPException(status_code=409, detail=_reason)
 
-    await _set_status(s, user, order, frm, nxt)
+    reactions = await _set_status(s, user, order, frm, nxt)
 
-    provisioned: list[str] = []
+    # PERFECT-TARGET I3 — ACTIVATION choreography is now CONFIG-DECLARED: the activation transition
+    # carries `publish: order.activated`, so the SHARED kernel (complete_transition, via _set_status)
+    # fires it and the CRM (create+activate customer) · Care (welcome check-call task) · Billing
+    # (provision subscriptions) domains react in the same transaction. advance_order no longer
+    # hand-publishes — it just reads the Billing subscriber's reaction for the response.
+    provisioned: list[str] = reactions.get("billing.provision") or []
     if nxt == ORDER_PROVISION_AT:
-        # PERFECT-TARGET I3 — ACTIVATION is event choreography: the order publishes `order.activated`
-        # and the CRM (create+activate customer) · Care (welcome check-call task) · Billing (provision
-        # subscriptions) domains react independently, in the same transaction. orders.advance no longer
-        # hand-calls them. The provisioned list comes back from the Billing subscriber for the response.
-        _react = await events.publish(s, "order.activated", order=order, user=user)
-        provisioned = _react.get("billing.provision") or []
         # best-effort completion notification (no-op unless an `order.completed` def is seeded)
         try:
             recipients = await notify_hooks.resolve_recipients(s, tenant_id=user.tenant_id, record=order)

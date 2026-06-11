@@ -17,13 +17,17 @@ from app.models import WorkflowDef
 
 
 async def _all_guards() -> list[str]:
+    # Named, kernel-held guards (services/transition_guards.NAMED_GUARDS — e.g. `control_gate:stage8`
+    # on the order WorkflowDef) are NOT GXL expressions; they're resolved by the kernel registry, so
+    # they're correctly out of scope for the GXL-grammar corpus (mirrors meta.py authorship).
+    from app.services.transition_guards import NAMED_GUARDS
     async with OwnerSessionLocal() as s:
         defs = (await s.execute(select(WorkflowDef))).scalars().all()
     guards: list[str] = []
     for d in defs:
         for t in (d.config or {}).get("transitions", []):
             g = t.get("guard")
-            if g:
+            if g and g not in NAMED_GUARDS:
                 guards.append(g)
     return guards
 

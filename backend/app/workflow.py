@@ -325,14 +325,32 @@ async def run_actions(s: AsyncSession, *, tenant_id, entity_key, record: Record,
     return results
 
 
-async def complete_transition(s: AsyncSession, *, tenant_id, entity_key, record: Record, transition: dict, actor_user_id) -> None:
-    """Apply a transition's full effect: set status, emit the transition Event, run on-enter actions.
-    Used by the approval-approve path; the normal /transition handler can call run_actions directly."""
+async def complete_transition(s: AsyncSession, *, tenant_id, entity_key, record: Record, transition: dict,
+                              actor_user_id, publish_context: dict | None = None) -> dict:
+    """Apply a transition's full effect: set status, emit the transition Event, run on-enter actions,
+    and fire the transition's CONFIG-DECLARED domain event (``publish``) for choreography.
+
+    A transition may declare ``"publish": "<event.name>"`` (e.g. the order activation transition →
+    ``order.activated``); the kernel then publishes it to the domain-event bus so subscribed domains
+    (CRM/Care/Billing) react. Unlike the fail-soft on-enter ``actions``, the publish is ATOMIC — it
+    runs in the caller's transaction and a failing subscriber aborts the move (PERFECT-TARGET I4).
+    ``publish_context`` is forwarded verbatim to every subscriber (the caller supplies whatever the
+    handlers need — e.g. ``{"order": order, "user": user}``).
+
+    Returns ``{"actions": [...], "reactions": {handler_name: result}}``; ``reactions`` is empty unless
+    the transition declares ``publish``. (Used by the approval-approve path, the generic /transition
+    endpoint, and the first-class order transition route.)"""
     frm = record.status
     record.status = transition.get("to")
     await emit(s, tenant_id, "TRANSITION", entity_key, record.id, actor_user_id, {"from": frm, "to": record.status})
-    await run_actions(s, tenant_id=tenant_id, entity_key=entity_key, record=record,
-                      transition=transition, actor_user_id=actor_user_id)
+    action_results = await run_actions(s, tenant_id=tenant_id, entity_key=entity_key, record=record,
+                                       transition=transition, actor_user_id=actor_user_id)
+    reactions: dict = {}
+    publish_event = transition.get("publish")
+    if publish_event:
+        from .kernel import events as kernel_events
+        reactions = await kernel_events.publish(s, publish_event, **(publish_context or {}))
+    return {"actions": action_results, "reactions": reactions}
 
 
 # ===========================================================================================
