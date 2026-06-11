@@ -68,13 +68,15 @@ async def _do_transition(s, user, ent, grants, paths, rec, to, transitions) -> d
         raise HTTPException(409, f"No transition from '{rec.status}' to '{to}'")
     guard = tr.get("guard")
     if guard:
-        ctx = await workflow.guard_context(s, ent.id, rec)
+        # Uniform guard eval (PERFECT-TARGET I3) — named guards via the kernel registry, GXL via the
+        # record + one-hop cross-record context. Same helper as the single-record /transition path.
         try:
-            # Cross-record reach (sealed GXL addendum §2.1) — same resolver as the single-record path.
-            ctx = await workflow.resolve_cross_record(s, ent.id, rec, guard, ctx)
+            ok, reason = await workflow.evaluate_guard(s, entity_id=ent.id, record=rec, guard=guard)
         except gxl.GXLError as e:
             raise HTTPException(422, f"Invalid guard for {rec.status} -> {to}: {e}")
-        if not gxl.evaluate(guard, ctx):
+        if not ok:
+            if workflow.is_named_guard(guard):
+                raise HTTPException(409, reason or f"Guard blocked {rec.status} -> {to}: {guard}")
             raise HTTPException(422, f"Guard failed for {rec.status} -> {to}: {guard}")
 
     frm = rec.status

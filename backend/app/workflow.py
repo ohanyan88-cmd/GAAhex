@@ -106,6 +106,46 @@ async def resolve_cross_record(s: AsyncSession, entity_id, record: Record, guard
     return out
 
 
+def is_named_guard(guard: str | None) -> bool:
+    """True if `guard` names a kernel-registered guard (services/transition_guards.NAMED_GUARDS)
+    rather than a GXL expression. A named guard is config-declared (e.g. ``control_gate:stage8``)
+    and its implementation lives in the kernel (PERFECT-TARGET I3)."""
+    if not guard:
+        return False
+    from .services.transition_guards import NAMED_GUARDS
+    return guard in NAMED_GUARDS
+
+
+async def evaluate_guard(s: AsyncSession, *, entity_id, record, guard: str | None) -> tuple[bool, str | None]:
+    """Evaluate a transition guard uniformly for EVERY transition caller (records / bulk / future).
+
+    Returns ``(ok, reason)``:
+      * empty / None guard            → ``(True, None)`` — always pass.
+      * NAMED guard (in NAMED_GUARDS) → run its kernel implementation and return its ``(ok, reason)``.
+        The name lives in WorkflowDef config; the impl lives in the kernel (PERFECT-TARGET I3) — e.g.
+        ``control_gate:stage8`` is the Revenue-Control Stage-8 gate.
+      * otherwise (a GXL expression)  → build guard_context, resolve one-hop cross-record refs,
+        evaluate; ``(False, "<msg>")`` on a clean boolean-false.
+
+    Raises ``gxl.GXLError`` when a GXL guard violates the sealed grammar (the caller surfaces 422).
+    Before this helper, named guards were honored ONLY in the bespoke orders.py advance path; the
+    generic endpoints silently passed the guard NAME to gxl.evaluate. (Step 1 of the orders.py
+    NO-HARDCODE cutover — makes the generic transition path capable of carrying the Stage-8 gate.)
+    """
+    if not guard:
+        return True, None
+    from .services.transition_guards import NAMED_GUARDS
+    named = NAMED_GUARDS.get(guard)
+    if named is not None:
+        return await named(s, record)
+    from . import gxl
+    ctx = await guard_context(s, entity_id, record)
+    ctx = await resolve_cross_record(s, entity_id, record, guard, ctx)
+    if not gxl.evaluate(guard, ctx):
+        return False, f"Guard failed: {guard}"
+    return True, None
+
+
 async def emit(
     s: AsyncSession,
     tenant_id,

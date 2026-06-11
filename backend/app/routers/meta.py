@@ -41,11 +41,18 @@ def _validate_transition_guards(transitions: list[dict]) -> None:
     with a clear 422 instead of silently fail-closing at evaluation. Authorship is already gated by
     `config.manage` (the super_admin grant) at the calling endpoint, which satisfies GXL-I3; this is
     the parser-rejection half of the same invariant.
+
+    A NAMED guard (services/transition_guards.NAMED_GUARDS — e.g. ``control_gate:stage8``) is a
+    kernel-held policy gate, NOT a GXL expression, so it is accepted as-is and skips GXL parsing
+    (PERFECT-TARGET I3).
     """
+    from ..services.transition_guards import NAMED_GUARDS
     for t in transitions or []:
         g = (t or {}).get("guard")
         if not g:
             continue
+        if g in NAMED_GUARDS:
+            continue                       # named, kernel-held guard — not a GXL expression
         try:
             gxl.validate_guard(g)
         except gxl.GXLError as e:

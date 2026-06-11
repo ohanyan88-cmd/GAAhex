@@ -574,14 +574,18 @@ async def transition(slug: str, rec_id: uuid.UUID, payload: dict, force: bool = 
     # evaluation — and its cross-record pre-fetch — in that case. A None/empty guard is always-pass.
     guard = tr.get("guard")
     if guard and not force:
-        ctx = await workflow.guard_context(s, ent.id, rec)
+        # Uniform guard eval (PERFECT-TARGET I3): NAMED guards (e.g. control_gate:stage8) resolve
+        # through the kernel registry; GXL expressions evaluate against the record + one-hop
+        # cross-record context (sealed GXL addendum §2.1).
         try:
-            # Cross-record reach (sealed GXL addendum §2.1): pre-fetch any linked records the guard
-            # dereferences and inject them into ctx before evaluating.
-            ctx = await workflow.resolve_cross_record(s, ent.id, rec, guard, ctx)
+            ok, reason = await workflow.evaluate_guard(s, entity_id=ent.id, record=rec, guard=guard)
         except gxl.GXLError as e:
             raise HTTPException(422, f"Invalid guard for {rec.status} -> {to}: {e}")
-        if not gxl.evaluate(guard, ctx):
+        if not ok:
+            # A named policy gate (e.g. the Stage-8 revenue gate) is a 409 Conflict + blocker reason,
+            # matching the orders.py contract; a GXL expression failure keeps the locked 422.
+            if workflow.is_named_guard(guard):
+                raise HTTPException(409, reason or f"Guard blocked {rec.status} -> {to}: {guard}")
             raise HTTPException(422, f"Guard failed for {rec.status} -> {to}: {guard}")
 
     frm = rec.status
