@@ -88,11 +88,16 @@ export type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info
 
 export function mapEntityStatus(status: string, def?: Def): PillVariant {
   const s = String(status ?? '').toLowerCase().replace(/[\s-]+/g, '_')
-  if (['done', 'closed', 'active', 'paid', 'resolved', 'won', 'succeeded', 'enabled', 'completed'].includes(s)) return 'active'
-  if (['cancelled', 'canceled', 'void', 'expired', 'failed', 'critical', 'lost', 'error', 'disabled', 'rejected', 'churned'].includes(s)) return 'critical'
-  if (['pending', 'draft', 'new', 'prospect', 'open', 'qualified', 'sent', 'issued'].includes(s)) return 'info'
+  // SST lifecycle statuses (lead/order/customer) folded in alongside the legacy buckets.
+  if (['done', 'closed', 'active', 'paid', 'resolved', 'won', 'succeeded', 'enabled', 'completed',
+       'contract_signed', 'payment_confirmed', 'activation', 'monitoring'].includes(s)) return 'active'
+  if (['cancelled', 'canceled', 'void', 'expired', 'failed', 'critical', 'lost', 'error', 'disabled',
+       'rejected', 'churned', 'terminated', 'install_failed'].includes(s)) return 'critical'
+  if (['pending', 'draft', 'new', 'prospect', 'open', 'qualified', 'sent', 'issued',
+       'lead', 'validated_lead', 'assigned', 'order_created'].includes(s)) return 'info'
   if (['suspended', 'degraded', 'past_due', 'throttled', 'on_hold', 'blocked', 'warning'].includes(s)) return 'degraded'
-  if (['in_progress', 'negotiation', 'processing'].includes(s)) return 'info'
+  if (['in_progress', 'negotiation', 'processing',
+       'deal', 'order_validated', 'scheduling', 'config', 'installation', 'connection_test'].includes(s)) return 'info'
   if (def) {
     const meta = (def.statuses ?? []).find((x) => x.key === status)
     if (meta?.is_initial) return 'info'

@@ -14,7 +14,7 @@ import CustomerBillingModal from '../modals/CustomerBillingModal'
 import AiAssistModal from '../modals/AiAssistModal'
 import { EmptyState, PermissionDenied, NotFound, LoadingState, ErrorBanner } from '../components/States'
 import ActivityTimeline from '../components/ActivityTimeline'
-import { LeadGatesStrip } from '../components/LeadGatesStrip'
+import { LeadGatesStrip, GATES } from '../components/LeadGatesStrip'
 import { useI18n } from '../lib/i18n'
 import { buildContractHtml, contractFileName } from '../lib/contract'
 import NoAccess from '../components/NoAccess'
@@ -23,7 +23,7 @@ import { Button, StatusPill } from '../primitives'
 import { PageShell } from '../page-shell'
 import type { SecondaryAction } from '../page-shell'
 import { BASE } from '../lib/config'
-import { authH } from '../lib/billing'
+import { authH, bget } from '../lib/billing'
 import { useAuth } from '../context/AuthContext'
 import type { Def, Row, Mode, SavedView, StatusTab, ExportFormats } from './entity/types'
 import { deriveStatusGroups, pagePropsForSlug, mapEntityStatus, errFieldOf, capitalize } from './entity/types'
@@ -67,6 +67,21 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
     setLeadsView(m)
     try { localStorage.setItem('leads-view-mode', m) } catch { /* ignore */ }
   }
+  // Which control-gate's window is open (same-page modal opened from LeadGatesStrip).
+  const [gateOpen, setGateOpen] = useState<string | null>(null)
+  // Real counts for the gate strip come from each gate's own entity (Commercial=leads already in
+  // `rows`; Technical/Billing=orders; Customer Care=customers). Fetched only on the Leads page.
+  const [gateOrders, setGateOrders] = useState<Row[]>([])
+  const [gateCustomers, setGateCustomers] = useState<Row[]>([])
+  useEffect(() => {
+    if (slug !== 'leads' || !token) return
+    const pick = (v: any): Row[] => Array.isArray(v) ? v : (v?.rows ?? v?.items ?? v?.orders ?? [])
+    void (async () => {
+      const [o, c] = await Promise.all([bget<any>(token, '/api/orders'), bget<any>(token, '/api/customers')])
+      if (o.ok) setGateOrders(pick(o.data))
+      if (c.ok) setGateCustomers(pick(c.data))
+    })()
+  }, [slug, token])
   const [createStep, setCreateStep] = useState<'pick' | 'form'>('pick')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingStatus, setEditingStatus] = useState<string | null>(null)
@@ -355,15 +370,25 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
   const nextFrom = (status: string | null) => (def.transitions ?? []).filter((t) => t.from === status).map((t) => t.to)
 
   // One lead card — shared by the Cards grid and the Kanban columns (leads view switcher).
+  // The WHOLE card opens the lead (its 360 detail) via a stretched <button> overlay (accessible —
+  // real button, keyboard-focusable). The action row sits above the overlay (z-index) so the
+  // status pill + stage-transition buttons stay independently clickable.
   const leadCardEV = (r: Row) => (
-    <div key={r.id} className="kcard">
+    <div key={r.id} className="kcard" style={{ position: 'relative' }}>
+      {canEdit && (
+        <button
+          type="button"
+          aria-label={`Open ${r.name ? String(r.name) : 'lead'}`}
+          onClick={() => openEdit(r)}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', background: 'transparent', border: 0, padding: 0, margin: 0, cursor: 'pointer' }}
+        />
+      )}
       <div className="mono" style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-link)', marginBottom: 'var(--gx-space-3)' }}>
         {r.ref ? String(r.ref) : leadRef(r.id)}
       </div>
-      <button className="row-link" onClick={() => openEdit(r)} disabled={!canEdit}
-        style={{ fontSize: 'var(--gx-text-sm)', display: 'block', textAlign: 'left', marginBottom: 'var(--gx-space-4)', ...(canEdit ? {} : { cursor: 'default', pointerEvents: 'none' }) }}>
+      <div style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 'var(--gx-weight-semibold)', marginBottom: 'var(--gx-space-4)' }}>
         {r.name ? String(r.name) : '—'}
-      </button>
+      </div>
       {(r.phone || r.email || r.address) && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--gx-space-3)', marginBottom: 'var(--gx-space-4)', fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>
           {r.phone ? <span className="mono">{String(r.phone)}</span> : null}
@@ -371,7 +396,7 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
           {r.address ? <span>{String(r.address)}</span> : null}
         </div>
       )}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', flexWrap: 'wrap' }}>
+      <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', flexWrap: 'wrap' }}>
         {r.status ? <StatusPill variant={mapEntityStatus(r.status, def)} label={r.status} size="sm" /> : null}
         {hasWorkflow && canEdit && nextFrom(r.status).map((to) => (
           <Button key={to} variant="ghost" size="sm" onClick={() => doTransition(r.id, to)} style={{ fontSize: 'var(--gx-text-11)' }}>
@@ -412,11 +437,6 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
   // Leads default (Gev 2026-06-11): all views show only the 20 most recent leads (load sorts
   // -created_at). The rest are reachable via search — which re-queries the server.
   const displayRows = (isLeads && !needle) ? visibleRows.slice(0, 20) : visibleRows
-
-  const statusPillMinW = (() => {
-    const n = visibleRows.reduce((m, r) => Math.max(m, String(r.status ?? '').length), 0)
-    return n > 0 ? n * 9 + 34 : undefined
-  })()
 
   const tabCount = (tab: StatusTab): number => {
     if (!hasStatusTabs) return rows.length
@@ -588,7 +608,7 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
 
       {error && !errorField && <p className="err">{error}</p>}
 
-      {slug === 'leads' && !formOpen && <LeadGatesStrip rows={rows} onOpenGate={onOpenPipeline} />}
+      {slug === 'leads' && !formOpen && <LeadGatesStrip leads={rows} orders={gateOrders} customers={gateCustomers} onOpenGate={(gateKey) => setGateOpen(gateKey)} />}
 
       {hasStatusTabs && !formOpen && slug !== 'leads' && (
         <>
@@ -699,7 +719,7 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
           ) : undefined}
         />
       ) : (
-        <div className={'card' + (isLeads ? ' leads-flat' : '')} style={{ overflow: 'hidden', position: 'relative' }}>
+        <div className={'card' + (isLeads ? ' leads-flat' : '')} style={{ overflow: (isLeads && leadsView !== 'table') ? 'visible' : 'hidden', position: 'relative' }}>
           {selected.size > 0 && (
             <div className="bulkbar">
               <span style={{ fontWeight: 'var(--gx-weight-semibold)', fontSize: 'var(--gx-text-sm)' }}>{selected.size} selected</span>
@@ -793,7 +813,8 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
               </thead>
               <tbody>
                 {displayRows.map((r) => (
-                  <tr key={r.id} className={selected.has(r.id) ? 'row-selected' : ''}>
+                  <tr key={r.id} className={selected.has(r.id) ? 'row-selected' : ''}
+                    onClick={isLeads && canEdit ? () => openEdit(r) : undefined}>
                     {!isLeads && (
                       <td className="sel-col">
                         <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleRow(r.id)} aria-label="Select row" />
@@ -803,9 +824,9 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
                       <>
                         <td><span className="lead-id">{r.ref ? String(r.ref) : leadRef(r.id)}</span></td>
                         <td>
-                          <button className="row-link" onClick={() => openEdit(r)} disabled={!canEdit}>
+                          <span style={{ fontWeight: 'var(--gx-weight-semibold)' }}>
                             {r.name ? String(r.name) : <span className="muted">—</span>}
-                          </button>
+                          </span>
                         </td>
                         <td>{leadCell(r.address)}</td>
                         <td>{leadCell(r.phone)}</td>
@@ -840,7 +861,7 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
                     )}
                     <td>
                       {r.status ? (
-                        <StatusPill variant={mapEntityStatus(r.status, def)} label={r.status} size="sm" minWidth={statusPillMinW} />
+                        <StatusPill variant={mapEntityStatus(r.status, def)} label={r.status} size="sm" />
                       ) : ''}
                     </td>
                     <td className="actions-col" onClick={(e) => e.stopPropagation()}>
@@ -935,7 +956,7 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
           )}
 
           {isLeads && leadsView === 'cards' && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 'var(--gx-space-5)', maxHeight: '60vh', overflowY: 'auto', paddingRight: 'var(--gx-space-2)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 'var(--gx-space-5)', maxHeight: '60vh', overflowY: 'auto', paddingRight: 'var(--gx-space-2)' }}>
               {displayRows.map((r) => leadCardEV(r))}
             </div>
           )}
@@ -982,6 +1003,46 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
           <ActivityTimeline entity={slug} record={activityRow.id} />
         </Modal>
       )}
+
+      {gateOpen && (() => {
+        const gate = GATES.find((g) => g.key === gateOpen)
+        if (!gate) return null
+        const data: Row[] = gate.entity === 'lead' ? rows : gate.entity === 'order' ? gateOrders : gateCustomers
+        const recs = data.filter((r) => gate.statuses.includes(r.status ?? ''))
+        const [one, many] = gate.entity === 'order' ? ['order', 'orders'] : gate.entity === 'customer' ? ['customer', 'customers'] : ['lead', 'leads']
+        const idLabel = (r: any) => r.ref ? String(r.ref) : r.number ? String(r.number) : leadRef(r.id)
+        const mainLabel = (r: any) => r.name ? String(r.name) : r.title ? String(r.title) : (r.customer_id ? `Customer ${String(r.customer_id).slice(0, 8)}` : '—')
+        const row = (r: any) => (
+          <>
+            <span className="mono" style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-link)' }}>{idLabel(r)}</span>
+            <span style={{ fontWeight: 'var(--gx-weight-semibold)', flex: 1 }}>{mainLabel(r)}</span>
+            {r.phone ? <span className="mono" style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>{String(r.phone)}</span> : null}
+            {r.status ? <StatusPill variant={mapEntityStatus(r.status, def)} label={r.status} size="sm" /> : null}
+          </>
+        )
+        const rowStyle = { display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', padding: 'var(--gx-space-5) var(--gx-space-6)', background: 'var(--gx-surface-2)', border: '1px solid var(--gx-border)', borderRadius: 'var(--gx-radius-md)', textAlign: 'left' as const, width: '100%' }
+        return (
+          <Modal open onClose={() => setGateOpen(null)} title={gate.name}
+            subtitle={`${recs.length} ${recs.length === 1 ? one : many} currently in this part`} size="md">
+            {recs.length === 0 ? (
+              <div style={{ padding: 'var(--gx-space-9)', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-sm)' }}>
+                No {many} in this part yet.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)' }}>
+                {recs.map((r: any) => (
+                  gate.entity === 'lead' && canEdit ? (
+                    <button key={r.id} type="button" onClick={() => { setGateOpen(null); openEdit(r) }}
+                      style={{ ...rowStyle, cursor: 'pointer' }}>{row(r)}</button>
+                  ) : (
+                    <div key={r.id} style={rowStyle}>{row(r)}</div>
+                  )
+                ))}
+              </div>
+            )}
+          </Modal>
+        )
+      })()}
 
       {billingRow && (
         <CustomerBillingModal

@@ -33,7 +33,9 @@ class Order(Base):
     customer_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("record.id"), nullable=True, index=True)
     account_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("account.id"), nullable=True, index=True)  # additive (17a) — null = pre-Account row; resolve via customer_id
     number: Mapped[str] = mapped_column(String(40), nullable=False)                    # per-tenant ref, e.g. ORD-00007
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default="DRAFT")   # DRAFT|SUBMITTED|PROVISIONING|COMPLETED|CANCELLED
+    # Order lifecycle = SST fulfillment stages (lifecycle.ts #6-13): order_created → order_validated
+    # → scheduling → installation → config → connection_test → payment_confirmed → activation (+ cancelled).
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="order_created")
     total: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)           # luma, = sum(item line_total)
     # SPEC §3 Stage 8 Control Gate verdict (Step 4). NULL = pending validation, TRUE = Revenue
     # Control passed (KYC+Credit+Fraud+Tariff match), FALSE = explicitly failed. The kernel function

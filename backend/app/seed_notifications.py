@@ -17,13 +17,13 @@ from .models.notification import NotificationDef
 
 # (key, label, title_template, body_template, gxl_condition)
 _DEFS = [
-    ("lead.qualified", "Lead qualified",
-     "Lead {name} qualified",
-     "Lead '{name}' moved to QUALIFIED. Phone: {phone}, source: {source}.",
+    ("lead.validated_lead", "Lead validated",
+     "Lead {name} validated",
+     "Lead '{name}' moved to VALIDATED_LEAD. Phone: {phone}, source: {source}.",
      None),
-    ("lead.converted", "Lead converted",
-     "Lead {name} converted",
-     "Lead '{name}' was converted to a customer.",
+    ("lead.contract_signed", "Lead contract signed",
+     "Lead {name} signed",
+     "Lead '{name}' signed the contract — ready to convert to a customer.",
      None),
     ("deal.won", "Deal won",
      "Deal won: {title}",

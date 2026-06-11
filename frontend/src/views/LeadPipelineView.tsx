@@ -135,8 +135,8 @@ export default function LeadPipelineView({ onOpenCustomer, canConfigure = false,
   if (denied) return <PermissionDenied message={t('leads.denied', "You don't have permission to view leads.")} />
 
   const allLeads = leads ?? []
-  const open = allLeads.filter((l) => !['CONVERTED', 'LOST'].includes((l.status || '').toUpperCase())).length
-  const converted = allLeads.filter((l) => (l.status || '').toUpperCase() === 'CONVERTED').length
+  const open = allLeads.filter((l) => !['CONTRACT_SIGNED', 'LOST'].includes((l.status || '').toUpperCase())).length
+  const converted = allLeads.filter((l) => (l.status || '').toUpperCase() === 'CONTRACT_SIGNED').length
   const lost = allLeads.filter((l) => (l.status || '').toUpperCase() === 'LOST').length
 
   const q = search.trim().toLowerCase()
@@ -150,9 +150,8 @@ export default function LeadPipelineView({ onOpenCustomer, canConfigure = false,
     : allLeads
 
   const COL_TONE: Record<string, string> = {
-    NEW: 'var(--gx-info)', OPEN: 'var(--gx-neutral)', QUALIFIED: 'var(--gx-info)',
-    NEGOTIATION: 'var(--gx-warning)', WON: 'var(--gx-success)', CONVERTED: 'var(--gx-success)',
-    LOST: 'var(--gx-danger)',
+    LEAD: 'var(--gx-info)', VALIDATED_LEAD: 'var(--gx-info)', ASSIGNED: 'var(--gx-info)',
+    DEAL: 'var(--gx-warning)', CONTRACT_SIGNED: 'var(--gx-success)', LOST: 'var(--gx-danger)',
   }
 
   // KPIs derived client-side from loaded leads array — zero fallbacks when not yet loaded.
@@ -311,7 +310,7 @@ export default function LeadPipelineView({ onOpenCustomer, canConfigure = false,
                               <ArrowRightIcon size={11} />{labelOf(to)}
                             </Button>
                           ))}
-                          {canEdit && !convertNA && ['QUALIFIED', 'CONVERTED'].includes((lead.status || '').toUpperCase()) && (
+                          {canEdit && !convertNA && ['DEAL', 'CONTRACT_SIGNED'].includes((lead.status || '').toUpperCase()) && (
                             <Button variant="primary" size="sm"
             onClick={() => convert(lead)} disabled={converting === lead.id} style={{ fontSize: 'var(--gx-text-11)' }}>
                               <UsersIcon size={11} />{converting === lead.id ? t('leads.converting', 'Converting…') : t('leads.convert', 'Convert')}

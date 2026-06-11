@@ -74,21 +74,21 @@ async def _create_and_advance(client, admin, slug):
 
 async def test_recipient_gets_notification_actor_excluded(client, admin, agent):
     tenant, admin_id, agent_id = await _user_ids()
-    await _seed_def(tenant, "lead.qualified", title="Lead {name} qualified", body="Now {status}")
+    await _seed_def(tenant, "lead.validated_lead", title="Lead {name} qualified", body="Now {status}")
 
     lead = (await client.post("/api/leads", headers=admin, json={"name": "Notify Target", "phone": "+37491"})).json()
     lid = lead["id"]
-    assert (await client.post(f"/api/leads/{lid}/transition", headers=admin, json={"to": "CONTACTED"})).status_code == 200
-    assert (await client.post(f"/api/leads/{lid}/transition", headers=admin, json={"to": "QUALIFIED"})).status_code == 200
+    assert (await client.post(f"/api/leads/{lid}/transition", headers=admin, json={"to": "validated_lead"})).status_code == 200
+    assert (await client.post(f"/api/leads/{lid}/transition", headers=admin, json={"to": "assigned"})).status_code == 200
 
     notes = await _notes_for(lid, user_id=agent_id)
-    # exactly one — to the agent (recipient), not the admin (actor); only lead.qualified has a def
+    # exactly one — to the agent (recipient), not the admin (actor); only lead.validated_lead has a def
     assert len(notes) == 1
     n = notes[0]
     assert n.user_id == agent_id and n.user_id != admin_id
-    assert n.def_key == "lead.qualified"
+    assert n.def_key == "lead.validated_lead"
     assert n.entity_key == "lead" and str(n.record_id) == lid
-    assert n.title == "Lead Notify Target qualified" and n.body == "Now QUALIFIED"
+    assert n.title == "Lead Notify Target qualified" and n.body == "Now validated_lead"
 
     # and it's visible through the inbox API for the agent
     agent_inbox_ids = {x["id"] for x in (await client.get("/notifications", headers=agent)).json()}

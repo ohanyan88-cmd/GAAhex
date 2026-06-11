@@ -65,10 +65,10 @@ async def test_blank_q_is_unchanged(client, admin):
 async def test_filter_narrows_and_broken_excludes(client, admin):
     a = (await client.post("/api/leads", headers=admin, json={"name": "ffilt one", "phone": "+37411"})).json()
     (await client.post("/api/leads", headers=admin, json={"name": "ffilt two"})).json()
-    # move 'one' to CONTACTED so it falls out of a status=='NEW' filter
-    assert (await client.post(f"/api/leads/{a['id']}/transition", headers=admin, json={"to": "CONTACTED"})).status_code == 200
+    # move 'one' to CONTACTED so it falls out of a status=='lead' filter
+    assert (await client.post(f"/api/leads/{a['id']}/transition", headers=admin, json={"to": "validated_lead"})).status_code == 200
 
-    new_only = await _names(client, admin, "?q=ffilt&filter=status == 'NEW'")
+    new_only = await _names(client, admin, "?q=ffilt&filter=status == 'lead'")
     assert new_only == ["ffilt two"]
 
     # a broken expression fails closed (no 500) → excludes everything
@@ -116,7 +116,7 @@ async def test_create_own_and_shared_view(client, admin):
     admin_id, _ = await _user_ids()
     own = (await client.post("/api/views", headers=admin,
                              json={"entity_key": "lead", "name": "My NEW leads",
-                                   "config": {"filter": "status == 'NEW'", "sort": "name"}})).json()
+                                   "config": {"filter": "status == 'lead'", "sort": "name"}})).json()
     assert own["shared"] is False and own["owner_user_id"] == str(admin_id)
     assert own["config"]["sort"] == "name"
 

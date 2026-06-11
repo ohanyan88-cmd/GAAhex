@@ -1,51 +1,61 @@
 /* ===================== KANBAN ===================== */
+/* All sizing/spacing/type is single-sourced from gaahex-tokens.css (D19). The only raw
+   values left are 1px hairline borders (1px is the implicit default — the registry has no
+   --gx-border-1, same philosophy as space-0) and the .dragging opacity/scale (behavioral,
+   not design tokens). */
 .kanban {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 280px;
-  gap: 14px;
+  /* Flexbox (not grid) is the reliable horizontal-scroll kanban pattern: columns are
+     flex items with a fixed basis that never shrink, so the row always overflows and
+     overflow-x:auto fires — regardless of how the flex-column page wrapper clamps width.
+     min-width:0 lets the row shrink below content size so the internal scrollbar shows. */
+  display: flex;
+  gap: var(--gx-space-7);
   overflow-x: auto;
-  padding-bottom: 12px;
-  min-height: 600px;
+  overflow-y: hidden;
+  padding-bottom: var(--gx-space-6);
+  min-height: var(--gx-kanban-min-h);
+  min-width: 0;
+  max-width: 100%;
 }
 .kcol {
+  flex: 0 0 var(--gx-kanban-col-w);   /* fixed width, never shrink → row overflows → horizontal scroll */
   background: var(--gx-surface);
   border: 1px solid var(--gx-border);
   border-radius: var(--gx-radius-lg);
   display: flex; flex-direction: column;
-  max-height: 720px;
+  max-height: var(--gx-kanban-col-max-h);
 }
 .kcol-head {
-  display: flex; align-items: center; gap: 10px;
-  padding: 12px 14px;
+  display: flex; align-items: center; gap: var(--gx-space-5);
+  padding: var(--gx-space-6) var(--gx-space-7);
   border-bottom: 1px solid var(--gx-border);
 }
-.kcol-head h4 { font-size: 13px; font-weight: var(--gx-weight-semibold); }
+.kcol-head h4 { font-size: var(--gx-text-13); font-weight: var(--gx-weight-semibold); }
 .kcol-count {
-  background: var(--gx-surface-2); font-size: 11px; font-family: var(--gx-font-mono);
-  padding: 1px 8px; border-radius: 999px; color: var(--gx-text-3);
+  background: var(--gx-surface-2); font-size: var(--gx-text-11); font-family: var(--gx-font-mono);
+  padding: 1px var(--gx-space-4); border-radius: var(--gx-radius-full); color: var(--gx-text-3);
   margin-left: auto;
 }
-.kcol-body { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.kcol-body { flex: 1; overflow-y: auto; padding: var(--gx-space-5); display: flex; flex-direction: column; gap: var(--gx-space-4); }
 .kcard {
   background: var(--gx-surface-2);
   border: 1px solid var(--gx-border);
   border-radius: var(--gx-radius-md);
-  padding: 11px 12px;
-  cursor: grab;
+  padding: var(--gx-space-5) var(--gx-space-6);
+  cursor: pointer;   /* whole card opens the lead 360 on click — no grab/drag hand */
   transition: border-color var(--gx-dur-fast), transform var(--gx-dur-fast);
 }
 .kcard:hover { border-color: var(--gx-gold); }
 .kcard.dragging { opacity: 0.4; transform: scale(0.98); }
-.kcard-title { font-size: 13px; font-weight: var(--gx-weight-semibold); margin-bottom: 4px; }
-.kcard-meta { font-size: 11px; color: var(--gx-text-3); font-family: var(--gx-font-mono); margin-bottom: 8px; }
-.kcard-value { color: var(--gx-gold); font-family: var(--gx-font-mono); font-weight: var(--gx-weight-semibold); font-size: 13px; }
-.kcard-foot { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
-.kcard-foot .badge { font-size: 10px; }
+.kcard-title { font-size: var(--gx-text-13); font-weight: var(--gx-weight-semibold); margin-bottom: var(--gx-space-2); }
+.kcard-meta { font-size: var(--gx-text-11); color: var(--gx-text-3); font-family: var(--gx-font-mono); margin-bottom: var(--gx-space-4); }
+.kcard-value { color: var(--gx-gold); font-family: var(--gx-font-mono); font-weight: var(--gx-weight-semibold); font-size: var(--gx-text-13); }
+.kcard-foot { display: flex; align-items: center; gap: var(--gx-space-3); margin-top: var(--gx-space-4); }
+.kcard-foot .badge { font-size: var(--gx-text-10); }
 .kcard-avatar {
-  width: 22px; height: 22px; border-radius: 999px;
+  width: var(--gx-avatar-xs); height: var(--gx-avatar-xs); border-radius: var(--gx-radius-full);
   background: var(--gx-interactive); color: var(--gx-on-primary);
   display: grid; place-items: center;
-  font-size: 10px; font-weight: var(--gx-weight-bold);
+  font-size: var(--gx-text-10); font-weight: var(--gx-weight-bold);
   margin-left: auto;
 }

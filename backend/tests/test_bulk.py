@@ -54,7 +54,7 @@ async def test_bulk_transition_partial_failure(client, admin):
     missing = str(uuid.uuid4())
 
     r = await client.post("/api/leads/bulk", headers=admin,
-                          json={"action": "transition", "to": "CONTACTED", "ids": [p1, p2, np, missing, "not-a-uuid"]})
+                          json={"action": "transition", "to": "validated_lead", "ids": [p1, p2, np, missing, "not-a-uuid"]})
     assert r.status_code == 200
     body = r.json()
     assert body["summary"] == {"requested": 5, "succeeded": 2, "failed": 3}
@@ -65,8 +65,8 @@ async def test_bulk_transition_partial_failure(client, admin):
     assert res["not-a-uuid"]["ok"] is False                             # invalid id
 
     # the two valid ones actually moved; the guard-failed one stayed put
-    assert (await client.get(f"/api/leads/{p1}", headers=admin)).json()["status"] == "CONTACTED"
-    assert (await client.get(f"/api/leads/{np}", headers=admin)).json()["status"] == "NEW"
+    assert (await client.get(f"/api/leads/{p1}", headers=admin)).json()["status"] == "validated_lead"
+    assert (await client.get(f"/api/leads/{np}", headers=admin)).json()["status"] == "lead"
 
 
 # ===================== guardrails =====================

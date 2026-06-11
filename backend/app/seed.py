@@ -340,14 +340,19 @@ async def build_crm_entities(s, t) -> None:
     await _make_entity(
         s, t, "lead", "Lead", "Leads", "leads", "users",
         fields=_LEAD_FIELDS,
-        statuses=[("NEW", "New", True), ("CONTACTED", "Contacted", False), ("QUALIFIED", "Qualified", False),
-                  ("CONVERTED", "Converted", False), ("LOST", "Lost", False)],
+        # Lead = the COMMERCIAL half of the Customer Lifecycle SST (lifecycle.ts #1-5). Single
+        # source of truth — the legacy NEW/CONTACTED/QUALIFIED/CONVERTED set was DELETED 2026-06-11.
+        statuses=[("lead", "Lead", True), ("validated_lead", "Validated Lead", False),
+                  ("assigned", "Assigned", False), ("deal", "Deal", False),
+                  ("contract_signed", "Contract Signed", False), ("lost", "Lost", False)],
         transitions=[
-            {"from": "NEW", "to": "CONTACTED", "guard": "phone != None and phone != ''"},
-            {"from": "CONTACTED", "to": "QUALIFIED", "guard": None},
-            {"from": "QUALIFIED", "to": "CONVERTED", "guard": None},
-            {"from": "CONTACTED", "to": "LOST", "guard": None},
-            {"from": "QUALIFIED", "to": "LOST", "guard": None},
+            {"from": "lead", "to": "validated_lead", "guard": "phone != None and phone != ''"},
+            {"from": "validated_lead", "to": "assigned", "guard": None},
+            {"from": "assigned", "to": "deal", "guard": None},
+            {"from": "deal", "to": "contract_signed", "guard": None},
+            {"from": "validated_lead", "to": "lost", "guard": None},
+            {"from": "assigned", "to": "lost", "guard": None},
+            {"from": "deal", "to": "lost", "guard": None},
         ],
     )
 
@@ -361,14 +366,15 @@ async def build_crm_entities(s, t) -> None:
             ("plan", "Plan", "select", False, {"options": ["Basic", "Pro", "Enterprise"]}),
             ("status", "Status", "status", False, None),
         ],
-        statuses=[("PROSPECT", "Prospect", True), ("ACTIVE", "Active", False),
-                  ("SUSPENDED", "Suspended", False), ("CHURNED", "Churned", False)],
+        # Customer = the OPERATIONAL tail of the SST (lifecycle.ts #14 + exits). Single source of
+        # truth — the legacy PROSPECT/ACTIVE/CHURNED set was DELETED 2026-06-11.
+        statuses=[("monitoring", "Monitoring", True), ("suspended", "Suspended", False),
+                  ("terminated", "Terminated", False)],
         transitions=[
-            {"from": "PROSPECT", "to": "ACTIVE", "guard": "email != None and email != ''"},
-            {"from": "ACTIVE", "to": "SUSPENDED", "guard": None},
-            {"from": "SUSPENDED", "to": "ACTIVE", "guard": None},
-            {"from": "ACTIVE", "to": "CHURNED", "guard": None},
-            {"from": "SUSPENDED", "to": "CHURNED", "guard": None},
+            {"from": "monitoring", "to": "suspended", "guard": None},
+            {"from": "suspended", "to": "monitoring", "guard": None},
+            {"from": "monitoring", "to": "terminated", "guard": None},
+            {"from": "suspended", "to": "terminated", "guard": None},
         ],
     )
 

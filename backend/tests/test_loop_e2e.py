@@ -50,11 +50,12 @@ async def _drive_order_to_completed(client, admin, customer_id, product_id, unit
                    "unit_amount": unit_amount}],
     })).json()
     oid = order["id"]
-    assert (await client.post(f"/api/orders/{oid}/submit", headers=admin)).json()["status"] == "SUBMITTED"
-    await _pass_control_gate(oid)                                               # SPEC §3 Stage 8
-    assert (await client.post(f"/api/orders/{oid}/advance", headers=admin)).json()["status"] == "PROVISIONING"
-    completed = (await client.post(f"/api/orders/{oid}/advance", headers=admin)).json()
-    assert completed["status"] == "COMPLETED"
+    assert (await client.post(f"/api/orders/{oid}/submit", headers=admin)).json()["status"] == "order_validated"
+    await _pass_control_gate(oid)                                               # control gate (SST #7→#8)
+    completed = None
+    for expected in ["scheduling", "config", "installation", "connection_test", "payment_confirmed", "activation"]:
+        completed = (await client.post(f"/api/orders/{oid}/advance", headers=admin)).json()
+        assert completed["status"] == expected, completed
     return completed
 
 
@@ -87,7 +88,7 @@ async def test_full_isp_loop_e2e(client, admin):
         assert convert.status_code in (200, 201), convert.text
         # The lead is now CONVERTED and points at the new customer (the authoritative link).
         lead_after = (await client.get(f"/api/leads/{lead_id}", headers=admin)).json()
-        assert lead_after["status"] == "CONVERTED"
+        assert lead_after["status"] == "contract_signed"
         customer_id = lead_after["converted_customer_id"]
         assert customer_id, "convert did not stamp converted_customer_id on the lead"
         # The customer records where it came from.

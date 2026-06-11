@@ -86,9 +86,9 @@ table.grid.leads-grid thead, table.grid.leads-grid tbody, table.grid.leads-grid 
 table.grid.leads-grid th, table.grid.leads-grid td { border: 0 !important; }
 /* Dark-theme the leads scroll container's scrollbars + kill the default WHITE corner square
    (where the horizontal + vertical scrollbars meet) — Gev 2026-06-11. */
-.leads-wrap::-webkit-scrollbar { width: 10px; height: 10px; }
+.leads-wrap::-webkit-scrollbar { width: var(--gx-space-5); height: var(--gx-space-5); }
 .leads-wrap::-webkit-scrollbar-track { background: transparent; }
-.leads-wrap::-webkit-scrollbar-thumb { background: var(--gx-border); border-radius: 99px; }
+.leads-wrap::-webkit-scrollbar-thumb { background: var(--gx-border); border-radius: var(--gx-radius-full); }
 .leads-wrap::-webkit-scrollbar-thumb:hover { background: var(--gx-text-3); }
 .leads-wrap::-webkit-scrollbar-corner { background: transparent; }
 .leads-wrap { scrollbar-color: var(--gx-border) transparent; }  /* Firefox */

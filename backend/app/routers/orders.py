@@ -39,8 +39,25 @@ from .notifications import emit_notification
 
 router = APIRouter(prefix="/api", tags=["orders"])
 
-# legal forward steps for /advance
-_ADVANCE = {"SUBMITTED": "PROVISIONING", "PROVISIONING": "COMPLETED"}
+# Order lifecycle = the fulfillment half of the Customer Lifecycle SST
+# (frontend/src/lib/lifecycle.ts LIFECYCLE_STAGES, stages 6-13). Single source of truth — the
+# order does NOT carry its own parallel status vocabulary anymore (the legacy
+# DRAFT/SUBMITTED/PROVISIONING/COMPLETED set was deleted 2026-06-11). Kept in sync with the SST.
+ORDER_INITIAL = "order_created"           # SST #6 — created from a contract-signed lead
+ORDER_GATE_FROM, ORDER_GATE_TO = "order_validated", "scheduling"   # SST #7→#8 control gate
+ORDER_PROVISION_AT = "activation"         # SST #13 — provisions ACTIVE subscriptions, becomes a monitored customer
+ORDER_EDITABLE = ORDER_INITIAL            # only an unvalidated order can be edited
+
+# Legal forward steps for /advance — the SST fulfillment chain. `order_created` is NOT here:
+# it advances via /submit (order_created → order_validated), keeping the explicit submit step.
+_ADVANCE = {
+    "order_validated":   "scheduling",        # ← control gate fires here
+    "scheduling":        "config",             # NOC pre-configures the ONU at the office first
+    "config":            "installation",       # then the field team installs the ready ONU
+    "installation":      "connection_test",
+    "connection_test":   "payment_confirmed",
+    "payment_confirmed": "activation",
+}
 
 
 # ---- serializers ----
@@ -228,7 +245,7 @@ async def create_order(payload: dict, user: User = Depends(current_user), s: Asy
 
     number = await next_reference_number(s, tenant_id=user.tenant_id, prefix="ORD", width=5)
     order = Order(tenant_id=user.tenant_id, owner_node_id=user.primary_node_id,
-                  customer_id=customer_id, number=number, status="DRAFT", total=0)
+                  customer_id=customer_id, number=number, status=ORDER_INITIAL, total=0)
     s.add(order)
     await s.flush()
     order.total = await _replace_items(s, user, order, payload.get("items") or [])
@@ -268,8 +285,8 @@ async def update_order(order_id: uuid.UUID, payload: dict, user: User = Depends(
         )
     except AccessDenied as e:
         raise HTTPException(403, detail=str(e))
-    if order.status != "DRAFT":
-        raise HTTPException(409, f"Only a DRAFT order can be edited (status is {order.status})")
+    if order.status != ORDER_EDITABLE:
+        raise HTTPException(409, f"Only an unvalidated ({ORDER_EDITABLE}) order can be edited (status is {order.status})")
 
     if "customer_id" in payload:
         await _customer_or_422(s, user.tenant_id, payload["customer_id"])
@@ -309,9 +326,9 @@ async def submit_order(order_id: uuid.UUID, user: User = Depends(current_user), 
         )
     except AccessDenied as e:
         raise HTTPException(403, detail=str(e))
-    if order.status != "DRAFT":
-        raise HTTPException(409, f"Only a DRAFT order can be submitted (status is {order.status})")
-    await _set_status(s, user, order, "DRAFT", "SUBMITTED")
+    if order.status != ORDER_INITIAL:
+        raise HTTPException(409, f"Only a new ({ORDER_INITIAL}) order can be submitted (status is {order.status})")
+    await _set_status(s, user, order, ORDER_INITIAL, "order_validated")
     await s.commit()
     await s.refresh(order)
     return _order(order, await _items(s, order.id))
@@ -361,7 +378,7 @@ async def advance_order(order_id: uuid.UUID, user: User = Depends(current_user),
 
     # SPEC §3 / §10.4 — Stage 8 Control Gate. Fires on the Sales→Fulfillment crossing only
     # (SUBMITTED → PROVISIONING here; the explicit Scheduling stage isn't modeled yet).
-    if frm == "SUBMITTED" and nxt == "PROVISIONING":
+    if frm == ORDER_GATE_FROM and nxt == ORDER_GATE_TO:
         # Phase B.1: when control_pass hasn't been flipped TRUE yet, compute the full Stage 8
         # predicate so callers get a precise blocker list (credit / deposit / payment_method /
         # mandatory_approvals) rather than just the generic "control_pass != TRUE" message.
@@ -385,7 +402,7 @@ async def advance_order(order_id: uuid.UUID, user: User = Depends(current_user),
     await _set_status(s, user, order, frm, nxt)
 
     provisioned: list[str] = []
-    if nxt == "COMPLETED":
+    if nxt == ORDER_PROVISION_AT:
         items = await _items(s, order.id)
         provisioned = await _provision_subscriptions(s, user, order, items)
         # best-effort completion notification (no-op unless an `order.completed` def is seeded)
@@ -404,7 +421,7 @@ async def advance_order(order_id: uuid.UUID, user: User = Depends(current_user),
     await s.commit()
     await s.refresh(order)
     result = _order(order, await _items(s, order.id))
-    if nxt == "COMPLETED":
+    if nxt == ORDER_PROVISION_AT:
         result["provisioned_subscriptions"] = provisioned
     return result
 
@@ -429,10 +446,10 @@ async def cancel_order(order_id: uuid.UUID, user: User = Depends(current_user), 
         )
     except AccessDenied as e:
         raise HTTPException(403, detail=str(e))
-    if order.status in ("COMPLETED", "CANCELLED"):
+    if order.status in (ORDER_PROVISION_AT, "cancelled"):
         raise HTTPException(409, f"Cannot cancel an order in status {order.status}")
     frm = order.status
-    await _set_status(s, user, order, frm, "CANCELLED")
+    await _set_status(s, user, order, frm, "cancelled")
     await s.commit()
     await s.refresh(order)
     return _order(order, await _items(s, order.id))
@@ -527,10 +544,10 @@ async def release_order(
     await _require_admin_or_order_edit(s, user, order)
     await _owner_gate(s, table_name="order", writer_module="Orders")
 
-    if order.status != "SUBMITTED":
+    if order.status != ORDER_GATE_FROM:
         raise HTTPException(
             409,
-            f"Only a SUBMITTED order can be released (status is {order.status})",
+            f"Only an {ORDER_GATE_FROM} order can be released through the gate (status is {order.status})",
         )
 
     # Run the predicate fresh + persist the verdict (idempotent).
@@ -543,7 +560,7 @@ async def release_order(
             f"Stage 8 Control Gate not passed: {order.control_gate_block_reason}",
         )
 
-    await _set_status(s, user, order, "SUBMITTED", "PROVISIONING")
+    await _set_status(s, user, order, ORDER_GATE_FROM, ORDER_GATE_TO)
     await s.commit()
     await s.refresh(order)
     return _order(order, await _items(s, order.id))

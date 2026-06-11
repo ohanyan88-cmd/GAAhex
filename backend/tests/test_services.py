@@ -114,9 +114,11 @@ async def test_order_to_service_chain(client, admin):
     })).json()
     oid = order["id"]
     await client.post(f"/api/orders/{oid}/submit", headers=admin)
-    await _pass_control_gate(oid)                                               # SPEC §3 Stage 8
-    await client.post(f"/api/orders/{oid}/advance", headers=admin)              # PROVISIONING
-    assert (await client.post(f"/api/orders/{oid}/advance", headers=admin)).json()["status"] == "COMPLETED"
+    await _pass_control_gate(oid)                                               # control gate (SST #7→#8)
+    # walk the SST fulfillment chain to activation (provisions subscription + service)
+    for _ in range(5):
+        await client.post(f"/api/orders/{oid}/advance", headers=admin)         # → scheduling … config … connection_test … payment_confirmed
+    assert (await client.post(f"/api/orders/{oid}/advance", headers=admin)).json()["status"] == "activation"
 
     subs = (await client.get(f"/api/subscriptions?customer={cust}", headers=admin)).json()
     services = (await client.get(f"/api/services?customer={cust}", headers=admin)).json()

@@ -237,6 +237,13 @@
   --gx-border-2: 2px;
   --gx-border-3: 3px;
 
+  /* ── COMPONENT SIZES ── (structural layout constants, single-sourced here) */
+  --gx-kanban-col-w:     280px;  /* kanban column fixed width */
+  --gx-kanban-min-h:     600px;  /* kanban board min height */
+  --gx-kanban-col-max-h: 720px;  /* kanban column max height before internal scroll */
+  --gx-avatar-xs:        22px;   /* small inline avatar (kanban card) */
+  --gx-pill-min-w:       144px;  /* project-wide uniform status-pill width (fits the longest status label, e.g. "Payment Confirmed") */
+
   /* ── TYPOGRAPHY ── */
   --gx-font-display: 'Space Grotesk', 'Segoe UI', sans-serif;
   --gx-font-sans: 'IBM Plex Sans', 'Segoe UI', -apple-system, sans-serif;

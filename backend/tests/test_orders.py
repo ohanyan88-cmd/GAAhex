@@ -57,7 +57,7 @@ async def test_create_order_total_and_status(client, admin):
         "customer_id": cust,
         "items": [{"product_id": prod["id"], "description": "Fiber", "quantity": 2, "unit_amount": 12000}],
     })).json()
-    assert order["status"] == "DRAFT" and order["number"].startswith("ORD-")
+    assert order["status"] == "order_created" and order["number"].startswith("ORD-")
     assert order["total"] == 2 * 12000                              # sum(line_total)
     assert len(order["items"]) == 1
 
@@ -77,12 +77,16 @@ async def test_lifecycle_and_provisioning(client, admin):
     # no subscriptions for this fresh customer yet
     assert (await client.get(f"/api/subscriptions?customer={cust}", headers=admin)).json() == []
 
-    assert (await client.post(f"/api/orders/{oid}/submit", headers=admin)).json()["status"] == "SUBMITTED"
-    # SPEC §3 Stage 8 Control Gate: must be passed before SUBMITTED → PROVISIONING
+    assert (await client.post(f"/api/orders/{oid}/submit", headers=admin)).json()["status"] == "order_validated"
+    # Control gate (SST #7→#8): must be passed before order_validated → scheduling
     await _pass_control_gate(oid)
-    assert (await client.post(f"/api/orders/{oid}/advance", headers=admin)).json()["status"] == "PROVISIONING"
-    completed = (await client.post(f"/api/orders/{oid}/advance", headers=admin)).json()
-    assert completed["status"] == "COMPLETED"
+    assert (await client.post(f"/api/orders/{oid}/advance", headers=admin)).json()["status"] == "scheduling"
+    # walk the rest of the SST fulfillment chain; subscriptions provision on `activation`
+    completed = None
+    for expected in ["config", "installation", "connection_test", "payment_confirmed", "activation"]:
+        completed = (await client.post(f"/api/orders/{oid}/advance", headers=admin)).json()
+        assert completed["status"] == expected, completed
+    assert completed["status"] == "activation"
     assert len(completed["provisioned_subscriptions"]) == 1
 
     # the customer now has one ACTIVE subscription with PRODUCT terms (30000/monthly), not the line price
@@ -91,9 +95,9 @@ async def test_lifecycle_and_provisioning(client, admin):
     assert subs[0]["status"] == "ACTIVE" and subs[0]["amount"] == 30000 and subs[0]["cycle"] == "monthly"
     assert subs[0]["plan_name"] == prod["name"]
 
-    # audit trail: create + three transitions (submit, advance, advance)
+    # audit trail: create + 7 transitions (submit + 6 advances through the fulfillment chain)
     types = await _order_events(oid)
-    assert types[0] == "CREATE" and types.count("TRANSITION") == 3
+    assert types[0] == "CREATE" and types.count("TRANSITION") == 7
 
 
 # ===================== illegal transitions =====================
@@ -104,16 +108,16 @@ async def test_illegal_transitions_409(client, admin):
         "customer_id": cust, "items": [{"description": "One-off", "quantity": 1, "unit_amount": 1000}]})).json()
     oid = order["id"]
 
-    # cannot advance a DRAFT (must submit first)
+    # cannot advance a fresh order_created order (must submit first)
     assert (await client.post(f"/api/orders/{oid}/advance", headers=admin)).status_code == 409
     # submit, then submitting again is illegal
     assert (await client.post(f"/api/orders/{oid}/submit", headers=admin)).status_code == 200
     assert (await client.post(f"/api/orders/{oid}/submit", headers=admin)).status_code == 409
-    # drive to COMPLETED, then cancel is illegal
-    # SPEC §3 Stage 8 Control Gate: must be passed before SUBMITTED → PROVISIONING
+    # drive to activation, then cancel is illegal
+    # Control gate (SST #7→#8): must be passed before order_validated → scheduling
     await _pass_control_gate(oid)
-    await client.post(f"/api/orders/{oid}/advance", headers=admin)   # PROVISIONING
-    await client.post(f"/api/orders/{oid}/advance", headers=admin)   # COMPLETED
+    for _ in range(6):   # order_validated → scheduling → … → activation
+        await client.post(f"/api/orders/{oid}/advance", headers=admin)
     assert (await client.post(f"/api/orders/{oid}/cancel", headers=admin)).status_code == 409
 
 
@@ -124,7 +128,7 @@ async def test_cancel_from_allowed_state(client, admin):
     oid = order["id"]
     await client.post(f"/api/orders/{oid}/submit", headers=admin)
     cancelled = await client.post(f"/api/orders/{oid}/cancel", headers=admin)
-    assert cancelled.status_code == 200 and cancelled.json()["status"] == "CANCELLED"
+    assert cancelled.status_code == 200 and cancelled.json()["status"] == "cancelled"
 
 
 # ===================== scope / permission / tenant =====================

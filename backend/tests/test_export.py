@@ -76,9 +76,9 @@ async def test_export_filter_matches_list(client, admin):
     tok = "zexpfilt"
     a = (await client.post("/api/leads", headers=admin, json={"name": f"{tok} contacted", "phone": "+37411"})).json()
     (await client.post("/api/leads", headers=admin, json={"name": f"{tok} new"})).json()
-    assert (await client.post(f"/api/leads/{a['id']}/transition", headers=admin, json={"to": "CONTACTED"})).status_code == 200
+    assert (await client.post(f"/api/leads/{a['id']}/transition", headers=admin, json={"to": "validated_lead"})).status_code == 200
 
-    rows = (await _export(client, admin, f"?format=json&q={tok}&filter=status == 'NEW'")).json()
+    rows = (await _export(client, admin, f"?format=json&q={tok}&filter=status == 'lead'")).json()
     assert [row["name"] for row in rows] == [f"{tok} new"]          # only the NEW record
 
 

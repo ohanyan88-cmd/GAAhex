@@ -45,7 +45,9 @@ select.inp { cursor:pointer; appearance:none; background-image:url("data:image/s
 
 .pill { display:inline-flex; align-items:center; gap:6px; height:22px; padding:0 9px; border-radius:var(--gx-radius-full); font-size:11px; font-weight:600; line-height:1; white-space:nowrap; }
 /* Uniform-width pills — a whole status column padded to the longest label, centered. */
-.pill-uniform { min-width:var(--gx-pill-min); justify-content:center; }
+/* Every status pill is uniform-width project-wide: per-instance --gx-pill-min override, else the
+   single system token --gx-pill-min-w (so all pills match across table / kanban / cards / all views). */
+.pill-uniform { min-width:var(--gx-pill-min, var(--gx-pill-min-w)); justify-content:center; }
 .pill .d { width:6px; height:6px; border-radius:50%; }
 .pill-success { background:var(--gx-success-soft); color:var(--gx-success-fg); }
 .pill-warning { background:var(--gx-warning-soft); color:var(--gx-warning-fg); }
@@ -210,12 +212,12 @@ button.kpi-tile, a.kpi-tile {
 .gate-card-head { display:flex; flex-direction:column; gap:var(--gx-space-2); min-width:0; }
 .gate-card-name { display:flex; align-items:center; gap:var(--gx-space-4); font-family:var(--gx-font-mono);
   font-size:var(--gx-text-xs); font-weight:var(--gx-weight-bold); letter-spacing:.08em; text-transform:uppercase; color:var(--gx-text-1); }
-.gate-dot { width:var(--gx-space-5); height:var(--gx-space-5); border-radius:999px; background:var(--gx-border-strong); flex:0 0 auto; }
+.gate-dot { width:var(--gx-space-5); height:var(--gx-space-5); border-radius:var(--gx-radius-full); background:var(--gx-border-strong); flex:0 0 auto; }
 /* Per-gate brand identity dot (shows lit or dormant — the dot is the gate's badge). */
-.gate-card[data-gate="commercial"]  .gate-dot { background:var(--gx-gold); }
-.gate-card[data-gate="technical"]   .gate-dot { background:var(--gx-primary); }
-.gate-card[data-gate="service"]     .gate-dot { background:var(--gx-interactive); }
-.gate-card[data-gate="operational"] .gate-dot { background:var(--gx-success-fg); }
+.gate-card[data-gate="commercial"]   .gate-dot { background:var(--gx-gold); }
+.gate-card[data-gate="technical"]    .gate-dot { background:var(--gx-primary); }
+.gate-card[data-gate="billing"]      .gate-dot { background:var(--gx-interactive); }
+.gate-card[data-gate="customercare"] .gate-dot { background:var(--gx-success-fg); }
 .gate-card-scope { font-size:var(--gx-text-xs); color:var(--gx-text-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .gate-card-metrics { display:flex; align-items:baseline; gap:var(--gx-space-8); flex-wrap:wrap; }
 .gate-metric { font-size:var(--gx-text-sm); color:var(--gx-text-2); }

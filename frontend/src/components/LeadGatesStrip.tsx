@@ -1,65 +1,54 @@
 // LeadGatesStrip — the Leads page control-spine.
 //
-// The four LOCKED control gates (Standard 11): Commercial · Technical · Service ·
-// Operational. Gates are CHECKPOINTS, not buckets — a record passes through a gate, it
-// does not live in one. So each gate reports pending / blocked / pass-rate, never a
-// "records here" count. The Commercial Gate is computed from real lead status; the later
-// gates await Order / Service / Billing data and render as honest labelled-empty (no fake
-// numbers) until that data exists.
-interface GateRow {
-  status?: string | null
+// Four control gates, each a phase of the end-to-end SST flow and each backed by a DIFFERENT
+// entity (a record becomes lead → order → customer as it moves through the lifecycle):
+//   • Commercial   — Leads working through the commercial funnel
+//   • Technical    — Orders in validation → config → install → connection
+//   • Billing      — Orders in payment → activation
+//   • Customer Care— active Customers (monitoring / care)
+// Each card shows HOW MANY records are currently in that gate; clicking opens a same-page window
+// listing them. No navigation to the Pipeline (that is a management page), no fake numbers.
+interface Row { status?: string | null }
+
+export interface GateSpec {
+  key:      string
+  name:     string
+  scope:    string
+  entity:   'lead' | 'order' | 'customer'
+  statuses: string[]   // statuses of `entity` that count as "currently in" this gate
 }
 
-interface GateSpec {
-  key: string
-  name: string
-  scope: string
-  metrics?: { pending: number; blocked: number; passRate: number | null }
-  awaiting?: string
+// Single source for the gate → entity + statuses mapping — shared with EntityView so the strip
+// count and the gate window's filtered list always agree. Order statuses are the SST fulfillment
+// stages; lead/customer statuses use their current sets until those entities are SST-aligned too.
+export const GATES: GateSpec[] = [
+  { key: 'commercial',   name: 'Commercial Gate',    scope: 'Lead · contract · pricing · approvals',      entity: 'lead',     statuses: ['lead', 'validated_lead', 'assigned', 'deal', 'contract_signed'] },
+  { key: 'technical',    name: 'Technical Gate',     scope: 'Validation · config · install · connection', entity: 'order',    statuses: ['order_validated', 'scheduling', 'config', 'installation', 'connection_test'] },
+  { key: 'billing',      name: 'Billing Gate',       scope: 'First payment · activation',                 entity: 'order',    statuses: ['payment_confirmed', 'activation'] },
+  { key: 'customercare', name: 'Customer Care Gate', scope: 'Monitoring · care · SLA · satisfaction',      entity: 'customer', statuses: ['monitoring', 'suspended'] },
+]
+
+const ENTITY_LABEL: Record<GateSpec['entity'], [string, string]> = {
+  lead:     ['lead', 'leads'],
+  order:    ['order', 'orders'],
+  customer: ['customer', 'customers'],
 }
 
-export function LeadGatesStrip({ rows, onOpenGate }: { rows: GateRow[]; onOpenGate?: () => void }) {
-  const by = (s: string) => rows.filter((r) => r.status === s).length
-  // Commercial Gate = contract / pricing / approvals checkpoint. A lead PASSES it when it
-  // becomes a signed contract (CONVERTED); it is BLOCKED when disqualified or lost; it is
-  // PENDING while still working through the commercial funnel.
-  const passed = by('CONVERTED')
-  const blocked = by('DISQUALIFIED') + by('LOST')
-  const pending = by('NEW') + by('CONTACTED') + by('WORKING') + by('QUALIFIED')
-  const resolved = passed + blocked
-  const passRate = resolved > 0 ? Math.round((passed / resolved) * 100) : null
-
-  const gates: GateSpec[] = [
-    {
-      key: 'commercial',
-      name: 'Commercial Gate',
-      scope: 'Contract · pricing · compliance · approvals',
-      metrics: { pending, blocked, passRate },
-    },
-    {
-      key: 'technical',
-      name: 'Technical Gate',
-      scope: 'Feasibility · capacity · infrastructure readiness',
-      awaiting: 'Awaiting order data',
-    },
-    {
-      key: 'service',
-      name: 'Service Gate',
-      scope: 'Installation · billing readiness · activation',
-      awaiting: 'Awaiting service data',
-    },
-    {
-      key: 'operational',
-      name: 'Operational Gate',
-      scope: 'SLA · quality · incidents · satisfaction',
-      awaiting: 'Awaiting live-service data',
-    },
-  ]
+export function LeadGatesStrip({ leads, orders, customers, onOpenGate }: {
+  leads: Row[]
+  orders: Row[]
+  customers: Row[]
+  onOpenGate?: (gateKey: string) => void
+}) {
+  const dataFor = (e: GateSpec['entity']): Row[] => e === 'lead' ? leads : e === 'order' ? orders : customers
+  const countIn = (g: GateSpec) => dataFor(g.entity).filter((r) => g.statuses.includes(r.status ?? '')).length
 
   return (
     <div className="gate-strip" role="group" aria-label="Lifecycle control gates">
-      {gates.map((g, i) => {
-        const cls = 'gate-card' + (g.metrics ? ' on' : ' awaiting') + (i === 0 ? ' first' : '')
+      {GATES.map((g, i) => {
+        const count = countIn(g)
+        const [one, many] = ENTITY_LABEL[g.entity]
+        const cls = 'gate-card on' + (i === 0 ? ' first' : '')
         const inner = (
           <>
             <div className="gate-card-head">
@@ -69,17 +58,9 @@ export function LeadGatesStrip({ rows, onOpenGate }: { rows: GateRow[]; onOpenGa
               </span>
               <span className="gate-card-scope">{g.scope}</span>
             </div>
-            {g.metrics ? (
-              <div className="gate-card-metrics">
-                <span className="gate-metric"><b>{g.metrics.pending}</b> pending</span>
-                <span className="gate-metric gate-metric-block"><b>{g.metrics.blocked}</b> blocked</span>
-                <span className="gate-metric-pass">
-                  {g.metrics.passRate == null ? '—' : `${g.metrics.passRate}%`} pass
-                </span>
-              </div>
-            ) : (
-              <div className="gate-card-awaiting">{g.awaiting}</div>
-            )}
+            <div className="gate-card-metrics">
+              <span className="gate-metric"><b>{count}</b> {count === 1 ? one : many}</span>
+            </div>
           </>
         )
         return onOpenGate ? (
@@ -88,8 +69,8 @@ export function LeadGatesStrip({ rows, onOpenGate }: { rows: GateRow[]; onOpenGa
             className={cls + ' gate-card-link'}
             key={g.key}
             data-gate={g.key}
-            onClick={onOpenGate}
-            aria-label={`${g.name} — open the pipeline`}
+            onClick={() => onOpenGate(g.key)}
+            aria-label={`${g.name} — ${count} ${count === 1 ? one : many}, open list`}
           >
             {inner}
           </button>

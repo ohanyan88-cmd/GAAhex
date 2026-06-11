@@ -28,7 +28,7 @@ async def test_record_timeline_chronological_with_summaries(client, admin):
     lead = (await client.post("/api/leads", headers=admin, json={"name": "Timeline", "phone": "+37491"})).json()
     lid = lead["id"]
     await client.patch(f"/api/leads/{lid}", headers=admin, json={"email": "t@x.io"})
-    await client.post(f"/api/leads/{lid}/transition", headers=admin, json={"to": "CONTACTED"})
+    await client.post(f"/api/leads/{lid}/transition", headers=admin, json={"to": "validated_lead"})
     await client.post(f"/api/records/leads/{lid}/comments", headers=admin, json={"body": "hi"})
 
     items = await _feed(client, admin, f"?entity=leads&record={lid}")
@@ -36,7 +36,7 @@ async def test_record_timeline_chronological_with_summaries(client, admin):
     summaries = {it["type"]: it["summary"] for it in items}
     assert summaries["CREATE"] == "created this lead"
     assert summaries["UPDATE"] == "updated email"
-    assert summaries["TRANSITION"] == "moved NEW → CONTACTED"
+    assert summaries["TRANSITION"] == "moved lead → validated_lead"
     assert summaries["COMMENT"] == "commented"
     assert all(it["actor_name"] == "Demo Admin" for it in items)
     ats = [it["at"] for it in items]
@@ -90,7 +90,7 @@ async def test_global_feed_tenant_isolated(client, admin):
         other = Tenant(name=f"Other ISP {uuid.uuid4().hex[:6]}")
         s.add(other)
         await s.flush()
-        rec = Record(tenant_id=other.id, entity_key="lead", owner_node_id=None, status="NEW", data={"name": f"{tok} foreign"})
+        rec = Record(tenant_id=other.id, entity_key="lead", owner_node_id=None, status="lead", data={"name": f"{tok} foreign"})
         s.add(rec)
         await s.flush()
         ev = Event(tenant_id=other.id, type="create", entity_key="lead", record_id=rec.id, actor_user_id=None, data={})

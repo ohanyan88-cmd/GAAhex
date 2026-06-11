@@ -5,7 +5,7 @@ views). Lead is the starting point; Customer is the result after Activation.
 
 > **Reconciled 2026-06-11 (owner decision):** the frontend `lifecycle.ts` LIFECYCLE_STAGES is the
 > single source of truth (SST); the backend `stage_def` is its projection, hard-locked by drift
-> rule `SST-1`. Changes from the prior version: `PROVISIONING` → **`CONFIG`** (after INSTALLATION);
+> rule `SST-1`. Changes from the prior version: `PROVISIONING` → **`CONFIG`** (NOC, BEFORE installation — NOC pre-configures the ONU at the office, then the field team installs the ready ONU);
 > `ORDER_VALIDATED` is the one hard control gate, owned by **Validation** (independent of Sales);
 > the legacy `SERVICE_QUALIFICATION` stage is dropped (feasibility folded into `VALIDATED_LEAD`).
 > Five exit/off-ramp states (`LOST, CANCELLED, INSTALL_FAILED, SUSPENDED, TERMINATED`) branch off
@@ -14,7 +14,7 @@ views). Lead is the starting point; Customer is the result after Activation.
 ## Core Lifecycle (canonical stages — UPPER_SNAKE)
 ```
 LEAD → VALIDATED_LEAD → ASSIGNED → DEAL → CONTRACT_SIGNED → ORDER_CREATED → ORDER_VALIDATED →
-SCHEDULING → INSTALLATION → CONFIG → CONNECTION_TEST → PAYMENT_CONFIRMED → ACTIVATION →
+SCHEDULING → CONFIG → INSTALLATION → CONNECTION_TEST → PAYMENT_CONFIRMED → ACTIVATION →
 MONITORING
 ```
 Off-ramp states (not linear): `LOST` (from LEAD…CONTRACT_SIGNED), `CANCELLED` (ORDER_CREATED…
@@ -66,8 +66,8 @@ Owner Department; supporting departments are contributors, not co-owners.**
 | `ORDER_CREATED` | Back Office | — |
 | `ORDER_VALIDATED` | Validation | — |  ← the hard control gate (independent of Sales) |
 | `SCHEDULING` | Dispatch Team | — |
-| `INSTALLATION` | Technical Department | — |
-| `CONFIG` | NOC | — |
+| `CONFIG` | NOC | — |  ← NOC pre-configures the ONU at the office first |
+| `INSTALLATION` | Technical Department | — |  ← field team installs the ready ONU |
 | `CONNECTION_TEST` | NOC | — |
 | `PAYMENT_CONFIRMED` | Billing | — |
 | `ACTIVATION` | Billing | — |
@@ -78,9 +78,11 @@ reason. Use placeholder metadata/empty states when data is unavailable; no fake 
 business logic unless required for display.
 
 ## Control Gates (concept; UI copy/help text)
-`COMMERCIAL_GATE` (contract, pricing, compliance, approvals), `TECHNICAL_GATE` (feasibility,
-capacity, infrastructure readiness), `SERVICE_GATE` (installation completion, billing readiness,
-activation approval), `OPERATIONAL_GATE` (SLA, quality, incidents, audits, satisfaction). Page
+`COMMERCIAL_GATE` (lead, contract, pricing, compliance, approvals), `TECHNICAL_GATE` (feasibility,
+capacity, infrastructure, config, install, connection), `BILLING_GATE` (first payment, billing
+readiness, activation approval), `CUSTOMER_CARE_GATE` (SLA, quality, incidents, monitoring,
+satisfaction). The four gates back the Leads-page gate strip (Commercial=leads, Technical/Billing=
+orders, Customer Care=customers). Page
 structure/copy must not conflict with this model. (Gates are enforced by the Workflow Engine
 Standard, file 12.)
 

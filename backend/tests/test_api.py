@@ -33,14 +33,14 @@ async def test_entity_def_has_fields(client, admin):
     d = (await client.get("/meta/entities/leads", headers=admin)).json()
     keys = {f["key"] for f in d["fields"]}
     assert {"name", "phone", "status"} <= keys
-    assert any(s["is_initial"] and s["key"] == "NEW" for s in d["statuses"])
+    assert any(s["is_initial"] and s["key"] == "lead" for s in d["statuses"])
 
 
 # ---- generic CRUD + validation ----
 
 async def test_lead_crud(client, admin):
     created = (await client.post("/api/leads", headers=admin, json={"name": "Test Lead", "phone": "+37411"})).json()
-    assert created["name"] == "Test Lead" and created["status"] == "NEW"
+    assert created["name"] == "Test Lead" and created["status"] == "lead"
     got = (await client.get(f"/api/leads/{created['id']}", headers=admin)).json()
     assert got["id"] == created["id"]
     ids = {r["id"] for r in (await client.get("/api/leads", headers=admin)).json()}
@@ -54,8 +54,8 @@ async def test_validation(client, admin):
 
 async def test_create_forces_initial_status(client, admin):
     # asking for CONTACTED at create is ignored — lifecycle starts at NEW
-    r = (await client.post("/api/leads", headers=admin, json={"name": "Z", "status": "CONTACTED"})).json()
-    assert r["status"] == "NEW"
+    r = (await client.post("/api/leads", headers=admin, json={"name": "Z", "status": "validated_lead"})).json()
+    assert r["status"] == "lead"
 
 
 async def test_field_type_validation(client, admin):
@@ -75,13 +75,13 @@ async def test_field_type_validation(client, admin):
 async def test_workflow_guard_and_transitions(client, admin):
     lead = (await client.post("/api/leads", headers=admin, json={"name": "WF"})).json()
     # guard: NEW->CONTACTED requires phone
-    r = await client.post(f"/api/leads/{lead['id']}/transition", headers=admin, json={"to": "CONTACTED"})
+    r = await client.post(f"/api/leads/{lead['id']}/transition", headers=admin, json={"to": "validated_lead"})
     assert r.status_code == 422
     await client.patch(f"/api/leads/{lead['id']}", headers=admin, json={"phone": "+37499"})
-    r = await client.post(f"/api/leads/{lead['id']}/transition", headers=admin, json={"to": "CONTACTED"})
-    assert r.status_code == 200 and r.json()["status"] == "CONTACTED"
+    r = await client.post(f"/api/leads/{lead['id']}/transition", headers=admin, json={"to": "validated_lead"})
+    assert r.status_code == 200 and r.json()["status"] == "validated_lead"
     # invalid transition
-    r = await client.post(f"/api/leads/{lead['id']}/transition", headers=admin, json={"to": "NEW"})
+    r = await client.post(f"/api/leads/{lead['id']}/transition", headers=admin, json={"to": "lead"})
     assert r.status_code == 409
 
 
@@ -105,7 +105,7 @@ async def test_agent_scope_and_permissions(client, admin, agent):
 async def test_audit_history(client, admin):
     lead = (await client.post("/api/leads", headers=admin, json={"name": "Audited"})).json()
     await client.patch(f"/api/leads/{lead['id']}", headers=admin, json={"phone": "+37412"})
-    await client.post(f"/api/leads/{lead['id']}/transition", headers=admin, json={"to": "CONTACTED"})
+    await client.post(f"/api/leads/{lead['id']}/transition", headers=admin, json={"to": "validated_lead"})
     types = [e["type"] for e in (await client.get(f"/api/leads/{lead['id']}/history", headers=admin)).json()]
     assert types == ["CREATE", "UPDATE", "TRANSITION"]
 

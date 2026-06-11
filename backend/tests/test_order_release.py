@@ -49,7 +49,7 @@ async def test_release_succeeds_when_stage8_passes(client, admin):
     r = await client.post(f"/api/orders/{order['id']}/release", headers=admin)
     assert r.status_code == 200, r.text
     body = r.json()
-    assert body["status"] == "PROVISIONING"
+    assert body["status"] == "scheduling"
 
     # Verify control_pass was persisted to TRUE.
     async with SessionLocal() as s:
@@ -80,7 +80,7 @@ async def test_release_409_with_block_reason_when_stage8_fails(client, admin):
         fresh = (await s.execute(
             select(Order).where(Order.id == uuid.UUID(order["id"]))
         )).scalar_one()
-        assert fresh.status == "SUBMITTED"
+        assert fresh.status == "order_validated"
         # control_pass was persisted as False with a block reason.
         assert fresh.control_pass is False
         assert fresh.control_gate_block_reason is not None

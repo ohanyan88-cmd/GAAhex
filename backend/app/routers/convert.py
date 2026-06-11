@@ -27,10 +27,12 @@ router = APIRouter(prefix="/api", tags=["convert"])
 # The conventional status key a successful conversion lands the lead in. It's resolved against the
 # entity's *configured* StatusDefs below (we never invent a status) — if a tenant renamed it, we
 # fall back structurally to a positive terminal, so the lifecycle stays config-driven.
-_CONVERTED_KEY = "CONVERTED"
+# SST: a converted lead lands at `contract_signed` (the last commercial stage before it becomes
+# an order/customer). Legacy "CONVERTED" was deleted 2026-06-11.
+_CONVERTED_KEY = "contract_signed"
 # Terminals that are NOT a conversion outcome — excluded from the structural fallback so we never
 # accidentally land a "converted" lead in a loss state.
-_LOSS_KEYS = {"LOST", "CHURNED", "REJECTED", "CANCELLED"}
+_LOSS_KEYS = {"lost", "terminated", "rejected", "cancelled", "LOST", "CHURNED", "REJECTED", "CANCELLED"}
 
 
 async def _converted_status(s: AsyncSession, entity_id) -> str | None:

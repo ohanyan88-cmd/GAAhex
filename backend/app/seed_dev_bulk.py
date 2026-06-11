@@ -377,7 +377,7 @@ async def seed_dev_bulk_if_empty() -> dict | None:
             # --- 5a. Customer Record (entity_key="customer") ---
             cust = Record(
                 tenant_id=tenant.id, entity_key="customer", owner_node_id=owner_node_id,
-                status="ACTIVE",
+                status="monitoring",   # SST #14 — active monitored customer
                 data=_tag({
                     "name": cust_name, "email": email, "phone": phone, "plan": plan_label,
                     # extra (non-schema) fields are fine — config records accept arbitrary keys
@@ -387,7 +387,7 @@ async def seed_dev_bulk_if_empty() -> dict | None:
             s.add(cust)
             await s.flush()
             await workflow.emit(s, tenant.id, "create", "customer", cust.id, actor_id,
-                                {"data": cust.data, "status": "ACTIVE"})
+                                {"data": cust.data, "status": "monitoring"})
             summary["customers"] += 1
 
             # --- 5b. Party row (BSS first-class table — for the holder picker) ---
@@ -957,37 +957,37 @@ async def seed_dev_threads_if_empty() -> dict | None:
 
 # CRM pipeline demo — leads + quotes so the Leads / Pipeline / Quotes pages and the
 # My Day sales widgets are alive. (name, lead-status, assigned_to, source, est_value AMD)
-# Statuses use the lead entity's CANONICAL status set (NEW/WORKING/CONTACTED/QUALIFIED/
-# CONVERTED/DISQUALIFIED/LOST). CONVERTED = contract signed.
+# Statuses are the SST commercial stages (lifecycle.ts #1-5): lead → validated_lead → assigned →
+# deal → contract_signed (matches seed.py). The legacy NEW/CONTACTED/QUALIFIED/CONVERTED set was
+# deleted 2026-06-11. Spread across the funnel so the gate strip + KPI cards have a real shape.
 _LEADS = [
-    ("Հակոբյան Արամ Սարգսի — Մաշտոցի ֆայբեր",   "QUALIFIED", "Demo Admin", "WEBSITE",  45000),
-    ("Tumo Center — Enterprise կապ",      "CONVERTED", "Demo Admin", "OUTBOUND", 250000),
-    ("Erebuni IT Solutions",              "CONTACTED", "Demo Admin", "OUTBOUND", 120000),
-    ("Գրիգորյան Մարիամ Վահանի — բիզնес փաթեթ",   "QUALIFIED", "Demo Admin", "WEBSITE",  45000),
-    ("Սարգսյան Լիլիթ Արմենի — բնակարան",         "WORKING",   "Demo Agent", "REFERRAL", 8000),
-    ("Պետրոսյան Գևորգ Արամի",                   "NEW",       "Demo Agent", "WEBSITE",  8000),
-    ("Մկրտչյան Անի Կարենի — տուն",               "CONVERTED", "Demo Agent", "WALK_IN",  15000),
-    ("Ավագյան Նարեկ Հայկի",                     "NEW",       "Demo Agent", "REFERRAL", 8000),
-    ("Սարուխանյան Հայկ Գագիկի",                  "NEW",       "Demo Agent", "WEBSITE",  8000),
-    ("Ադամյան Լուսինե Սուրենի",                   "NEW",       "Demo Admin", "WALK_IN",  12000),
-    ("Vardanyan Bakery — 3 sites",        "NEW",       "Demo Admin", "OUTBOUND", 140000),
-    ("Խաչատրյան Ռուբեն Աշոտի",                  "NEW",       "Demo Agent", "REFERRAL", 8000),
-    ("Գասպարյան Մհեր Տիգրանի — բիզնес",           "QUALIFIED", "Demo Admin", "OUTBOUND", 60000),
+    ("Հակոբյան Արամ Սարգսի — Մաշտոցի ֆայբեր",   "assigned",        "Demo Admin", "WEBSITE",  45000),
+    ("Tumo Center — Enterprise կապ",      "contract_signed", "Demo Admin", "OUTBOUND", 250000),
+    ("Erebuni IT Solutions",              "validated_lead",  "Demo Admin", "OUTBOUND", 120000),
+    ("Գրիգորյան Մարիամ Վահանի — բիզնес փաթեթ",   "deal",            "Demo Admin", "WEBSITE",  45000),
+    ("Սարգսյան Լիլիթ Արմենի — բնակարան",         "validated_lead",  "Demo Agent", "REFERRAL", 8000),
+    ("Պետրոսյան Գևորգ Արամի",                   "lead",            "Demo Agent", "WEBSITE",  8000),
+    ("Մկրտչյան Անի Կարենի — տուն",               "contract_signed", "Demo Agent", "WALK_IN",  15000),
+    ("Ավագյան Նարեկ Հայկի",                     "lead",            "Demo Agent", "REFERRAL", 8000),
+    ("Սարուխանյան Հայկ Գագիկի",                  "lead",            "Demo Agent", "WEBSITE",  8000),
+    ("Ադամյան Լուսինե Սուրենի",                   "assigned",        "Demo Admin", "WALK_IN",  12000),
+    ("Vardanyan Bakery — 3 sites",        "lead",            "Demo Admin", "OUTBOUND", 140000),
+    ("Խաչատրյան Ռուբեն Աշոտի",                  "lead",            "Demo Agent", "REFERRAL", 8000),
+    ("Գասպարյան Մհեր Տիգրանի — բիզնес",           "deal",            "Demo Admin", "OUTBOUND", 60000),
 ]
-# Prior-week leads — backdated so the weekly KPIs have a real week-over-week baseline.
-# 7 NEW / 1 QUALIFIED / 1 CONVERTED / 1 CONTACTED (10 total): last week pulled more new
-# leads but closed fewer, so this week reads as a down-arrow on NEW yet up on the funnel.
+# Prior-week leads — backdated so the weekly KPIs have a real week-over-week baseline. Last week
+# pulled more raw leads but closed fewer, so this week reads as a down-arrow on intake yet up the funnel.
 _LEADS_PRIOR = [
-    ("Ավետիսյան Սուրեն Համբարձումի",                  "NEW",       "Demo Admin", "WEBSITE",  8000),
-    ("Հովհաննիսյան Կարեն Դավիթի",                "NEW",       "Demo Agent", "REFERRAL", 12000),
-    ("Davit Group — office link",         "NEW",       "Demo Admin", "OUTBOUND", 90000),
-    ("Սահակյան Նաիրա Աշոտի",                    "NEW",       "Demo Agent", "WEBSITE",  8000),
-    ("Մարտիրոսյան Գոռ Վազգենի",                   "NEW",       "Demo Agent", "WALK_IN",  10000),
-    ("Aren Tech — fiber quote",           "NEW",       "Demo Admin", "OUTBOUND", 75000),
-    ("Բաբայան Արմեն Սմբատի",                     "NEW",       "Demo Agent", "WEBSITE",  8000),
-    ("Մելքոնյան Շուշան Արթուրի",                  "QUALIFIED", "Demo Agent", "WALK_IN",  15000),
-    ("Tigran Auto — 2 sites",             "CONVERTED", "Demo Admin", "OUTBOUND", 180000),
-    ("Գրիգորյան Վահե Կարապետի",                    "CONTACTED", "Demo Agent", "WEBSITE",  8000),
+    ("Ավետիսյան Սուրեն Համբարձումի",                  "lead",            "Demo Admin", "WEBSITE",  8000),
+    ("Հովհաննիսյան Կարեն Դավիթի",                "lead",            "Demo Agent", "REFERRAL", 12000),
+    ("Davit Group — office link",         "lead",            "Demo Admin", "OUTBOUND", 90000),
+    ("Սահակյան Նաիրա Աշոտի",                    "lead",            "Demo Agent", "WEBSITE",  8000),
+    ("Մարտիրոսյան Գոռ Վազգենի",                   "lead",            "Demo Agent", "WALK_IN",  10000),
+    ("Aren Tech — fiber quote",           "lead",            "Demo Admin", "OUTBOUND", 75000),
+    ("Բաբայան Արմեն Սմբատի",                     "lead",            "Demo Agent", "WEBSITE",  8000),
+    ("Մելքոնյան Շուշան Արթուրի",                  "assigned",        "Demo Agent", "WALK_IN",  15000),
+    ("Tigran Auto — 2 sites",             "contract_signed", "Demo Admin", "OUTBOUND", 180000),
+    ("Գրիգորյան Վահե Կարապետի",                    "validated_lead",  "Demo Agent", "WEBSITE",  8000),
 ]
 # Yerevan demo addresses, cycled per lead so the Address column reads real.
 _ADDR = [
@@ -998,16 +998,51 @@ _ADDR = [
 ]
 
 
-def _lead_contact(idx: int) -> dict:
-    """Deterministic demo contact fields (phone / email / address) for a lead by index —
-    so the Leads grid columns are populated without hand-editing every row."""
+_SVC = ["Internet", "TV", "VoIP", "Bundle"]
+_PKG = ["50 Mbps", "100 Mbps", "300 Mbps"]
+_TERM = ["Monthly", "12 Months", "24 Months"]
+_CITY = ["Yerevan", "Gyumri", "Vanadzor", "Abovyan", "Ashtarak"]
+_REGION = ["Yerevan", "Shirak", "Lori", "Kotayk", "Aragatsotn"]
+
+
+def _lead_fields(idx: int, name: str, est: int, assigned: str) -> dict:
+    """EVERY lead field filled with deterministic demo values, so every Leads-grid column and the
+    full lead detail form is populated (not just a handful). B2B (est ≥ 50000) vs B2C drives which
+    section fields apply (company/tax vs ID document)."""
+    b2b = est >= 50000
     op = 10 + idx % 89
     num = (100000 + idx * 7919) % 1000000
-    return {
+    num2 = (200000 + idx * 6131) % 1000000
+    addr = _ADDR[idx % len(_ADDR)]
+    d = {
+        "segment": "B2B" if b2b else "B2C",
         "phone": f"+374 {op:02d} {num:06d}",
+        "secondary_phone": f"+374 {(op + 7) % 89 + 10:02d} {num2:06d}",
+        "landline": f"+374 10 {num % 1000000:06d}",
+        "whatsapp": f"+374 {op:02d} {num:06d}",
+        "telegram": f"@lead{idx + 1:03d}",
         "email": f"lead{idx + 1:03d}@housenet.am",
-        "address": _ADDR[idx % len(_ADDR)],
+        "registration_address": _ADDR[(idx + 3) % len(_ADDR)],
+        "service_type": _SVC[idx % len(_SVC)],
+        "package": _PKG[idx % len(_PKG)],
+        "contract_term": _TERM[idx % len(_TERM)],
+        "region": _REGION[idx % len(_REGION)],
+        "city": _CITY[idx % len(_CITY)],
+        "village": "—",
+        "address": addr,
+        "landmark": "Մոտ՝ " + addr.split(",")[0],
+        "gps": f"40.{1700 + (idx * 13) % 800:03d}, 44.{4900 + (idx * 17) % 800:03d}",
+        "sales_representative": assigned,
+        "notes": f"Demo lead — interested in {_SVC[idx % len(_SVC)]} {_PKG[idx % len(_PKG)]} via {assigned}.",
     }
+    if b2b:
+        d["company_name"] = name.split("—")[0].strip()
+        d["tax_id"] = f"{(10000000 + idx * 131) % 99999999:08d}"
+    else:
+        d["document_type"] = "ID"
+        d["document_number"] = f"AN{(1000000 + idx * 7) % 9999999:07d}"
+        d["issued_by"] = f"Ոստիկանություն 00{idx % 9 + 1}"
+    return d
 
 
 # (number, quote-status, amount_minor (luma = AMD×100), customer)
@@ -1088,7 +1123,7 @@ async def seed_dev_pipeline_if_empty() -> dict | None:
                 tenant_id=tenant_id, entity_key="lead", owner_node_id=owner_node_id, status=status,
                 created_at=created,
                 data=_tag({"name": name, "assigned_to": assigned, "source": source, "est_value": est,
-                           "ref": f"LED-{len(_LEADS_PRIOR) + idx + 1:06d}", **_lead_contact(idx)}),
+                           "ref": f"LED-{len(_LEADS_PRIOR) + idx + 1:06d}", **_lead_fields(idx, name, est, assigned)}),
             )
             s.add(rec)
             await s.flush()
@@ -1102,7 +1137,7 @@ async def seed_dev_pipeline_if_empty() -> dict | None:
                 tenant_id=tenant_id, entity_key="lead", owner_node_id=owner_node_id, status=status,
                 created_at=prior_monday + timedelta(days=idx % 7, hours=(idx * 3) % 8),
                 data=_tag({"name": name, "assigned_to": assigned, "source": source, "est_value": est,
-                           "ref": f"LED-{idx + 1:06d}", **_lead_contact(idx + len(_LEADS))}),
+                           "ref": f"LED-{idx + 1:06d}", **_lead_fields(idx + len(_LEADS), name, est, assigned)}),
             )
             s.add(rec)
             await s.flush()
@@ -1129,7 +1164,7 @@ async def seed_dev_pipeline_if_empty() -> dict | None:
 # Demo notifications so the bell + Notifications page are alive (dev only, idempotent).
 _DEMO_NOTIFS = [
     ("info",    "Նոր լիդ ստեղծվեց",       "Հակոբյան Արամ Սարգսի — Մաշտոցի ֆայբեր (WEBSITE)", False),
-    ("info",    "Պայմանագիր ստորագրվեց",  "Tumo Center — Enterprise կապ՝ CONVERTED", False),
+    ("info",    "Պայմանագիր ստորագրվեց",  "Tumo Center — Enterprise կապ՝ CONTRACT_SIGNED", False),
     ("warning", "SLA զգուշացում",          "Ticket #1042 մոտենում է SLA-ի սահմանին (2ժ մնաց)", False),
     ("info",    "Վճարում ստացվեց",         "+250,000 ֏ — Erebuni IT Solutions", True),
     ("info",    "Նոր հաղորդագրություն",     "Մելքոնյան Շուշան — WiFi ծածկույթ 2-րդ հարկում", True),

@@ -20,8 +20,8 @@ export type LifecycleStageKey =
   | 'ORDER_CREATED'
   | 'ORDER_VALIDATED'
   | 'SCHEDULING'
-  | 'INSTALLATION'
   | 'CONFIG'
+  | 'INSTALLATION'
   | 'CONNECTION_TEST'
   | 'PAYMENT_CONFIRMED'
   | 'ACTIVATION'
@@ -45,8 +45,8 @@ export type DepartmentOwner =
 export type ControlGate =
   | 'Commercial Gate'
   | 'Technical Gate'
-  | 'Service Gate'
-  | 'Operational Gate'
+  | 'Billing Gate'
+  | 'Customer Care Gate'
 
 export interface LifecycleStage {
   key:        LifecycleStageKey
@@ -62,8 +62,8 @@ export interface LifecycleStage {
 // stages across the whole platform. Every other place that needs stages derives from
 // here (Pipeline view, backend stage_def seed, KPI bindings). Reconciled 2026-06-11:
 //   • Exactly ONE accountable owner per stage (B5) — supporting[] left empty for now.
-//   • Order is Installation (#9) → Config (#10): the field tech connects the ONU, THEN
-//     NOC registers/provisions it on the OLT.
+//   • Order is Config (#9) → Installation (#10): NOC pre-configures/provisions the ONU at the
+//     office FIRST, then the field team installs that ready ONU on-site (HouseNet's real flow).
 //   • #7 ORDER_VALIDATED is THE hard control gate (Validation, independent of Sales) —
 //     enforced in the kernel (app.kernel.control_gate); nothing advances to Scheduling
 //     until control_pass = TRUE.
@@ -76,12 +76,12 @@ export const LIFECYCLE_STAGES: LifecycleStage[] = [
   { key: 'ORDER_CREATED',     label: 'Order Created',     owner: 'Back Office',          supporting: [],          gate: 'Commercial Gate' },
   { key: 'ORDER_VALIDATED',   label: 'Order Validated',   owner: 'Validation',           supporting: [],          gate: 'Technical Gate'  },  // THE control gate
   { key: 'SCHEDULING',        label: 'Scheduling',        owner: 'Dispatch Team',        supporting: [],          gate: 'Technical Gate'  },
-  { key: 'INSTALLATION',      label: 'Installation',      owner: 'Technical Department', supporting: [],          gate: 'Technical Gate'  },
   { key: 'CONFIG',            label: 'Config',            owner: 'NOC',                  supporting: [],          gate: 'Technical Gate'  },
-  { key: 'CONNECTION_TEST',   label: 'Connection Test',   owner: 'NOC',                  supporting: [],          gate: 'Service Gate'    },
-  { key: 'PAYMENT_CONFIRMED', label: 'Payment Confirmed', owner: 'Billing',              supporting: [],          gate: 'Service Gate'    },
-  { key: 'ACTIVATION',        label: 'Activation',        owner: 'Billing',              supporting: [],          gate: 'Service Gate'    },
-  { key: 'MONITORING',        label: 'Monitoring',        owner: 'NOC',                  supporting: ['Support'], gate: 'Operational Gate'},
+  { key: 'INSTALLATION',      label: 'Installation',      owner: 'Technical Department', supporting: [],          gate: 'Technical Gate'  },
+  { key: 'CONNECTION_TEST',   label: 'Connection Test',   owner: 'NOC',                  supporting: [],          gate: 'Technical Gate'     },
+  { key: 'PAYMENT_CONFIRMED', label: 'Payment Confirmed', owner: 'Billing',              supporting: [],          gate: 'Billing Gate'       },
+  { key: 'ACTIVATION',        label: 'Activation',        owner: 'Billing',              supporting: [],          gate: 'Billing Gate'       },
+  { key: 'MONITORING',        label: 'Monitoring',        owner: 'NOC',                  supporting: ['Support'], gate: 'Customer Care Gate' },
 ]
 
 // ── Exit / off-ramp states ────────────────────────────────────────────────────
@@ -161,8 +161,8 @@ export type ProductCategory = typeof PRODUCT_CATEGORIES[number]
 
 // Control gate definitions — used for UI copy/help text in the pipeline view.
 export const CONTROL_GATE_DEFINITIONS: Record<ControlGate, string> = {
-  'Commercial Gate':  'Contract, pricing, compliance, approvals.',
-  'Technical Gate':   'Feasibility, capacity, infrastructure readiness.',
-  'Service Gate':     'Installation completion, billing readiness, activation approval.',
-  'Operational Gate': 'SLA, quality, incidents, audits, customer satisfaction.',
+  'Commercial Gate':     'Contract, pricing, compliance, approvals.',
+  'Technical Gate':      'Feasibility, capacity, infrastructure, config, install, connection.',
+  'Billing Gate':        'First payment cleared, billing readiness, activation approval.',
+  'Customer Care Gate':  'SLA, quality, incidents, monitoring, customer satisfaction.',
 }

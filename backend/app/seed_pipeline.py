@@ -40,8 +40,8 @@ _log = logging.getLogger("gaahex.seed_pipeline")
 # at the bottom of this file).
 #
 #   • ONE accountable owner per stage (B5).
-#   • Order is installation (#9) → config (#10): field tech connects the ONU, THEN NOC
-#     registers/provisions it on the OLT.
+#   • Order is config (#9) → installation (#10): NOC pre-configures/provisions the ONU at the
+#     office FIRST, then the field team installs that ready ONU on-site (HouseNet's real flow).
 #   • #7 order_validated is THE control gate (Validation, independent of Sales).
 #   • #10 config is measured by `config_success_rate` (COMPLETED config workitems / all) — same
 #     shape as install_success_rate; returns 0 honestly until config workitems exist (post-OLT).
@@ -77,12 +77,12 @@ CANONICAL_PIPELINE: list[tuple[int, str, str, str, str, str | None, str | None, 
     (8,  "scheduling",             "Scheduling",            "Dispatch Team",
         "Slot within capacity window",
         "schedule_fill_rate",        "Schedule Fill Rate",           False),
-    (9,  "installation",           "Installation",          "Technical Department",
-        "Install complete, ONU connected on-site",
-        "install_success_rate",      "Install Success Rate",         False),
-    (10, "config",                 "Config",                "NOC",
-        "ONU registered on OLT, service profile bound",
+    (9,  "config",                 "Config",                "NOC",
+        "ONU pre-configured / provisioned on OLT, service profile bound (NOC, at office)",
         "config_success_rate",       "Config Success Rate",          False),
+    (10, "installation",           "Installation",          "Technical Department",
+        "Pre-configured ONU installed + connected on-site",
+        "install_success_rate",      "Install Success Rate",         False),
     (11, "connection_test",        "Connection Test",       "NOC",
         "Link up, signal confirmed",
         "connection_success_rate",   "Connection Success Rate",      False),
