@@ -111,6 +111,13 @@ async def test_full_isp_loop_e2e(client, admin):
     completed = await _drive_order_to_completed(client, admin, customer_id, prod["id"], unit_amount=99999)
     assert len(completed["provisioned_subscriptions"]) == 1
 
+    # Iron rule (S14 replacement): ACTIVATION created a Customer-Care welcome check-call auto-task,
+    # parent-linked to the customer, that forces the call.
+    _ct = (await client.get(
+        f"/api/tasks?parent_entity_type=customer&parent_entity_id={customer_id}", headers=admin)).json()
+    _ct = _ct if isinstance(_ct, list) else _ct.get("items", [])
+    assert any(t.get("taskType") == "CALL_CUSTOMER" for t in _ct), f"no CC check-call task created: {_ct}"
+
     subs = (await client.get(f"/api/subscriptions?customer={customer_id}", headers=admin)).json()
     services = (await client.get(f"/api/services?customer={customer_id}", headers=admin)).json()
     assert len(subs) == 1 and subs[0]["status"] == "ACTIVE"

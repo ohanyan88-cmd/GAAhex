@@ -17,7 +17,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from decimal import Decimal, InvalidOperation
 
 from ..db import get_session
-from ..models import User, Record
+from ..models import User, Record, Task
+from ..models.access import RoleDef
 from ..models.order import Order, OrderItem
 from ..models.billing import Subscription, Payment
 from ..models.payment_method import PaymentMethod
@@ -229,6 +230,41 @@ async def _create_customer_from_lead(s: AsyncSession, user: User, order: Order) 
                         {"data": cust_data, "status": "active", "from_order": str(order.id),
                          "from_lead": str(lead.id)})
     return customer
+
+
+async def _create_care_checkcall_task(s: AsyncSession, user: User, order: Order, customer: Record) -> None:
+    """Iron rule (the S14 replacement): at ACTIVATION an auto-task FORCES the Customer-Care welcome /
+    quality check-call ("services activated? were our people polite?"). Owner + assignee = the
+    Customer Care role; parent-linked to the new customer. Skipped (never silently wrong) if the tenant
+    has no customer_care role to own it.
+    """
+    cc = (await s.execute(
+        select(RoleDef).where(RoleDef.tenant_id == user.tenant_id, RoleDef.key == "customer_care")
+    )).scalar_one_or_none()
+    if cc is None:
+        return
+    name = (customer.data or {}).get("name") or order.number
+    ref = await next_reference_number(s, tenant_id=user.tenant_id, prefix="TSK", width=6)
+    task = Task(
+        tenant_id=user.tenant_id,
+        reference_number=ref,
+        title=f"Welcome / activation check-call — {name}",
+        task_type="CALL_CUSTOMER",
+        task_scope="OBJECT_LINKED",
+        status="OPEN",
+        priority="MEDIUM",
+        parent_entity_type="customer",
+        parent_entity_id=customer.id,
+        owner_type="ROLE", owner_id=cc.id,
+        assignee_type="ROLE", assignee_id=cc.id,
+        sla_status="NOT_APPLICABLE",
+        created_by=user.id,
+    )
+    s.add(task)
+    await s.flush()
+    await workflow.emit(s, user.tenant_id, "CREATE", "task", task.id, user.id,
+                        {"reference_number": ref, "task_type": "CALL_CUSTOMER",
+                         "for_customer": str(customer.id), "from_order": str(order.id)})
 
 
 # ---- CRUD ----
@@ -455,6 +491,9 @@ async def advance_order(order_id: uuid.UUID, user: User = Depends(current_user),
                 order.customer_id = cust.id
         if cust is not None and cust.status != "active":
             cust.status = "active"
+        # S14 replacement: force the Customer-Care welcome/quality check-call via an auto-task.
+        if cust is not None:
+            await _create_care_checkcall_task(s, user, order, cust)
         items = await _items(s, order.id)
         provisioned = await _provision_subscriptions(s, user, order, items)
         # best-effort completion notification (no-op unless an `order.completed` def is seeded)
