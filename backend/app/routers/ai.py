@@ -24,7 +24,7 @@ from .records import _node_path, create_record as records_create, transition as 
 # The actions the agent may execute (server-side allowlist — the model's proposal is validated
 # against this, never trusted blindly). v1 = leads only.
 _LEAD_SOURCES = {"Website", "Referral", "Cold Call", "Ad"}
-_LEAD_STATUSES = {"NEW", "CONTACTED", "QUALIFIED", "CONVERTED", "LOST"}
+_LEAD_STATUSES = {"lead", "validated_lead", "assigned", "deal", "contract_signed", "lost"}
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
 
@@ -152,7 +152,7 @@ def _validate_action(action: str, args: dict) -> tuple[str, dict]:
         return action, clean
     if action == "move_lead":
         lead_name = (args.get("lead_name") or args.get("name") or "").strip()
-        to = (args.get("to_status") or args.get("to") or "").strip().upper()
+        to = (args.get("to_status") or args.get("to") or "").strip().lower()
         if not lead_name or to not in _LEAD_STATUSES:
             raise HTTPException(422, "move_lead needs lead_name and a valid to_status")
         return action, {"lead_name": lead_name, "to_status": to}

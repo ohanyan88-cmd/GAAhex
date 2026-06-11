@@ -458,8 +458,8 @@ async def seed_dev_bulk_if_empty() -> dict | None:
                 if k == 0:
                     order_status = "COMPLETED"
                 else:
-                    # Mix in a couple of NEW / FULFILLING for variety
-                    order_status = ("NEW", "FULFILLING", "COMPLETED", "COMPLETED")[idx % 4]
+                    # Mix in a couple of in-flight SST order stages for variety
+                    order_status = ("order_created", "scheduling", "activation", "activation")[idx % 4]
                 order_seq += 1
                 order = Order(
                     tenant_id=tenant.id, owner_node_id=owner_node_id, customer_id=cust.id,

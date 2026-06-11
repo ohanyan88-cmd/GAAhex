@@ -238,11 +238,13 @@
   --gx-border-3: 3px;
 
   /* ── COMPONENT SIZES ── (structural layout constants, single-sourced here) */
-  --gx-kanban-col-w:     280px;  /* kanban column fixed width */
-  --gx-kanban-min-h:     600px;  /* kanban board min height */
-  --gx-kanban-col-max-h: 720px;  /* kanban column max height before internal scroll */
+  --gx-kanban-col-w:     280px;  /* kanban column fixed width (multi-stage boards that horizontally scroll) */
+  --gx-kanban-col-min:   200px;  /* min column width for the FILL kanban (few stages spread across the page) */
+  --gx-view-h:           60vh;   /* shared scroll-area height for ALL lifecycle views (table/kanban/cards) — keeps each view's scrollbar reachable without scrolling the page to its end */
   --gx-avatar-xs:        22px;   /* small inline avatar (kanban card) */
   --gx-pill-min-w:       144px;  /* project-wide uniform status-pill width (fits the longest status label, e.g. "Payment Confirmed") */
+  --gx-card-min-h:       148px;  /* uniform kanban/cards card height — lead & order cards match across views */
+  --gx-card-min-w:       240px;  /* cards-view min column width — grid wraps responsively (no overlap on small windows) */
 
   /* ── TYPOGRAPHY ── */
   --gx-font-display: 'Space Grotesk', 'Segoe UI', sans-serif;

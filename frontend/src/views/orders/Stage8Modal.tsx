@@ -97,7 +97,7 @@ export function Stage8Modal({
 
   // Release button: only meaningful when the live check says pass AND the order
   // is currently SUBMITTED. Apply must run first if control_pass is still stale.
-  const canRelease = !!check?.pass && order?.status === 'SUBMITTED'
+  const canRelease = !!check?.pass && order?.status === 'order_validated'
 
   // 4 fixed check rows — render in a stable order regardless of what the
   // backend returns (missing key → render as Pending so the user sees the slot).

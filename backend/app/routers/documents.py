@@ -47,6 +47,26 @@ async def lead_contract_pdf(payload: dict = Body(...), user: User = Depends(curr
         headers={"Content-Disposition": 'attachment; filename="contract.pdf"'},
     )
 
+
+@router.post("/leads/contract-docx")
+async def lead_contract_docx(payload: dict = Body(...), user: User = Depends(current_user)):
+    """Fill the operator's REAL service contract (.docx) with the lead's form values and return it.
+
+    Body: {"values": {field_key: value, ...}}. Generated from posted form data (the lead may be
+    unsaved) — no DB write. The official Word formatting/letterhead is preserved; only the blanks
+    (subscriber name, address, phone, passport, issued-by, date of birth, contract date) are filled.
+    """
+    from ..contract_docx import build_contract_docx  # lazy — keeps the template read off import path
+
+    values = payload.get("values") or {}
+    date_str = datetime.utcnow().strftime("%d.%m.%Y")
+    docx = build_contract_docx(values, date_str)
+    return Response(
+        content=docx,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": 'attachment; filename="contract.docx"'},
+    )
+
 # T-P1-7 — brand palette comes from `app.branding.theme_constants` (D18
 # backend-color-string guard). Local module-level constants below are
 # thin aliases so existing f-string interpolations keep working unchanged.

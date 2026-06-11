@@ -57,7 +57,7 @@ KPI_FORMULAS: dict[str, dict] = {
         "type": "ratio",
         "numerator": {
             "type": "count", "table": "record",
-            "where": {"entity_key": "lead", "data.status": "QUALIFIED"},
+            "where": {"entity_key": "lead", "data.status": "validated_lead"},
         },
         "denominator": {
             "type": "count", "table": "record",

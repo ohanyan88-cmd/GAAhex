@@ -17,6 +17,7 @@ from ..services.records_service import (
     apply_gxl_filter,
 )
 from ..utils.http_errors import approval_required  # PC-2
+from ..utils.refnum import next_reference_number
 from ..kernel import (
     MASTER_RECORD_KEYS,
     DuplicateMasterData,
@@ -57,6 +58,16 @@ def _paginate(items, limit=None, offset=0):
     return Page(bounded, offset).slice_list(items)
 
 router = APIRouter(prefix="/api", tags=["records"])
+
+# Reference-number prefixes per generic-record entity (docs/standards/03 — file 03 §8.2). Extend as
+# more entities go live; an entity not listed here simply gets no human ref. (order/invoice/etc. are
+# first-class tables and stamp their own prefix in their dedicated routers.)
+_ENTITY_PREFIX = {
+    "lead": "LED",
+    "customer": "CUS",
+    "contact": "CON",
+    "campaign": "CAM",
+}
 
 
 # ---- helpers (the generic engine — no per-entity code) ----
@@ -342,6 +353,11 @@ async def create_record(slug: str, payload: dict, user: User = Depends(current_u
     data, _ignored_status, has_status = _validate(fields, payload, partial=False, caller_roles=rkeys, is_admin=admin)
     # status is lifecycle-managed: new records always start at the initial status
     status = (await _initial_status(s, ent.id)) if has_status else None
+    # Stamp the human reference number (docs/standards/03 prefix registry) for entities that carry a
+    # prefix — lead (LED), customer (CUS), etc. Entities without a prefix simply have no ref.
+    prefix = _ENTITY_PREFIX.get(ent.key)
+    if prefix and not data.get("ref"):
+        data = {**data, "ref": await next_reference_number(s, tenant_id=user.tenant_id, prefix=prefix)}
     rec = Record(
         tenant_id=user.tenant_id, entity_key=ent.key,
         owner_node_id=user.primary_node_id, status=status, data=data,

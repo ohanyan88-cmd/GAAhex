@@ -97,18 +97,20 @@ export default function OrdersView({ capabilities }: {
     o.customer_id ? (customerNames[o.customer_id] ?? o.customer_id.slice(0, 8)) : '—'
 
   // KPI aggregates from the list (no extra fetch).
-  const draftCount = all.filter((o) => o.status === 'DRAFT').length
-  const inFlightCount = all.filter((o) => o.status === 'SUBMITTED' || o.status === 'PROVISIONING').length
-  const completedCount = all.filter((o) => o.status === 'COMPLETED').length
-  const completedValue = all.filter((o) => o.status === 'COMPLETED').reduce((s, o) => s + (o.total || 0), 0)
-  // Stage 8: SUBMITTED orders that haven't passed the gate yet.
-  const awaitingStage8 = all.filter((o) => o.status === 'SUBMITTED' && o.control_pass !== true).length
+  // SST fulfillment stages (order_created → … → activation).
+  const _INFLIGHT = ['order_validated', 'scheduling', 'config', 'installation', 'connection_test', 'payment_confirmed']
+  const draftCount = all.filter((o) => o.status === 'order_created').length
+  const inFlightCount = all.filter((o) => _INFLIGHT.includes(o.status)).length
+  const completedCount = all.filter((o) => o.status === 'activation').length
+  const completedValue = all.filter((o) => o.status === 'activation').reduce((s, o) => s + (o.total || 0), 0)
+  // Control gate: order_validated orders that haven't passed the gate yet.
+  const awaitingStage8 = all.filter((o) => o.status === 'order_validated' && o.control_pass !== true).length
 
   const kpis: KPISpec[] = all.length > 0 ? [
-    { label: t('orders.kpi.drafts', 'Drafts'), value: draftCount, subtitle: t('orders.kpi.draftsSubtitle', 'not yet submitted'), onClick: () => setStatusFilter('DRAFT') },
-    { label: t('orders.kpi.inFlight', 'In flight'), value: inFlightCount, subtitle: t('orders.kpi.inFlightSubtitle', 'submitted or provisioning'), warning: true, onClick: () => setStatusFilter('SUBMITTED') },
-    { label: t('orders.kpi.awaitingStage8', 'Awaiting Stage 8'), value: awaitingStage8, subtitle: t('orders.kpi.awaitingStage8Subtitle', 'gate not passed'), warning: awaitingStage8 > 0, onClick: () => setStatusFilter('SUBMITTED') },
-    { label: t('orders.kpi.completed', 'Completed'), value: completedCount, subtitle: t('orders.kpi.completedSubtitle', 'provisioned'), onClick: () => setStatusFilter('COMPLETED') },
+    { label: t('orders.kpi.drafts', 'New'), value: draftCount, subtitle: t('orders.kpi.draftsSubtitle', 'not yet validated'), onClick: () => setStatusFilter('order_created') },
+    { label: t('orders.kpi.inFlight', 'In flight'), value: inFlightCount, subtitle: t('orders.kpi.inFlightSubtitle', 'validation → payment'), warning: true, onClick: () => setStatusFilter('scheduling') },
+    { label: t('orders.kpi.awaitingStage8', 'Awaiting gate'), value: awaitingStage8, subtitle: t('orders.kpi.awaitingStage8Subtitle', 'gate not passed'), warning: awaitingStage8 > 0, onClick: () => setStatusFilter('order_validated') },
+    { label: t('orders.kpi.completed', 'Activated'), value: completedCount, subtitle: t('orders.kpi.completedSubtitle', 'live'), onClick: () => setStatusFilter('activation') },
     { label: t('orders.kpi.completedValue', 'Completed value'), value: money(completedValue), subtitle: t('orders.kpi.completedValueSubtitle', 'sum of totals') },
   ] : []
 
@@ -213,11 +215,15 @@ export default function OrdersView({ capabilities }: {
           value: statusFilter,
           options: [
             { label: t('orders.filter.allStatuses', 'All statuses'), value: '' },
-            { label: t('orders.status.draft', 'Draft'), value: 'DRAFT' },
-            { label: t('orders.status.submitted', 'Submitted'), value: 'SUBMITTED' },
-            { label: t('orders.status.provisioning', 'Provisioning'), value: 'PROVISIONING' },
-            { label: t('orders.status.completed', 'Completed'), value: 'COMPLETED' },
-            { label: t('orders.status.cancelled', 'Cancelled'), value: 'CANCELLED' },
+            { label: 'Order Created', value: 'order_created' },
+            { label: 'Order Validated', value: 'order_validated' },
+            { label: 'Scheduling', value: 'scheduling' },
+            { label: 'Config', value: 'config' },
+            { label: 'Installation', value: 'installation' },
+            { label: 'Connection Test', value: 'connection_test' },
+            { label: 'Payment Confirmed', value: 'payment_confirmed' },
+            { label: 'Activation', value: 'activation' },
+            { label: 'Cancelled', value: 'cancelled' },
           ],
           onChange: setStatusFilter,
         }],
@@ -282,7 +288,7 @@ export default function OrdersView({ capabilities }: {
                 <tbody>
                   {pageRows.map((o) => {
                     const advLbl = nextAdvanceLabel(o.status)
-                    const canFinalCancel = o.status !== 'COMPLETED' && o.status !== 'CANCELLED'
+                    const canFinalCancel = o.status !== 'activation' && o.status !== 'cancelled'
                     return (
                       <tr
                         key={o.id}
@@ -317,7 +323,7 @@ export default function OrdersView({ capabilities }: {
                           <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
                             {(() => {
                               const actions: RowAction[] = []
-                              if (canEdit && o.status === 'DRAFT') {
+                              if (canEdit && o.status === 'order_created') {
                                 actions.push({ key: 'submit', label: t('orders.action.submitForProvisioning', 'Submit for provisioning'), icon: <ArrowRightIcon size={14} />, onClick: () => doSubmit(o) })
                               }
                               if (canEdit && advLbl) {

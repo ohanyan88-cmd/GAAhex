@@ -32,10 +32,10 @@ export function decimalNum(s: string | null | undefined): number {
 // only tints the well-known verbs and falls back to `info` for everything else.
 export function mapCustomerStatus(s: string | null | undefined): PillVariant {
   const v = (s ?? '').toUpperCase()
-  if (['ACTIVE', 'PAID', 'RESOLVED', 'WON'].includes(v)) return 'active'
-  if (['OVERDUE', 'CANCELLED', 'VOID', 'CHURNED', 'LOST'].includes(v)) return 'critical'
+  if (['ACTIVE', 'PAID', 'RESOLVED', 'WON', 'MONITORING'].includes(v)) return 'active'
+  if (['OVERDUE', 'CANCELLED', 'VOID', 'TERMINATED', 'LOST'].includes(v)) return 'critical'
   if (['SUSPENDED'].includes(v)) return 'degraded'
-  if (['DRAFT', 'NEW', 'PROSPECT'].includes(v)) return 'neutral'
+  if (['DRAFT', 'NEW', 'ORDER_CREATED'].includes(v)) return 'neutral'
   return 'info'
 }
 

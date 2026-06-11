@@ -22,8 +22,8 @@ def _force_deterministic(monkeypatch):
 
 def test_score_lead_hot_for_strong_signals():
     out = score_lead({"name": "Acme", "phone": "+37410", "email": "a@b.am",
-                      "source": "Referral", "status": "QUALIFIED"})
-    # 30 + 25 + 10 + 25 + 20 = 110 → clamped to 100, band hot
+                      "source": "Referral", "status": "assigned"})
+    # 30 + 25 + 10 + 25 + 20 = 110 → clamped to 100, band hot (assigned delta = 20)
     assert out["score"] == 100 and out["band"] == "hot"
     assert out["reasons"]                                     # non-empty
 

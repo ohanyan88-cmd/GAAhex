@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from decimal import Decimal, InvalidOperation
 
 from ..db import get_session
-from ..models import User
+from ..models import User, Record
 from ..models.order import Order, OrderItem
 from ..models.billing import Subscription, Payment
 from ..models.payment_method import PaymentMethod
@@ -405,6 +405,17 @@ async def advance_order(order_id: uuid.UUID, user: User = Depends(current_user),
     if nxt == ORDER_PROVISION_AT:
         items = await _items(s, order.id)
         provisioned = await _provision_subscriptions(s, user, order, items)
+        # SST: activation is where the customer goes live — its CRM customer Record becomes an
+        # active (monitored) customer. The CUS reference was stamped at lead→customer convert.
+        if order.customer_id:
+            cust = (await s.execute(
+                select(Record).where(
+                    Record.id == order.customer_id, Record.tenant_id == user.tenant_id,
+                    Record.entity_key == "customer",
+                )
+            )).scalar_one_or_none()
+            if cust is not None and cust.status != "monitoring":
+                cust.status = "monitoring"
         # best-effort completion notification (no-op unless an `order.completed` def is seeded)
         try:
             recipients = await notify_hooks.resolve_recipients(s, tenant_id=user.tenant_id, record=order)

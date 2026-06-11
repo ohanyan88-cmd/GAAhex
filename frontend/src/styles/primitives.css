@@ -79,6 +79,9 @@ select.inp { cursor:pointer; appearance:none; background-image:url("data:image/s
 
 /* extension: large input (our API has Input size: 'lg'; kit doesn't) */
 .inp-lg { height:var(--gx-control-lg); font-size:14px; padding:0 14px; }
+/* explicit md size — same control height as a md Button (--gx-control-md = 34px) so a search
+   input sits flush with the buttons next to it; the base .inp is already md, this just names it. */
+.inp-md { height:var(--gx-control-md); }
 
 /* extension: error state for input (our API has Input error prop) */
 .inp-error { border-color:var(--gx-danger); }
@@ -196,10 +199,14 @@ button.kpi-tile, a.kpi-tile {
    strip-gap between segments shows the angled chevron cut. */
 /* Top gap reads ~10px larger than the raw margin (the KPI zone adds its own
    padding-bottom), so the bottom margin is bumped to keep both gaps visually equal. */
-.gate-strip { display:flex; align-items:stretch; gap:var(--gx-space-1); margin:var(--gx-space-16) 0 var(--gx-space-9); }
-.gate-card { flex:1; min-width:0; display:flex; flex-direction:column; gap:var(--gx-space-5);
+/* Lives in the header (ZONE A): full-width + responsive (cards flex/shrink with the window),
+   and compact vertically — no big top/bottom margin. */
+.gate-strip { display:flex; align-items:stretch; gap:var(--gx-space-1); margin:0; width:100%; }
+.gate-card { flex:1; min-width:0; display:flex; flex-direction:column; gap:var(--gx-space-4);
   background:var(--gx-surface);
-  padding:var(--gx-space-5) var(--gx-space-12) var(--gx-space-5) var(--gx-space-9);
+  /* left padding must clear the 28px left chevron notch (space-9 = 40px) or the scope/name
+     text gets cut by the notch; vertical kept modest (space-6) for the header. */
+  padding:var(--gx-space-6) var(--gx-space-9) var(--gx-space-6) var(--gx-space-9);
   clip-path: polygon(0 0, calc(100% - 28px) 0, 100% 50%, calc(100% - 28px) 100%, 0 100%, 28px 50%); }
 .gate-card.first { padding-left:var(--gx-space-12);
   clip-path: polygon(0 0, calc(100% - 28px) 0, 100% 50%, calc(100% - 28px) 100%, 0 100%); }
@@ -210,8 +217,10 @@ button.kpi-tile, a.kpi-tile {
 .gate-card-link:hover, .gate-card-link:focus-visible { background:var(--gx-surface-2); outline:none; }
 .gate-card-link.awaiting:hover, .gate-card-link.awaiting:focus-visible { background:var(--gx-surface); }
 .gate-card-head { display:flex; flex-direction:column; gap:var(--gx-space-2); min-width:0; }
-.gate-card-name { display:flex; align-items:center; gap:var(--gx-space-4); font-family:var(--gx-font-mono);
+.gate-card-name { display:flex; align-items:center; gap:var(--gx-space-4); min-width:0; font-family:var(--gx-font-mono);
   font-size:var(--gx-text-xs); font-weight:var(--gx-weight-bold); letter-spacing:.08em; text-transform:uppercase; color:var(--gx-text-1); }
+/* Name truncates instead of spilling past the chevron clip onto the next gate (Gev 2026-06-11). */
+.gate-card-label { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .gate-dot { width:var(--gx-space-5); height:var(--gx-space-5); border-radius:var(--gx-radius-full); background:var(--gx-border-strong); flex:0 0 auto; }
 /* Per-gate brand identity dot (shows lit or dormant — the dot is the gate's badge). */
 .gate-card[data-gate="commercial"]   .gate-dot { background:var(--gx-gold); }

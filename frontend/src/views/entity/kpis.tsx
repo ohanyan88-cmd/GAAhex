@@ -58,9 +58,10 @@ export function deriveLeadsWeeklyKPIs(rows: Row[]): KPISpec[] {
   }
   const total = thisWk.length
   const rate = (n: number) => (total > 0 ? Math.round((n / total) * 100) : 0)
-  const newN = cnt(thisWk, 'NEW')
-  const qualN = cnt(thisWk, 'QUALIFIED')
-  const signN = cnt(thisWk, 'CONVERTED')
+  // SST commercial stages — the legacy NEW/QUALIFIED/CONVERTED keys were deleted 2026-06-11.
+  const newN = cnt(thisWk, 'lead')
+  const qualN = cnt(thisWk, 'validated_lead')
+  const signN = cnt(thisWk, 'contract_signed')
 
   const daySeries = (pred: (r: Row) => boolean): number[] => {
     const buckets = [0, 0, 0, 0, 0, 0, 0]
@@ -74,11 +75,11 @@ export function deriveLeadsWeeklyKPIs(rows: Row[]): KPISpec[] {
   }
 
   return [
-    { label: 'New', value: newN, ...wow(newN, cnt(lastWk, 'NEW')),
-      chart: <Spark values={daySeries((r) => r.status === 'NEW')} color="var(--gx-primary)" height={18} strokeWidth={1} /> },
-    { label: 'Qualified', value: qualN, ...wow(qualN, cnt(lastWk, 'QUALIFIED')),
+    { label: 'New', value: newN, ...wow(newN, cnt(lastWk, 'lead')),
+      chart: <Spark values={daySeries((r) => r.status === 'lead')} color="var(--gx-primary)" height={18} strokeWidth={1} /> },
+    { label: 'Qualified', value: qualN, ...wow(qualN, cnt(lastWk, 'validated_lead')),
       progress: rate(qualN), progressVariant: 'gold', progressLabel: `${rate(qualN)}%` },
-    { label: 'Contract Signed', value: signN, ...wow(signN, cnt(lastWk, 'CONVERTED')),
+    { label: 'Contract Signed', value: signN, ...wow(signN, cnt(lastWk, 'contract_signed')),
       progress: rate(signN), progressVariant: 'success', progressLabel: `${rate(signN)}%` },
     { label: 'Total', value: total, ...wow(total, lastWk.length),
       cornerNote: `${fmtDay(monday)} – ${fmtDay(weekEnd)}`,

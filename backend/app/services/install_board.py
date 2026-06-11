@@ -3,7 +3,7 @@
 Pure helpers for the install pipeline's stages 9-11 (resource allocation, CPE binding,
 service activation). The caller commits. Mirrors the dunning / stage8 service style.
 
-Stages (per the locked architecture decision) are sub-states of Order.status='PROVISIONING':
+Stages (per the locked architecture decision) are sub-states of Order.status='installation':
 
   Stage 9  RESOURCE_ALLOC   ``allocate_resources``   — picks 1 free splitter strand + 1 free VLAN
   Stage 10 CPE_BOUND        ``bind_cpe``             — registers a CPE (MAC/serial/...) for the order
@@ -183,9 +183,9 @@ async def allocate_resources(
     )).scalar_one_or_none()
     if order is None:
         raise HTTPException(404, "Order not found")
-    if order.status != "PROVISIONING":
+    if order.status != "installation":
         raise HTTPException(
-            409, f"allocate_resources requires order.status='PROVISIONING' (got '{order.status}')",
+            409, f"allocate_resources requires order.status='installation' (got '{order.status}')",
         )
 
     # Idempotency — if both linkages are already set, return them.
@@ -279,9 +279,9 @@ async def bind_cpe(
     )).scalar_one_or_none()
     if order is None:
         raise HTTPException(404, "Order not found")
-    if order.status != "PROVISIONING":
+    if order.status != "installation":
         raise HTTPException(
-            409, f"bind_cpe requires order.status='PROVISIONING' (got '{order.status}')",
+            409, f"bind_cpe requires order.status='installation' (got '{order.status}')",
         )
 
     mac = normalize_mac(mac_address)
@@ -393,9 +393,9 @@ async def activate_service(
     )).scalar_one_or_none()
     if order is None:
         raise HTTPException(404, "Order not found")
-    if order.status != "PROVISIONING":
+    if order.status != "installation":
         raise HTTPException(
-            409, f"activate_service requires order.status='PROVISIONING' (got '{order.status}')",
+            409, f"activate_service requires order.status='installation' (got '{order.status}')",
         )
 
     blockers: list[str] = []
@@ -706,7 +706,7 @@ async def list_install_board(
     Returns a thin dict per row (id/number/customer/install_substage/timestamps + linkage ids)."""
     q = select(Order).where(
         Order.tenant_id == tenant_id,
-        Order.status == "PROVISIONING",
+        Order.status == "installation",
     )
     if substage:
         if substage.upper() == "NONE":

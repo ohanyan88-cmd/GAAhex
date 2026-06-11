@@ -4,26 +4,28 @@
    --gx-border-1, same philosophy as space-0) and the .dragging opacity/scale (behavioral,
    not design tokens). */
 .kanban {
-  /* Flexbox (not grid) is the reliable horizontal-scroll kanban pattern: columns are
-     flex items with a fixed basis that never shrink, so the row always overflows and
-     overflow-x:auto fires — regardless of how the flex-column page wrapper clamps width.
-     min-width:0 lets the row shrink below content size so the internal scrollbar shows. */
+  /* The board is a WIDE flex row that does NOT scroll itself — it overflows the page's scroll
+     container (.ps-body / .ps-workspace, which is viewport-height with overflow:auto). That puts
+     the horizontal scrollbar at the BOTTOM OF THE VIEWPORT (always reachable, like the right-side
+     vertical one) instead of buried at the bottom of a tall board. Columns cap at --gx-view-h and
+     scroll their own body vertically. */
   display: flex;
   gap: var(--gx-space-7);
-  overflow-x: auto;
-  overflow-y: hidden;
   padding-bottom: var(--gx-space-6);
-  min-height: var(--gx-kanban-min-h);
-  min-width: 0;
-  max-width: 100%;
+  width: max-content;   /* grow to fit all columns → page provides the bottom scrollbar */
 }
+/* FILL variant — used when the board has only a FEW stages (e.g. the Leads board's lead stages).
+   Columns flex to spread evenly across the full page width (responsive); they only fall back to
+   horizontal page-scroll once the window is too narrow for each to keep its min width. */
+.kanban-fill { width: 100%; }
+.kanban-fill .kcol { flex: 1 1 0; min-width: var(--gx-kanban-col-min); }
 .kcol {
-  flex: 0 0 var(--gx-kanban-col-w);   /* fixed width, never shrink → row overflows → horizontal scroll */
+  flex: 0 0 var(--gx-kanban-col-w);   /* fixed width, never shrink */
   background: var(--gx-surface);
   border: 1px solid var(--gx-border);
   border-radius: var(--gx-radius-lg);
   display: flex; flex-direction: column;
-  max-height: var(--gx-kanban-col-max-h);
+  max-height: var(--gx-view-h);   /* cap height; the body scrolls vertically inside */
 }
 .kcol-head {
   display: flex; align-items: center; gap: var(--gx-space-5);
@@ -44,6 +46,11 @@
   padding: var(--gx-space-5) var(--gx-space-6);
   cursor: pointer;   /* whole card opens the lead 360 on click — no grab/drag hand */
   transition: border-color var(--gx-dur-fast), transform var(--gx-dur-fast);
+  /* Uniform card height — lead & order cards are the same size in both kanban and cards views.
+     min-height (not fixed) so a card with extra content still grows. */
+  min-height: var(--gx-card-min-h);
+  display: flex;
+  flex-direction: column;
 }
 .kcard:hover { border-color: var(--gx-gold); }
 .kcard.dragging { opacity: 0.4; transform: scale(0.98); }

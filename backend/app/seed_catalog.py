@@ -174,8 +174,15 @@ ENTITY_CATALOG = [
       [f("number",   "Number",  "text",  True),
        f("customer", "Customer","ref",   True,  target="customer"),
        f("total",    "Total",   "money")],
-      [st("NEW","New",True), st("FULFILLING","Fulfilling"), st("COMPLETED","Completed"), st("CANCELLED","Cancelled")],
-      [tr("NEW","FULFILLING"), tr("FULFILLING","COMPLETED"), tr("NEW","CANCELLED")]),
+      # SST fulfillment stages (lifecycle.ts #6-13) — legacy NEW/FULFILLING/COMPLETED deleted 2026-06-11.
+      [st("order_created","Order Created",True), st("order_validated","Order Validated"),
+       st("scheduling","Scheduling"), st("config","Config"), st("installation","Installation"),
+       st("connection_test","Connection Test"), st("payment_confirmed","Payment Confirmed"),
+       st("activation","Activation"), st("cancelled","Cancelled")],
+      [tr("order_created","order_validated"), tr("order_validated","scheduling"), tr("scheduling","config"),
+       tr("config","installation"), tr("installation","connection_test"),
+       tr("connection_test","payment_confirmed"), tr("payment_confirmed","activation"),
+       tr("order_created","cancelled")]),
 
     e("change_order", "Change Order", "Change Orders", "change-orders", "edit",
       [f("order_ref",   "Order",       "ref",      True,  target="order"),

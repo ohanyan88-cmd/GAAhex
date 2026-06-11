@@ -54,13 +54,15 @@ table.grid th.sel-col, table.grid td.sel-col { width:40px; padding-left:12px; pa
 table.grid th.actions-col, table.grid td.actions-col { width:96px; overflow:visible; }
 table.grid td .row-actions-menu { justify-content:flex-end; }
 
-/* Leads grid — larger column headers, frozen (sticky) while the list scrolls inside
-   the card. The wrap owns the scroll + card chrome so the header can pin to its top. */
-.leads-wrap { max-height: 60vh; overflow-y: auto; border-radius: var(--gx-radius-md); }
+/* Leads table page-scrolls like the kanban/cards views — no self-scroll (overrides .grid-wrap's
+   overflow-x:auto). The page's viewport-height scroll container provides both scrollbars.
+   Header is NOT sticky: with page-scroll the table flows in the page's scroll container, so a
+   sticky header would pin to the viewport and paint over the body rows as they scroll past
+   (text overlap). The header scrolls WITH the page instead — one clean scrolling surface. */
+.leads-wrap { overflow: visible; border-radius: var(--gx-radius-md); }
 table.grid.leads-grid { overflow: visible; border-radius: 0; box-shadow: none; }
 table.grid.leads-grid thead { background: var(--gx-surface); }
 table.grid.leads-grid th {
-  position: sticky; top: -1px; z-index: 5;
   background: var(--gx-surface);
   font-size: var(--gx-text-sm);
   letter-spacing: .04em;
@@ -79,11 +81,16 @@ table.grid.leads-grid td { white-space: nowrap; }
 /* Leads table — borderless: no header underline, no row divider lines (Gev 2026-06-07).
    Row separation is carried by hover background + cell rhythm instead of rules. */
 table.grid.leads-grid th, table.grid.leads-grid td { border-bottom: none; }
-/* Fully borderless on EVERY edge (Gev 2026-06-11): kill any cell/row/table/wrap border + box. */
-.leads-wrap { border: 0 !important; box-shadow: none !important; }
+/* Inner cells stay borderless (no row/cell/header lines), but the table sits in a
+   ROUNDED OUTER FRAME — a single hairline border with rounded corners around the whole
+   table, like the cards/kanban shapes (Gev 2026-06-11). The sticky header's top corners
+   are rounded to match the frame. */
+.leads-wrap { border: 1px solid var(--gx-border) !important; box-shadow: none !important; }
 table.grid.leads-grid,
 table.grid.leads-grid thead, table.grid.leads-grid tbody, table.grid.leads-grid tr,
 table.grid.leads-grid th, table.grid.leads-grid td { border: 0 !important; }
+table.grid.leads-grid thead th:first-child { border-top-left-radius: var(--gx-radius-md); }
+table.grid.leads-grid thead th:last-child  { border-top-right-radius: var(--gx-radius-md); }
 /* Dark-theme the leads scroll container's scrollbars + kill the default WHITE corner square
    (where the horizontal + vertical scrollbars meet) — Gev 2026-06-11. */
 .leads-wrap::-webkit-scrollbar { width: var(--gx-space-5); height: var(--gx-space-5); }

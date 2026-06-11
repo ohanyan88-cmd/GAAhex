@@ -199,6 +199,14 @@
   padding: var(--gx-space-8) var(--gx-space-12) var(--gx-space-5);
   background: var(--gx-bg);
 }
+/* Separation line UNDER the KPI cards, mirroring the header's bottom divider ABOVE them —
+   but only when no ActionBar follows (the ActionBar already carries its own top divider, so
+   this avoids a double line). On pages like Leads (actions moved into the workspace) this gives
+   the KPI band a clean closing rule just like its opening one (Gev 2026-06-11). */
+.ps-kpis:not(:has(+ .ps-actions)) {
+  border-bottom: 1px solid var(--gx-divider);
+  padding-bottom: var(--gx-space-8);   /* match the top padding so the cards sit symmetrically between the two lines */
+}
 
 /* ONE uniform KPI-card across every page (D17) — fully token-driven, no per-page
    or hardcoded values. Card height + value size come straight from the KPI cockpit

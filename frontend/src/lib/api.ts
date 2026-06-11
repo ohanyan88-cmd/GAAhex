@@ -150,18 +150,18 @@ export async function uploadAttachments(token: string, entityKey: string, record
   }
 }
 
-// Generate a lead contract PDF (Armenian-capable) from the modal's current values.
-export async function generateContractPdf(
+// Fill the operator's real service contract (.docx) with the modal's current lead values.
+// The backend keeps the official Word formatting and only fills the blanks, returning the .docx.
+export async function generateContractDocx(
   token: string,
   values: Record<string, any>,
-  fields: Array<{ key: string; label: string; type?: string }>,
 ): Promise<Blob> {
-  const r = await fetch(`${BASE}/api/leads/contract-pdf`, {
+  const r = await fetch(`${BASE}/api/leads/contract-docx`, {
     method: 'POST',
     headers: { ...authH(token), 'Content-Type': 'application/json' },
-    body: JSON.stringify({ values, fields }),
+    body: JSON.stringify({ values }),
   })
-  if (!r.ok) throw new Error('Contract PDF generation failed')
+  if (!r.ok) throw new Error('Contract generation failed')
   return await r.blob()
 }
 

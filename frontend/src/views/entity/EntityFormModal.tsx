@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext'
 import { Modal } from '../../components/Modal'
 import { Button } from '../../primitives'
 import {
-  CheckIcon, ArrowRightIcon, ReceiptIcon, DownloadIcon,
+  CheckIcon, ArrowRightIcon, DownloadIcon,
   UserIcon, BuildingIcon,
 } from '../../components/icons'
 import { useI18n } from '../../lib/i18n'
@@ -17,9 +17,6 @@ export function EntityFormModal(props: {
   def: Def
   form: Record<string, any>
   createStep: 'pick' | 'form'
-  contractUrl: string | null
-  contractPdfUrl: string | null
-  contractBusy: boolean
   editingStatus: string | null
   errorField: string | null
   error: string
@@ -28,15 +25,13 @@ export function EntityFormModal(props: {
   onFormChange: (key: string, value: any) => void
   onSetCreateStep: (step: 'pick' | 'form') => void
   onGenerateContract: () => void
-  onDownloadContract: () => void
-  onDownloadContractPdf: () => void
 }) {
   const { token } = useAuth()
   const {
     mode, def, form, createStep,
-    contractUrl, contractPdfUrl, contractBusy, editingStatus, errorField, error,
+    editingStatus, errorField, error,
     onClose, onSubmit, onFormChange, onSetCreateStep,
-    onGenerateContract, onDownloadContract, onDownloadContractPdf,
+    onGenerateContract,
   } = props
   const { t } = useI18n()
 
@@ -142,14 +137,9 @@ export function EntityFormModal(props: {
                   <div className={'rec-form-grid' + (split ? ' rec-form-grid-split' : '')}>{g.fields.map(renderField)}</div>
                   {split && (
                     <div className="rec-contract-actions">
-                      <Button variant="secondary" size="sm" type="button" loading={contractBusy} onClick={onGenerateContract}>
-                        <ReceiptIcon size={14} aria-hidden /> {t('contract.generate', 'Generate Contract')}
-                      </Button>
-                      <Button variant="ghost" size="sm" type="button" disabled={!contractUrl} onClick={onDownloadContract}>
-                        <DownloadIcon size={14} aria-hidden /> {t('contract.download', 'Download Contract')}
-                      </Button>
-                      <Button variant="ghost" size="sm" type="button" disabled={!contractPdfUrl} onClick={onDownloadContractPdf}>
-                        <DownloadIcon size={14} aria-hidden /> {t('contract.downloadPdf', 'Download PDF')}
+                      {/* one button = generate + download in a single click */}
+                      <Button variant="secondary" size="sm" type="button" onClick={onGenerateContract}>
+                        <DownloadIcon size={14} aria-hidden /> {t('contract.generateDownload', 'Generate & Download Contract')}
                       </Button>
                     </div>
                   )}

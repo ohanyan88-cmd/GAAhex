@@ -56,7 +56,7 @@ export function OrderDetailModal({
     : '—'
   const status = order?.status ?? ''
   const advLbl = nextAdvanceLabel(status)
-  const canFinalCancel = status && status !== 'COMPLETED' && status !== 'CANCELLED'
+  const canFinalCancel = status && status !== 'activation' && status !== 'cancelled'
 
   // Map OrderRow status → RecordDrawer status pill variant. Keeps the same
   // mapping logic as the row pill (mapOrderStatus) but coerced to the drawer's
@@ -103,7 +103,7 @@ export function OrderDetailModal({
                   <CloseIcon size={13} /> {t('orders.action.cancel', 'Cancel order')}
                 </Button>
               )}
-              {status === 'DRAFT' && (
+              {status === 'order_created' && (
                 <Button variant="primary" size="sm"
             disabled={busy} onClick={() => action('submit')}>
                   <ArrowRightIcon size={13} /> {t('common.submit', 'Submit')}

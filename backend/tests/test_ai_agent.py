@@ -50,10 +50,10 @@ def test_validate_create_lead_drops_unknown_keeps_valid_source():
 
 
 def test_validate_move_lead_requires_name_and_valid_status():
-    action, clean = _validate_action("move_lead", {"lead_name": "A", "to_status": "qualified"})
-    assert action == "move_lead" and clean == {"lead_name": "A", "to_status": "QUALIFIED"}   # normalized upper
+    action, clean = _validate_action("move_lead", {"lead_name": "A", "to_status": "Assigned"})
+    assert action == "move_lead" and clean == {"lead_name": "A", "to_status": "assigned"}   # normalized lower (SST keys)
     with pytest.raises(HTTPException) as e1:
-        _validate_action("move_lead", {"to_status": "QUALIFIED"})            # missing lead_name
+        _validate_action("move_lead", {"to_status": "assigned"})            # missing lead_name
     assert e1.value.status_code == 422
     with pytest.raises(HTTPException) as e2:
         _validate_action("move_lead", {"lead_name": "A", "to_status": "WAT"})  # invalid status
@@ -82,5 +82,5 @@ async def test_act_create_lead_appears_in_leads(client, admin):
 async def test_act_move_nonexistent_lead_404(client, admin):
     r = await client.post("/api/ai/act", headers=admin, json={
         "action": "move_lead",
-        "args": {"lead_name": f"Ghost {uuid.uuid4().hex}", "to_status": "QUALIFIED"}})
+        "args": {"lead_name": f"Ghost {uuid.uuid4().hex}", "to_status": "assigned"}})
     assert r.status_code == 404

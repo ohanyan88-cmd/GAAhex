@@ -48,21 +48,22 @@ export type OrderItemRow = {
 
 // ── Pure helpers ─────────────────────────────────────────────────────────────
 
+// Order statuses are the SST fulfillment stages (lifecycle.ts #6-13).
 export function mapOrderStatus(s: string | null | undefined): PillVariant {
-  const v = (s ?? '').toUpperCase()
-  if (v === 'COMPLETED') return 'active'
-  if (v === 'PROVISIONING') return 'degraded'
-  if (v === 'SUBMITTED') return 'info'
-  if (v === 'CANCELLED') return 'neutral'
-  return 'info' // DRAFT
+  const v = (s ?? '').toLowerCase()
+  if (v === 'activation') return 'active'
+  if (['scheduling', 'config', 'installation', 'connection_test'].includes(v)) return 'degraded'
+  if (v === 'cancelled' || v === 'install_failed') return 'critical'
+  return 'info' // order_created, order_validated, payment_confirmed
 }
 
-// Friendly verb for the next /advance hop, derived from the order's current status.
+// Friendly verb for the next /advance hop, derived from the order's current SST stage.
+const _NEXT_VERB: Record<string, string> = {
+  order_validated: 'Schedule', scheduling: 'Config', config: 'Install',
+  installation: 'Test', connection_test: 'Confirm Payment', payment_confirmed: 'Activate',
+}
 export function nextAdvanceLabel(status: string): string | null {
-  const v = (status ?? '').toUpperCase()
-  if (v === 'SUBMITTED') return 'Provision'
-  if (v === 'PROVISIONING') return 'Complete'
-  return null
+  return _NEXT_VERB[(status ?? '').toLowerCase()] ?? null
 }
 
 // Stage 8 column pill — derived from the persisted control_pass verdict on the

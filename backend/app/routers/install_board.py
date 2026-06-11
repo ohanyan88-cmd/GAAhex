@@ -154,7 +154,7 @@ async def list_install_board_endpoint(
     # Total for the same filter (without pagination).
     total_q = select(func.count()).select_from(Order).where(
         Order.tenant_id == user.tenant_id,
-        Order.status == "PROVISIONING",
+        Order.status == "installation",
     )
     if substage:
         if substage.upper() == "NONE":

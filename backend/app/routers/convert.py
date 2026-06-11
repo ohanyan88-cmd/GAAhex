@@ -21,6 +21,7 @@ from ..access import load_grants, can
 from .. import workflow
 from .auth import current_user
 from .records import _entity, _get, _initial_status, _fields, _node_path
+from ..utils.refnum import next_reference_number
 
 router = APIRouter(prefix="/api", tags=["convert"])
 
@@ -95,6 +96,7 @@ async def convert_lead(lead_id: uuid.UUID, user: User = Depends(current_user), s
     lead_data = lead.data or {}
     cust_data = {k: lead_data[k] for k in cust_field_keys if k in lead_data}
     cust_data["source_lead_id"] = str(lead.id)                           # JSONB link, not a column
+    cust_data["ref"] = await next_reference_number(s, tenant_id=user.tenant_id, prefix="CUS")  # docs/standards/03
 
     customer = Record(
         tenant_id=user.tenant_id, entity_key=cust_ent.key,

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getEntityDef, createRecord, transitionRecord, listRecordsPaged, uploadAttachments, generateContractPdf } from '../lib/api'
+import { getEntityDef, createRecord, transitionRecord, listRecordsPaged, uploadAttachments, generateContractDocx } from '../lib/api'
 import RefPicker, { refTargetKey, loadRefLabels } from '../components/RefPicker'
 import {
   CheckIcon, ArrowRightIcon, SearchIcon, MessageIcon, ClockIcon, ReceiptIcon,
@@ -16,7 +16,7 @@ import { EmptyState, PermissionDenied, NotFound, LoadingState, ErrorBanner } fro
 import ActivityTimeline from '../components/ActivityTimeline'
 import { LeadGatesStrip, GATES } from '../components/LeadGatesStrip'
 import { useI18n } from '../lib/i18n'
-import { buildContractHtml, contractFileName } from '../lib/contract'
+import { contractFileName } from '../lib/contract'
 import NoAccess from '../components/NoAccess'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 import { Button, StatusPill } from '../primitives'
@@ -24,6 +24,8 @@ import { PageShell } from '../page-shell'
 import type { SecondaryAction } from '../page-shell'
 import { BASE } from '../lib/config'
 import { authH, bget } from '../lib/billing'
+import { LIFECYCLE_STAGES } from '../lib/lifecycle'
+import { OrderDetailModal } from './orders/OrderDetailModal'
 import { useAuth } from '../context/AuthContext'
 import type { Def, Row, Mode, SavedView, StatusTab, ExportFormats } from './entity/types'
 import { deriveStatusGroups, pagePropsForSlug, mapEntityStatus, errFieldOf, capitalize } from './entity/types'
@@ -32,6 +34,13 @@ import { probeEntityExportFormats, patchRecord } from './entity/api'
 import { EntityFormModal } from './entity/EntityFormModal'
 
 const PAGE_SIZE = 50
+
+// The Leads page is LEADS-ONLY (orders/customers live on their own pages; the gates strip carries
+// their counts). The kanban board therefore shows only the LEAD lifecycle stages — the Commercial
+// Gate stages from the SST (lead → contract signed) — derived straight from lifecycle.ts + GATES so
+// it can never drift from the gate definition.
+const LEAD_STAGES = LIFECYCLE_STAGES.filter((stage) =>
+  (GATES.find((g) => g.key === 'commercial')?.statuses ?? []).includes(stage.key.toLowerCase()))
 
 // One generic component renders EVERY entity from its config — no per-entity code.
 export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capabilities = FULL_ACCESS, onBack, canConfigure = false, onConfigure }: {
@@ -54,8 +63,6 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
   const [rows, setRows] = useState<Row[]>([])
   const [form, setForm] = useState<Record<string, any>>({})
   const [contractUrl, setContractUrl] = useState<string | null>(null)
-  const [contractPdfUrl, setContractPdfUrl] = useState<string | null>(null)
-  const [contractBusy, setContractBusy] = useState(false)
   const [mode, setMode] = useState<Mode>('idle')
   // Leads page view switcher (Gev directive 2026-06-11): Table | Kanban | Cards. Leads-only; every
   // other entity keeps the table unchanged. Choice persisted.
@@ -69,6 +76,8 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
   }
   // Which control-gate's window is open (same-page modal opened from LeadGatesStrip).
   const [gateOpen, setGateOpen] = useState<string | null>(null)
+  // Which order's detail modal is open (orders shown alongside leads in the lifecycle views).
+  const [orderOpen, setOrderOpen] = useState<string | null>(null)
   // Real counts for the gate strip come from each gate's own entity (Commercial=leads already in
   // `rows`; Technical/Billing=orders; Customer Care=customers). Fetched only on the Leads page.
   const [gateOrders, setGateOrders] = useState<Row[]>([])
@@ -189,7 +198,6 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
 
   function clearContract() {
     setContractUrl((u) => { if (u) URL.revokeObjectURL(u); return null })
-    setContractPdfUrl((u) => { if (u) URL.revokeObjectURL(u); return null })
   }
 
   function closeForm() {
@@ -197,19 +205,16 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
     clearContract()
   }
 
+  // One click = generate + download. The backend fills the operator's REAL service contract (.docx)
+  // from the lead's form values (keeping the official Word formatting) and returns it; we save it.
   async function generateContract() {
-    const fields = def?.fields ?? []
-    const html = buildContractHtml(form, fields)
-    const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
-    setContractUrl((u) => { if (u) URL.revokeObjectURL(u); return URL.createObjectURL(blob) })
-    setContractBusy(true)
     try {
-      const pdf = await generateContractPdf(token!, form, fields.map((f) => ({ key: f.key, label: f.label, type: f.type })))
-      setContractPdfUrl((u) => { if (u) URL.revokeObjectURL(u); return URL.createObjectURL(pdf) })
-    } catch {
-      setContractPdfUrl(null)
-    } finally {
-      setContractBusy(false)
+      const blob = await generateContractDocx(token!, form)
+      const url = URL.createObjectURL(blob)
+      setContractUrl((u) => { if (u) URL.revokeObjectURL(u); return url })
+      _saveAs(url, '.docx')
+    } catch (e) {
+      setError((e as Error).message)
     }
   }
 
@@ -221,8 +226,6 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
     a.click()
     a.remove()
   }
-  function downloadContract() { if (contractUrl) _saveAs(contractUrl, '.html') }
-  function downloadContractPdf() { if (contractPdfUrl) _saveAs(contractPdfUrl, '.pdf') }
 
   function openCreate() {
     setError(''); setErrorField(null); setForm({}); setEditingId(null); setEditingStatus(null)
@@ -406,6 +409,7 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
       </div>
     </div>
   )
+
   const formOpen = mode !== 'idle'
 
   const cellValue = (c: typeof cols[0], r: Row) => (c.type === 'ref' ? (refLabels[c.key]?.[r[c.key]] ?? r[c.key]) : r[c.key])
@@ -578,9 +582,12 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
       icon={<RowsIcon size={18} />}
       title={pp.title}
       kpis={shellKpis}
-      primaryAction={shellPrimary}
-      secondaryActions={shellSecondary.length > 0 ? shellSecondary : undefined}
-      filters={{ search: { value: q, onChange: setQ, placeholder: `Search ${def.label_plural.toLowerCase()}` } }}
+      primaryAction={isLeads ? undefined : shellPrimary}
+      secondaryActions={isLeads ? undefined : (shellSecondary.length > 0 ? shellSecondary : undefined)}
+      filters={isLeads ? undefined : { search: { value: q, onChange: setQ, placeholder: `Search ${def.label_plural.toLowerCase()}` } }}
+      pageTabs={isLeads && !formOpen
+        ? <LeadGatesStrip leads={rows} orders={gateOrders} customers={gateCustomers} onOpenGate={(gateKey) => setGateOpen(gateKey)} />
+        : undefined}
     >
 
       {readOnly && (
@@ -608,7 +615,6 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
 
       {error && !errorField && <p className="err">{error}</p>}
 
-      {slug === 'leads' && !formOpen && <LeadGatesStrip leads={rows} orders={gateOrders} customers={gateCustomers} onOpenGate={(gateKey) => setGateOpen(gateKey)} />}
 
       {hasStatusTabs && !formOpen && slug !== 'leads' && (
         <>
@@ -690,9 +696,6 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
           def={def}
           form={form}
           createStep={createStep}
-          contractUrl={contractUrl}
-          contractPdfUrl={contractPdfUrl}
-          contractBusy={contractBusy}
           editingStatus={editingStatus}
           errorField={errorField}
           error={error}
@@ -701,8 +704,6 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
           onFormChange={(k, v) => setForm({ ...form, [k]: v })}
           onSetCreateStep={setCreateStep}
           onGenerateContract={generateContract}
-          onDownloadContract={downloadContract}
-          onDownloadContractPdf={downloadContractPdf}
         />
       )}
 
@@ -719,7 +720,7 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
           ) : undefined}
         />
       ) : (
-        <div className={'card' + (isLeads ? ' leads-flat' : '')} style={{ overflow: (isLeads && leadsView !== 'table') ? 'visible' : 'hidden', position: 'relative' }}>
+        <div className={'card' + (isLeads ? ' leads-flat' : '')} style={{ overflow: isLeads ? 'visible' : 'hidden', position: 'relative' }}>
           {selected.size > 0 && (
             <div className="bulkbar">
               <span style={{ fontWeight: 'var(--gx-weight-semibold)', fontSize: 'var(--gx-text-sm)' }}>{selected.size} selected</span>
@@ -765,16 +766,32 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
           )}
 
           {isLeads && (
-            <div className="row" style={{ gap: 'var(--gx-space-2)', marginBottom: 'var(--gx-space-5)' }}>
-              <Button variant={leadsView === 'table' ? 'primary' : 'ghost'} size="sm" style={{ minWidth: 96, justifyContent: 'center' }} onClick={() => setLeadsViewMode('table')}>
+            <div className="row" style={{ gap: 'var(--gx-space-2)', marginTop: 'calc(var(--gx-space-9) + var(--gx-space-8))', marginBottom: 'var(--gx-space-5)', alignItems: 'center' }}>
+              <Button variant={leadsView === 'table' ? 'primary' : 'ghost'} size="md" style={{ minWidth: 110, justifyContent: 'center' }} onClick={() => setLeadsViewMode('table')}>
                 <RowsIcon size={13} /> {t('leads.viewTable', 'Table')}
               </Button>
-              <Button variant={leadsView === 'kanban' ? 'primary' : 'ghost'} size="sm" style={{ minWidth: 96, justifyContent: 'center' }} onClick={() => setLeadsViewMode('kanban')}>
+              <Button variant={leadsView === 'kanban' ? 'primary' : 'ghost'} size="md" style={{ minWidth: 110, justifyContent: 'center' }} onClick={() => setLeadsViewMode('kanban')}>
                 <LayersIcon size={13} /> {t('leads.viewKanban', 'Kanban')}
               </Button>
-              <Button variant={leadsView === 'cards' ? 'primary' : 'ghost'} size="sm" style={{ minWidth: 96, justifyContent: 'center' }} onClick={() => setLeadsViewMode('cards')}>
+              <Button variant={leadsView === 'cards' ? 'primary' : 'ghost'} size="md" style={{ minWidth: 110, justifyContent: 'center' }} onClick={() => setLeadsViewMode('cards')}>
                 <PackageIcon size={13} /> {t('leads.viewCards', 'Cards')}
               </Button>
+              {/* moved down here, right-aligned: search · download · new lead */}
+              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)' }}>
+                <input className="inp inp-md" value={q} onChange={(e) => setQ(e.target.value)}
+                  placeholder={`Search ${def.label_plural.toLowerCase()}…`} style={{ minWidth: 340 }} aria-label="Search" />
+                {(exportFormats?.csv || exportFormats?.xlsx || exportFormats?.pdf) && (
+                  <Button variant="secondary" size="md" disabled={exporting !== null}
+                    onClick={() => doExport(exportFormats?.csv ? 'csv' : exportFormats?.xlsx ? 'xlsx' : 'pdf')}>
+                    <DownloadIcon size={13} aria-hidden /> {t('common.download', 'Download')}
+                  </Button>
+                )}
+                {canCreate && (
+                  <Button variant="primary" size="md" onClick={openCreate}>
+                    <PlusIcon size={13} aria-hidden /> {t('common.new', 'New')} {def.label}
+                  </Button>
+                )}
+              </div>
             </div>
           )}
 
@@ -932,20 +949,24 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
           )}
 
           {isLeads && leadsView === 'kanban' && (
-            <div className="kanban">
-              {[...(def.statuses ?? [])].sort((a, b) => a.order - b.order).map((col) => {
-                const items = displayRows.filter((r) => (r.status ?? '') === col.key)
+            // Leads-only board: columns are the LEAD lifecycle stages (Commercial Gate stages from
+            // the SST). The 20 most-recent leads (displayRows) flow across these columns — no orders.
+            <div className="kanban kanban-fill">
+              {LEAD_STAGES.map((stage) => {
+                const key = stage.key.toLowerCase()
+                const leadsIn = displayRows.filter((r) => (r.status ?? '') === key)
+                const count = leadsIn.length
                 return (
-                  <div key={col.key} className="kcol">
+                  <div key={stage.key} className="kcol">
                     <div className="kcol-head">
-                      <span style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 'var(--gx-weight-semibold)' }}>{col.label}</span>
-                      <span className="kcol-count">{items.length}</span>
+                      <span style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 'var(--gx-weight-semibold)' }}>{stage.label}</span>
+                      <span className="kcol-count">{count}</span>
                     </div>
                     <div className="kcol-body">
-                      {items.map((r) => leadCardEV(r))}
-                      {items.length === 0 && (
+                      {leadsIn.map((r) => leadCardEV(r))}
+                      {count === 0 && (
                         <div style={{ padding: 'var(--gx-space-5)', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-sm)', borderRadius: 'var(--gx-radius-sm)', border: '1px dashed var(--gx-border)' }}>
-                          {t('leads.emptyStage', 'No leads in this stage')}
+                          {t('leads.emptyStage', 'Empty')}
                         </div>
                       )}
                     </div>
@@ -956,7 +977,7 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
           )}
 
           {isLeads && leadsView === 'cards' && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 'var(--gx-space-5)', maxHeight: '60vh', overflowY: 'auto', paddingRight: 'var(--gx-space-2)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(var(--gx-card-min-w), 1fr))', gap: 'var(--gx-space-5)', paddingBottom: 'var(--gx-space-6)' }}>
               {displayRows.map((r) => leadCardEV(r))}
             </div>
           )}
@@ -998,6 +1019,15 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
         />
       )}
 
+      {orderOpen && (
+        <OrderDetailModal
+          id={orderOpen}
+          customerNames={Object.fromEntries((gateCustomers as Array<{ id: string; name?: string }>).map((c) => [String(c.id), String(c.name ?? '')]))}
+          canEdit={canEdit}
+          onClose={() => setOrderOpen(null)}
+        />
+      )}
+
       {activityRow && (
         <Modal open onClose={() => setActivityRow(null)} title={`Activity · ${def.label}`} size="md">
           <ActivityTimeline entity={slug} record={activityRow.id} />
@@ -1033,6 +1063,9 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
                 {recs.map((r: any) => (
                   gate.entity === 'lead' && canEdit ? (
                     <button key={r.id} type="button" onClick={() => { setGateOpen(null); openEdit(r) }}
+                      style={{ ...rowStyle, cursor: 'pointer' }}>{row(r)}</button>
+                  ) : gate.entity === 'order' ? (
+                    <button key={r.id} type="button" onClick={() => { setGateOpen(null); setOrderOpen(r.id) }}
                       style={{ ...rowStyle, cursor: 'pointer' }}>{row(r)}</button>
                   ) : (
                     <div key={r.id} style={rowStyle}>{row(r)}</div>

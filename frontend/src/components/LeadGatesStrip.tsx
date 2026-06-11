@@ -54,7 +54,7 @@ export function LeadGatesStrip({ leads, orders, customers, onOpenGate }: {
             <div className="gate-card-head">
               <span className="gate-card-name">
                 <span className="gate-dot" aria-hidden />
-                {g.name}
+                <span className="gate-card-label">{g.name}</span>
               </span>
               <span className="gate-card-scope">{g.scope}</span>
             </div>
