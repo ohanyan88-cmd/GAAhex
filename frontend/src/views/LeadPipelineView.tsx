@@ -96,24 +96,15 @@ export default function LeadPipelineView({ onOpenCustomer, canConfigure = false,
   async function convert(lead: Lead) {
     setConverting(lead.id)
     try {
-      const res = await bpost<{ customer_id?: string; id?: string; already?: boolean; customer?: { id?: string } }>(token!, `/api/leads/${lead.id}/convert`)
-      const cid = res.customer_id ?? res.customer?.id ?? res.id ?? null
+      // Iron rule: a sales-complete lead converts to an ORDER (not a customer). The customer is
+      // created later, at ACTIVATION. The lead lands at ORDER_CREATED; the new order appears on Orders.
+      const res = await bpost<{ order_id?: string; already?: boolean }>(token!, `/api/leads/${lead.id}/convert`)
       if (res.already) {
-        toast.info(t('leads.alreadyCustomer', 'This lead is already a customer'))
-        if (cid && onOpenCustomer) onOpenCustomer(cid)
+        toast.info(t('leads.alreadyOrder', 'This lead is already an order'))
         return
       }
-      toast.success(t('leads.convertOk', 'Lead converted to customer'))
+      toast.success(t('leads.convertOrderOk', 'Lead converted to order'))
       await load()
-      if (cid && onOpenCustomer) {
-        const go = await confirmDialog({
-          title: t('leads.convertedTitle', 'Customer created'),
-          message: t('leads.openCustomerQ', 'Open the new customer workspace?'),
-          confirmLabel: t('common.open', 'Open'),
-          cancelLabel: t('common.stay', 'Stay'),
-        })
-        if (go) onOpenCustomer(cid)
-      }
     } catch (e) {
       const err = e as Error & { status?: number }
       if (err.status === 404) { setConvertNA(true); toast.error(t('leads.convertNA', "Lead conversion isn't available yet")) }
@@ -313,7 +304,7 @@ export default function LeadPipelineView({ onOpenCustomer, canConfigure = false,
                           {canEdit && !convertNA && ['DEAL', 'CONTRACT_SIGNED'].includes((lead.status || '').toUpperCase()) && (
                             <Button variant="primary" size="sm"
             onClick={() => convert(lead)} disabled={converting === lead.id} style={{ fontSize: 'var(--gx-text-11)' }}>
-                              <UsersIcon size={11} />{converting === lead.id ? t('leads.converting', 'Converting…') : t('leads.convert', 'Convert')}
+                              <ArrowRightIcon size={11} />{converting === lead.id ? t('leads.converting', 'Converting…') : t('leads.convertToOrder', 'Convert to Order')}
                             </Button>
                           )}
                         </div>

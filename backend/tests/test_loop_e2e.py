@@ -76,33 +76,32 @@ async def test_full_isp_loop_e2e(client, admin):
       6. create a ticket → 360 reflects the whole loop (subscriptions, invoices, ticket related,
          services per A20).
     """
-    # ============ STAGE 1: lead → customer ============
+    # ============ STAGE 1: lead → ORDER (iron rule 2026-06-12) ============
     lead = (await client.post("/api/leads", headers=admin, json={
         "name": _uniq("E2E Lead"), "phone": "+37411223344", "email": f"{_uniq('e2e')}@demo.isp",
     })).json()
     lead_id = lead["id"]
 
     convert = await client.post(f"/api/leads/{lead_id}/convert", headers=admin, json={})
-    a20 = convert.status_code != 404
-    if a20:
+    if convert.status_code != 404:
         assert convert.status_code in (200, 201), convert.text
-        # The lead is now CONVERTED and points at the new customer (the authoritative link).
+        # The lead converts to an ORDER (not a customer): it lands at ORDER_CREATED (sales done) and
+        # points at the new order. The customer is created later, at ACTIVATION.
+        order_id = convert.json()["order_id"]
+        assert order_id, "convert did not return order_id"
         lead_after = (await client.get(f"/api/leads/{lead_id}", headers=admin)).json()
-        assert lead_after["status"] == "contract_signed"
-        customer_id = lead_after["converted_customer_id"]
-        assert customer_id, "convert did not stamp converted_customer_id on the lead"
-        # The customer records where it came from.
-        cust = (await client.get(f"/api/customers/{customer_id}", headers=admin)).json()
-        assert cust["source_lead_id"] == lead_id
-        # Idempotent: converting again yields the same customer, not a second one.
+        assert lead_after["status"] == "order_created"
+        assert lead_after["converted_order_id"] == order_id
+        # Idempotent: converting again yields the same order, not a second one.
         again = await client.post(f"/api/leads/{lead_id}/convert", headers=admin, json={})
         assert again.status_code in (200, 201, 409), again.text
         lead_again = (await client.get(f"/api/leads/{lead_id}", headers=admin)).json()
-        assert lead_again["converted_customer_id"] == customer_id
-    else:
-        # A20 not merged — create the customer directly so the chain below still runs end-to-end.
-        customer_id = (await client.post("/api/customers", headers=admin,
-                                         json={"name": _uniq("E2E Cust")})).json()["id"]
+        assert lead_again["converted_order_id"] == order_id
+
+    # The CUSTOMER is created at ACTIVATION (separate step). STAGE 2 drives the order/provisioning
+    # chain against a customer created directly here until that wiring lands.
+    customer_id = (await client.post("/api/customers", headers=admin,
+                                     json={"name": _uniq("E2E Cust")})).json()["id"]
 
     # ============ STAGE 2: order → subscription + service (auto-provision) ============
     prod = await _product(client, admin, default_amount=45000, cycle="monthly")

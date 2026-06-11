@@ -17,6 +17,7 @@ import {
   type LifecycleStage, type LifecycleExitState,
 } from '../lib/lifecycle'
 import { ArrowRightIcon, UsersIcon, LayersIcon, TruckIcon } from '../components/icons'
+import { LeadGatesPanel } from '../components/LeadGatesPanel'
 import { PageShell } from '../page-shell'
 import { DetailTab } from '../primitives'  // TB-1 — canonical detail-tab primitive
 
@@ -40,6 +41,11 @@ export default function PipelineView(props: PipelineViewProps) {
       title="Pipeline"
       subtitle="Sales Pipeline · Customer Lifecycle · Service Delivery"
     >
+      {/* Lifecycle control-gate spine — spans lead → order → customer, so it sits above all tabs. */}
+      <div style={{ marginBottom: 'var(--gx-space-6)' }}>
+        <LeadGatesPanel capabilities={props.capabilities} onOpenCustomer={props.onOpenCustomer} />
+      </div>
+
       {/* Three-pipeline tab bar */}
       <div
         role="tablist"

@@ -340,16 +340,19 @@ async def build_crm_entities(s, t) -> None:
     await _make_entity(
         s, t, "lead", "Lead", "Leads", "leads", "users",
         fields=_LEAD_FIELDS,
-        # Lead = the COMMERCIAL half of the Customer Lifecycle SST (lifecycle.ts #1-5). Single
-        # source of truth — the legacy NEW/CONTACTED/QUALIFIED/CONVERTED set was DELETED 2026-06-11.
+        # Lead = the SALES slice of the SST (iron rule, lifecycle.ts stages 1→6): LEAD … CONTRACT_SIGNED
+        # → ORDER_CREATED (sales done → converts to ORDER). `lost` is the sales off-ramp. Legacy
+        # NEW/CONTACTED/QUALIFIED/CONVERTED set was DELETED 2026-06-11.
         statuses=[("lead", "Lead", True), ("validated_lead", "Validated Lead", False),
                   ("assigned", "Assigned", False), ("deal", "Deal", False),
-                  ("contract_signed", "Contract Signed", False), ("lost", "Lost", False)],
+                  ("contract_signed", "Contract Signed", False), ("order_created", "Order Created", False),
+                  ("lost", "Lost", False)],
         transitions=[
             {"from": "lead", "to": "validated_lead", "guard": "phone != None and phone != ''"},
             {"from": "validated_lead", "to": "assigned", "guard": None},
             {"from": "assigned", "to": "deal", "guard": None},
             {"from": "deal", "to": "contract_signed", "guard": None},
+            {"from": "contract_signed", "to": "order_created", "guard": None},  # sales done → convert to ORDER
             {"from": "validated_lead", "to": "lost", "guard": None},
             {"from": "assigned", "to": "lost", "guard": None},
             {"from": "deal", "to": "lost", "guard": None},
@@ -366,14 +369,15 @@ async def build_crm_entities(s, t) -> None:
             ("plan", "Plan", "select", False, {"options": ["Basic", "Pro", "Enterprise"]}),
             ("status", "Status", "status", False, None),
         ],
-        # Customer = the OPERATIONAL tail of the SST (lifecycle.ts #14 + exits). Single source of
-        # truth — the legacy PROSPECT/ACTIVE/CHURNED set was DELETED 2026-06-11.
-        statuses=[("monitoring", "Monitoring", True), ("suspended", "Suspended", False),
+        # Customer = the active base (iron rule: NOT a pipeline). "monitoring" was never a stage — the
+        # active-base status is ACTIVE; suspended/terminated are the off-ramps. A Customer-Care
+        # check-call auto-task (created at ACTIVATION) replaces the former "monitoring stage".
+        statuses=[("active", "Active", True), ("suspended", "Suspended", False),
                   ("terminated", "Terminated", False)],
         transitions=[
-            {"from": "monitoring", "to": "suspended", "guard": None},
-            {"from": "suspended", "to": "monitoring", "guard": None},
-            {"from": "monitoring", "to": "terminated", "guard": None},
+            {"from": "active", "to": "suspended", "guard": None},
+            {"from": "suspended", "to": "active", "guard": None},
+            {"from": "active", "to": "terminated", "guard": None},
             {"from": "suspended", "to": "terminated", "guard": None},
         ],
     )

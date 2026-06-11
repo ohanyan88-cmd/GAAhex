@@ -51,6 +51,8 @@ from .seed_statuses import seed_status_standardization_if_empty
 from .seed_role_boundaries import seed_role_boundaries_if_empty
 from .seed_regions import seed_demo_regions_if_empty
 from .seed_nav_registry import seed_nav_registry_if_empty
+from .seed_lifecycle_statuses import seed_lifecycle_statuses_if_missing
+from .seed_list_presets import seed_list_presets_if_missing
 from .migrate_interactions import migrate_interactions
 from .scheduler import start_scheduler, stop_scheduler
 from .routers import auth, meta, records, reports, notifications, notification_defs, dashboards, views, approvals, search, comm, export, activity, ops, billing_subscription, billing_invoice, billing_payment, billing_credit_note, billing_product, bulk, report_builder, orders, customer360, webhooks, apikeys, services, respool, usage, documents, i18n, accounts, analytics, ai, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests, search_assist, helpdesk, users, workitems, payment_gateway, calendar as calendar_router, portal_auth, portal, portal_billing, portal_support, portal_service, roles, automations, events, page_config, me, org_nodes, metrics, audit_log, studio_pages, feature_flags, page_bindings, assignments, mandatory_approvals, regions, kpis, customer_timeline, workflows, nav_registry, assets, procurement, contract_expiring, workspace, tariff_plans, credit_notes, dunning, revenue_assurance, payment_methods, install_board, noc_dashboard, noc_inventory, comments, watchers, tasks, slas, attachments, communications, configurations, escalations, relationships, imports_exports, lifecycle, privacy, mail, messaging
@@ -95,6 +97,8 @@ async def lifespan(app: FastAPI):
     await seed_ownership_matrix_if_empty()  # SPEC §2.2 — backfill entity_def.owner_module (Step 3; idempotent)
     await seed_role_boundaries_if_empty()   # SPEC §4.3 — role hard-denials (Step 6; idempotent)
     await seed_nav_registry_if_empty()      # SPEC §1 — 9 groups + 71 modules (Step 7; idempotent)
+    await seed_lifecycle_statuses_if_missing()  # normalize lead/order defs to iron-rule SST (prune legacy)
+    await seed_list_presets_if_missing()    # page_config ListPreset for Leads/Orders list pages (idempotent)
     # Dev-only bulk seeder — populates previously-sparse pages with 10 realistic Armenian-ISP
     # customers + the full cross-referenced tree. Gated by env-var `GAAHEX_DEV_SEED`; production
     # leaves it unset → seeder never runs → DB stays empty-until-real. Idempotent.

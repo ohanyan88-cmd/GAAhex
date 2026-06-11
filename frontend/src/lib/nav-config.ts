@@ -61,6 +61,7 @@ export const NAV_SECTIONS: NavSectionDef[] = [
 
   s('crm', 'CRM', UsersIcon, [
     i('crm-leads',          'Leads',          InboxIcon,      'entity', { slug: 'leads' }),
+    i('crm-orders',         'Orders',         ReceiptIcon,    'entity', { slug: 'orders' }),
     i('crm-pipeline',       'Pipeline',       ArrowRightIcon, 'lead-pipeline'),
     i('crm-customers',      'Customers',      UsersIcon,      'entity', { slug: 'customers' }),
     i('crm-customer-tasks', 'Customer Tasks', CheckIcon,      'customer-tasks'),

@@ -1,6 +1,6 @@
 """Step 4 — canonical pipeline seeder (SPEC §3 + §9).
 
-Seeds the 14 LOCKED pipeline stages from SPEC §3 (Lead → Monitoring) plus their matching KPI rows
+Seeds the 13 LOCKED pipeline stages (Lead → Activation; iron rule 2026-06-11) plus their matching KPI rows
 (one KPI per stage per §3 / §9). Idempotent: uses `pg_insert(...).on_conflict_do_nothing()` keyed on
 the table's unique constraint (`tenant_id`, `key`) so re-runs are safe and cheap.
 
@@ -33,7 +33,7 @@ from .models.kernel_defs import StageDef, KpiDef
 _log = logging.getLogger("gaahex.seed_pipeline")
 
 
-# Canonical Customer Lifecycle — 14 rows, MIRRORS the frontend SST
+# Canonical acquisition pipeline — 13 rows, MIRRORS the frontend SST (LIFECYCLE_STAGES)
 # (`frontend/src/lib/lifecycle.ts` → LIFECYCLE_STAGES). That file is the single source
 # of truth; this list is its backend projection (same key/name/sequence/owner, lowercased
 # keys). Reconciled 2026-06-11 (supersedes the legacy SPEC §3 set — see RECONCILIATION note
@@ -92,21 +92,20 @@ CANONICAL_PIPELINE: list[tuple[int, str, str, str, str, str | None, str | None, 
     (13, "activation",             "Activation",            "Billing",
         "Account live, billing cycle started",
         "activation_rate",           "Activation Rate",              False),
-    (14, "monitoring",             "Monitoring",            "NOC",
-        "Continuous post-activation",
-        "thirty_day_retention",      "30-Day Retention",             False),
+    # MONITORING removed as a pipeline stage (iron rule 2026-06-11): it is NOT a stage — at ACTIVATION
+    # the order converts to CUSTOMER (active base) and a Customer-Care auto-task forces the check-call.
 ]
 
 
 async def seed_canonical_pipeline_if_empty() -> dict[str, int]:
-    """Seed the 14 SPEC §3 canonical pipeline rows + their bound KPIs for every tenant.
+    """Seed the 13 canonical pipeline rows + their bound KPIs for every tenant.
 
     Idempotent — uses `pg_insert(...).on_conflict_do_nothing()` keyed on the existing
     `uq_stage_def_key` / `uq_kpi_def_key` unique constraints (both are `(tenant_id, key)`). Re-runs
     are cheap and safe.
 
-    For each tenant × each of the 14 stages:
-        1) INSERT a stage_def row (Lead .. Monitoring); the `is_control_gate` flag is True only for
+    For each tenant × each of the 13 stages:
+        1) INSERT a stage_def row (Lead .. Activation); the `is_control_gate` flag is True only for
            `order_validation` (stage 8). The row also carries `kpi_def_key` pointing at the matching
            KPI.
         2) INSERT a kpi_def row bound to that stage via `bound_stage_key`. The KPI's `owner_module`

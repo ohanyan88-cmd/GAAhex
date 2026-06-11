@@ -33,7 +33,7 @@ from ..services.payment_gateway_adapter import get_payment_gateway
 from ..services.stage8_gate import compute_stage8_status, apply_stage8_result
 from ..utils.refnum import next_reference_number
 from .auth import current_user
-from .records import _node_path, _node_paths              # reuse the exact records scope primitives
+from .records import _node_path, _node_paths, _entity, _fields  # reuse the exact records scope primitives
 from .billing import _money, _now, _add_cycle, _customer_or_422, _deny   # reuse billing helpers (DRY)
 from .notifications import emit_notification
 
@@ -194,6 +194,41 @@ async def _provision_subscriptions(s, user: User, order: Order, items: list[Orde
         except Exception:
             pass
     return created
+
+
+async def _create_customer_from_lead(s: AsyncSession, user: User, order: Order) -> Record | None:
+    """Iron rule: at ACTIVATION an order born from a lead conversion (order.lead_id) creates its
+    CUSTOMER — the customer joins the active base here, never earlier. Carries the lead's identity
+    (intersection of lead.data with the customer entity's fields — invents nothing). Returns the new
+    customer Record, or None if the lead is missing.
+    """
+    lead = (await s.execute(
+        select(Record).where(Record.id == order.lead_id, Record.tenant_id == user.tenant_id,
+                             Record.entity_key == "lead")
+    )).scalar_one_or_none()
+    if lead is None:
+        return None
+    cust_ent = await _entity(s, user.tenant_id, "customers")
+    cust_field_keys = {f.key for f in await _fields(s, cust_ent.id) if f.type != "status"}
+    lead_data = lead.data or {}
+    cust_data = {k: lead_data[k] for k in cust_field_keys if k in lead_data}
+    cust_data["source_lead_id"] = str(lead.id)
+    cust_data["source_order_id"] = str(order.id)
+    cust_data["ref"] = await next_reference_number(s, tenant_id=user.tenant_id, prefix="CUS")
+    customer = Record(
+        tenant_id=user.tenant_id, entity_key=cust_ent.key,
+        owner_node_id=order.owner_node_id,
+        status="active",                                                # active base member (not a stage)
+        data=cust_data,
+    )
+    s.add(customer)
+    await s.flush()
+    # back-link the lead → customer for the full lead → order → customer trail
+    lead.data = {**lead_data, "converted_customer_id": str(customer.id)}
+    await workflow.emit(s, user.tenant_id, "CREATE", "customer", customer.id, user.id,
+                        {"data": cust_data, "status": "active", "from_order": str(order.id),
+                         "from_lead": str(lead.id)})
+    return customer
 
 
 # ---- CRUD ----
@@ -403,10 +438,10 @@ async def advance_order(order_id: uuid.UUID, user: User = Depends(current_user),
 
     provisioned: list[str] = []
     if nxt == ORDER_PROVISION_AT:
-        items = await _items(s, order.id)
-        provisioned = await _provision_subscriptions(s, user, order, items)
-        # SST: activation is where the customer goes live — its CRM customer Record becomes an
-        # active (monitored) customer. The CUS reference was stamped at lead→customer convert.
+        # Iron rule: at ACTIVATION the customer joins the active base. Create it now if the order was
+        # born from a lead conversion (order.lead_id, no customer yet); else use the existing customer.
+        # Must precede provisioning so each subscription gets the customer_id.
+        cust = None
         if order.customer_id:
             cust = (await s.execute(
                 select(Record).where(
@@ -414,8 +449,14 @@ async def advance_order(order_id: uuid.UUID, user: User = Depends(current_user),
                     Record.entity_key == "customer",
                 )
             )).scalar_one_or_none()
-            if cust is not None and cust.status != "monitoring":
-                cust.status = "monitoring"
+        elif order.lead_id:
+            cust = await _create_customer_from_lead(s, user, order)
+            if cust is not None:
+                order.customer_id = cust.id
+        if cust is not None and cust.status != "active":
+            cust.status = "active"
+        items = await _items(s, order.id)
+        provisioned = await _provision_subscriptions(s, user, order, items)
         # best-effort completion notification (no-op unless an `order.completed` def is seeded)
         try:
             recipients = await notify_hooks.resolve_recipients(s, tenant_id=user.tenant_id, record=order)

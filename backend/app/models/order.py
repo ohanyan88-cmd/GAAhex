@@ -30,12 +30,16 @@ class Order(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     owner_node_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("org_node.id"), nullable=True)
+    # Source lead this order was converted from (iron rule: lead → ORDER at ORDER_CREATED). Carries the
+    # order's identity (name/contact) until ACTIVATION, when the CUSTOMER is created and customer_id set.
+    lead_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("record.id"), nullable=True, index=True)
     customer_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("record.id"), nullable=True, index=True)
     account_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("account.id"), nullable=True, index=True)  # additive (17a) — null = pre-Account row; resolve via customer_id
     number: Mapped[str] = mapped_column(String(40), nullable=False)                    # per-tenant ref, e.g. ORD-00007
-    # Order lifecycle = SST fulfillment stages (lifecycle.ts #6-13): order_created → order_validated
-    # → scheduling → installation → config → connection_test → payment_confirmed → activation (+ cancelled).
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default="order_created")
+    # Order lifecycle = SST fulfillment slice (iron rule, stages 7→13): order_validated → scheduling →
+    # config → installation → connection_test → payment_confirmed → activation (+ cancelled). The order
+    # is BORN at order_validated (its first stage); ORDER_CREATED is the LEAD's terminal sales stage.
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="order_validated")
     total: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)           # luma, = sum(item line_total)
     # SPEC §3 Stage 8 Control Gate verdict (Step 4). NULL = pending validation, TRUE = Revenue
     # Control passed (KYC+Credit+Fraud+Tariff match), FALSE = explicitly failed. The kernel function

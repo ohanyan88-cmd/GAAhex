@@ -7,6 +7,30 @@ export type Status = { key: string; label: string; order: number; is_initial: bo
 export type Transition = { from: string; to: string }
 export type Def = { key: string; label: string; label_plural: string; route_slug: string; fields: Field[]; statuses: Status[]; transitions: Transition[] }
 
+// ── List presentation preset ────────────────────────────────────────────────────
+// A page-config descriptor (stored per (tenant, page_key=slug) in the page_config table) that drives
+// how an entity's LIST page renders — view switcher, table columns, kanban stages, card chips. When
+// absent the page falls back to the standard generic table. This is the config that lets Leads and
+// Orders share ONE renderer with ZERO slug-specific code: each entity's look is data, not hardcode.
+export type ListColumn = {
+  key: string
+  label: string
+  role?: 'id' | 'primary' | 'plain'   // id → mono ref pill · primary → semibold · plain → muted-dash cell
+  width?: number                       // px (table-layout:fixed); omit → auto
+}
+export type ListPreset = {
+  flat?: boolean                                       // borderless rounded frame + whole-row click + no checkbox
+  viewModes?: ('table' | 'kanban' | 'cards')[]         // switcher options; >1 ⇒ switcher shows
+  defaultView?: 'table' | 'kanban' | 'cards'
+  recentLimit?: number                                 // show only N most-recent (no search) across views
+  statusHeader?: string                                // header label for the status column (e.g. 'Stage')
+  idPrefix?: string                                    // synthetic id prefix when the id column is empty
+  columns?: ListColumn[]                               // ordered display columns (before the status + actions)
+  stageWidth?: number                                  // px width of the status column
+  kanbanStages?: string[]                              // status keys (in order) used as kanban columns; labels from def.statuses
+  cardChips?: string[]                                 // field keys rendered as chips on the record card
+}
+
 // Drafts = initial status (is_initial === true)
 // History = terminal statuses (no outgoing transitions)
 // Active = everything else

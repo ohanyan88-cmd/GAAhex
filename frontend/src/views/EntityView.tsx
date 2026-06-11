@@ -14,7 +14,6 @@ import CustomerBillingModal from '../modals/CustomerBillingModal'
 import AiAssistModal from '../modals/AiAssistModal'
 import { EmptyState, PermissionDenied, NotFound, LoadingState, ErrorBanner } from '../components/States'
 import ActivityTimeline from '../components/ActivityTimeline'
-import { LeadGatesStrip, GATES } from '../components/LeadGatesStrip'
 import { useI18n } from '../lib/i18n'
 import { contractFileName } from '../lib/contract'
 import NoAccess from '../components/NoAccess'
@@ -24,10 +23,8 @@ import { PageShell } from '../page-shell'
 import type { SecondaryAction } from '../page-shell'
 import { BASE } from '../lib/config'
 import { authH, bget } from '../lib/billing'
-import { LIFECYCLE_STAGES } from '../lib/lifecycle'
-import { OrderDetailModal } from './orders/OrderDetailModal'
 import { useAuth } from '../context/AuthContext'
-import type { Def, Row, Mode, SavedView, StatusTab, ExportFormats } from './entity/types'
+import type { Def, Row, Mode, SavedView, StatusTab, ExportFormats, ListPreset, ListColumn } from './entity/types'
 import { deriveStatusGroups, pagePropsForSlug, mapEntityStatus, errFieldOf, capitalize } from './entity/types'
 import { deriveEntityKPIs, deriveLeadsWeeklyKPIs } from './entity/kpis'
 import { probeEntityExportFormats, patchRecord } from './entity/api'
@@ -35,14 +32,10 @@ import { EntityFormModal } from './entity/EntityFormModal'
 
 const PAGE_SIZE = 50
 
-// The Leads page is LEADS-ONLY (orders/customers live on their own pages; the gates strip carries
-// their counts). The kanban board therefore shows only the LEAD lifecycle stages — the Commercial
-// Gate stages from the SST (lead → contract signed) — derived straight from lifecycle.ts + GATES so
-// it can never drift from the gate definition.
-const LEAD_STAGES = LIFECYCLE_STAGES.filter((stage) =>
-  (GATES.find((g) => g.key === 'commercial')?.statuses ?? []).includes(stage.key.toLowerCase()))
-
-// One generic component renders EVERY entity from its config — no per-entity code.
+// One generic component renders EVERY entity from its config — no per-entity code. The rich
+// pipeline-list view (Table/Kanban/Cards switcher, borderless table, kanban-by-stage, cards) is
+// driven entirely by a ListPreset descriptor stored in page_config per slug — NOTHING is hardcoded
+// per entity. Leads and Orders share this one renderer; their look IS their config.
 export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capabilities = FULL_ACCESS, onBack, canConfigure = false, onConfigure }: {
   slug: string
   onOpenCustomer?: (id: string) => void
@@ -64,33 +57,20 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
   const [form, setForm] = useState<Record<string, any>>({})
   const [contractUrl, setContractUrl] = useState<string | null>(null)
   const [mode, setMode] = useState<Mode>('idle')
-  // Leads page view switcher (Gev directive 2026-06-11): Table | Kanban | Cards. Leads-only; every
-  // other entity keeps the table unchanged. Choice persisted.
+  // List-presentation preset for this slug (page_config). Null ⇒ standard generic table. Drives the
+  // rich Table/Kanban/Cards view entirely from config — no per-entity code. Loaded in load().
+  const [listCfg, setListCfg] = useState<ListPreset | null>(null)
+  // View switcher (Table | Kanban | Cards): shown only when the preset declares >1 view mode. Persisted.
+  const viewModeKey = `entity-view-mode-${slug}`
   const [leadsView, setLeadsView] = useState<'table' | 'kanban' | 'cards'>(() => {
-    try { return (localStorage.getItem('leads-view-mode') as 'table' | 'kanban' | 'cards') || 'table' }
+    try { return (localStorage.getItem(viewModeKey) as 'table' | 'kanban' | 'cards') || 'table' }
     catch { return 'table' }
   })
   const setLeadsViewMode = (m: 'table' | 'kanban' | 'cards') => {
     setLeadsView(m)
-    try { localStorage.setItem('leads-view-mode', m) } catch { /* ignore */ }
+    try { localStorage.setItem(viewModeKey, m) } catch { /* ignore */ }
   }
-  // Which control-gate's window is open (same-page modal opened from LeadGatesStrip).
-  const [gateOpen, setGateOpen] = useState<string | null>(null)
-  // Which order's detail modal is open (orders shown alongside leads in the lifecycle views).
-  const [orderOpen, setOrderOpen] = useState<string | null>(null)
-  // Real counts for the gate strip come from each gate's own entity (Commercial=leads already in
-  // `rows`; Technical/Billing=orders; Customer Care=customers). Fetched only on the Leads page.
-  const [gateOrders, setGateOrders] = useState<Row[]>([])
-  const [gateCustomers, setGateCustomers] = useState<Row[]>([])
-  useEffect(() => {
-    if (slug !== 'leads' || !token) return
-    const pick = (v: any): Row[] => Array.isArray(v) ? v : (v?.rows ?? v?.items ?? v?.orders ?? [])
-    void (async () => {
-      const [o, c] = await Promise.all([bget<any>(token, '/api/orders'), bget<any>(token, '/api/customers')])
-      if (o.ok) setGateOrders(pick(o.data))
-      if (c.ok) setGateCustomers(pick(c.data))
-    })()
-  }, [slug, token])
+  // Gate strip + its order/customer data moved to the Pipeline page (LeadGatesPanel, Gev 2026-06-11).
   const [createStep, setCreateStep] = useState<'pick' | 'form'>('pick')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingStatus, setEditingStatus] = useState<string | null>(null)
@@ -131,6 +111,11 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
       let d: Def
       try { d = await getEntityDef(token!, s) } catch { setFatal('notfound'); return }
       setDef(d)
+      // List-presentation preset (page_config descriptor under config.list). Absent ⇒ standard table.
+      try {
+        const pc = await bget<{ config?: { list?: ListPreset } }>(token!, `/api/page-config/${s}`)
+        setListCfg(pc.ok ? (pc.data?.config?.list ?? null) : null)
+      } catch { setListCfg(null) }
       const params = new URLSearchParams()
       if (appliedQ) params.set('q', appliedQ)
       if (filter) params.set('filter', filter)
@@ -366,53 +351,98 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
   const readOnly = !canCreate && !canEdit && !canDelete
 
   const cols = def.fields.filter((f) => f.type !== 'status')
-  const isLeads = slug === 'leads'
-  const leadRef = (id: unknown) => 'LED-' + String(id).replace(/-/g, '').slice(-6).toUpperCase()
+  // Everything below is driven by the page_config preset — zero per-entity hardcode.
+  const preset = listCfg
+  const isRich = !!preset
+  const flat = !!preset?.flat
+  const viewModes: ('table' | 'kanban' | 'cards')[] = preset?.viewModes ?? ['table']
+  const listCols: ListColumn[] | null = preset?.columns ?? null
+  const recentLimit = preset?.recentLimit ?? 20
+  const statusHeader = preset?.statusHeader ?? 'Status'
+  // Kanban columns: status keys from the preset (in order), labels resolved from def.statuses (= SST).
+  const richStages = (preset?.kanbanStages ?? def.statuses.map((s) => s.key)).map((key) => ({
+    key,
+    label: def.statuses.find((s) => s.key === key)?.label ?? key,
+  }))
+  // Synthetic id (when the id column value is empty), e.g. "LED-AB12CD" — prefix is config.
+  const synthId = (id: unknown) => (preset?.idPrefix ?? '') + String(id).replace(/-/g, '').slice(-6).toUpperCase()
   const leadCell = (v: unknown) => (v == null || v === '' ? <span className="muted">—</span> : String(v))
   const hasWorkflow = (def.transitions ?? []).length > 0
   const nextFrom = (status: string | null) => (def.transitions ?? []).filter((t) => t.from === status).map((t) => t.to)
 
-  // One lead card — shared by the Cards grid and the Kanban columns (leads view switcher).
-  // The WHOLE card opens the lead (its 360 detail) via a stretched <button> overlay (accessible —
-  // real button, keyboard-focusable). The action row sits above the overlay (z-index) so the
-  // status pill + stage-transition buttons stay independently clickable.
-  const leadCardEV = (r: Row) => (
-    <div key={r.id} className="kcard" style={{ position: 'relative' }}>
-      {canEdit && (
-        <button
-          type="button"
-          aria-label={`Open ${r.name ? String(r.name) : 'lead'}`}
-          onClick={() => openEdit(r)}
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', background: 'transparent', border: 0, padding: 0, margin: 0, cursor: 'pointer' }}
-        />
-      )}
-      <div className="mono" style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-link)', marginBottom: 'var(--gx-space-3)' }}>
-        {r.ref ? String(r.ref) : leadRef(r.id)}
-      </div>
-      <div style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 'var(--gx-weight-semibold)', marginBottom: 'var(--gx-space-4)' }}>
-        {r.name ? String(r.name) : '—'}
-      </div>
-      {(r.phone || r.email || r.address) && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--gx-space-3)', marginBottom: 'var(--gx-space-4)', fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>
-          {r.phone ? <span className="mono">{String(r.phone)}</span> : null}
-          {r.email ? <span className="mono">{String(r.email)}</span> : null}
-          {r.address ? <span>{String(r.address)}</span> : null}
+  // One record card — shared by the Cards grid and the Kanban columns of the rich view (Leads + Orders).
+  // The WHOLE card opens the record (360 detail) via a stretched <button> overlay (accessible — real
+  // button, keyboard-focusable). The action row sits above the overlay (z-index) so the status pill +
+  // stage-transition buttons stay independently clickable. Data-adaptive: Leads keep their exact
+  // id/name/contact layout; other rich entities (Orders) show their number + primary ref + fields.
+  const recordCardEV = (r: Row) => {
+    // id / title / chips all come from the preset's column roles + cardChips — no per-entity code.
+    const idCol = listCols?.find((c) => c.role === 'id')
+    const primaryCol = listCols?.find((c) => c.role === 'primary')
+    const idText = idCol
+      ? (String(listVal(idCol, r) ?? '') || synthId(r.id))
+      : (r.ref ? String(r.ref) : r.number ? String(r.number) : synthId(r.id))
+    const titleText = primaryCol
+      ? (String(listVal(primaryCol, r) ?? '') || '—')
+      : (r.name ? String(r.name) : r.title ? String(r.title) : '—')
+    const chipKeys = preset?.cardChips ?? cols
+      .filter((c) => c.key !== idCol?.key && c.key !== primaryCol?.key && c.key !== 'status')
+      .slice(0, 3)
+      .map((c) => c.key)
+    const chipVal = (k: string) => { const c = cols.find((x) => x.key === k); return c ? cellValue(c, r) : r[k] }
+    const chips: string[] = chipKeys
+      .map(chipVal)
+      .filter((v) => v != null && v !== '')
+      .slice(0, 3)
+      .map(String)
+    return (
+      <div key={r.id} className="kcard" style={{ position: 'relative' }}>
+        {canEdit && (
+          <button
+            type="button"
+            aria-label={`Open ${titleText !== '—' ? titleText : 'record'}`}
+            onClick={() => openEdit(r)}
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', background: 'transparent', border: 0, padding: 0, margin: 0, cursor: 'pointer' }}
+          />
+        )}
+        <div className="mono" style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-link)', marginBottom: 'var(--gx-space-3)' }}>
+          {idText}
         </div>
-      )}
-      <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', flexWrap: 'wrap' }}>
-        {r.status ? <StatusPill variant={mapEntityStatus(r.status, def)} label={r.status} size="sm" /> : null}
-        {hasWorkflow && canEdit && nextFrom(r.status).map((to) => (
-          <Button key={to} variant="ghost" size="sm" onClick={() => doTransition(r.id, to)} style={{ fontSize: 'var(--gx-text-11)' }}>
-            <ArrowRightIcon size={11} />{to}
-          </Button>
-        ))}
+        <div style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 'var(--gx-weight-semibold)', marginBottom: 'var(--gx-space-4)' }}>
+          {titleText}
+        </div>
+        {chips.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--gx-space-3)', marginBottom: 'var(--gx-space-4)', fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>
+            {chips.map((c, i) => <span key={i} className="mono">{c}</span>)}
+          </div>
+        )}
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', flexWrap: 'wrap' }}>
+          {r.status ? <StatusPill variant={mapEntityStatus(r.status, def)} label={r.status} size="sm" /> : null}
+          {hasWorkflow && canEdit && nextFrom(r.status).map((to) => (
+            <Button key={to} variant="ghost" size="sm" onClick={() => doTransition(r.id, to)} style={{ fontSize: 'var(--gx-text-11)' }}>
+              <ArrowRightIcon size={11} />{to}
+            </Button>
+          ))}
+        </div>
       </div>
-    </div>
-  )
+    )
+  }
 
   const formOpen = mode !== 'idle'
 
   const cellValue = (c: typeof cols[0], r: Row) => (c.type === 'ref' ? (refLabels[c.key]?.[r[c.key]] ?? r[c.key]) : r[c.key])
+
+  // Resolve a preset ListColumn's value for a row — ref-typed fields get their resolved label.
+  const listVal = (c: ListColumn, r: Row) => { const f = cols.find((x) => x.key === c.key); return f ? cellValue(f, r) : r[c.key] }
+  // Render a preset column cell by its role: id → mono ref pill · primary → semibold · plain → muted-dash.
+  const roleCell = (c: ListColumn, r: Row) => {
+    const v = listVal(c, r)
+    if (c.role === 'id') return <span className="lead-id">{v != null && v !== '' ? String(v) : synthId(r.id)}</span>
+    if (c.role === 'primary') return (
+      <span style={{ fontWeight: 'var(--gx-weight-semibold)' }}>{v != null && v !== '' ? String(v) : <span className="muted">—</span>}</span>
+    )
+    return leadCell(v)
+  }
 
   const statusGroups = deriveStatusGroups(def)
   const hasStatusTabs = (def.statuses ?? []).length > 0
@@ -440,7 +470,7 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
 
   // Leads default (Gev 2026-06-11): all views show only the 20 most recent leads (load sorts
   // -created_at). The rest are reachable via search — which re-queries the server.
-  const displayRows = (isLeads && !needle) ? visibleRows.slice(0, 20) : visibleRows
+  const displayRows = (isRich && !needle) ? visibleRows.slice(0, recentLimit) : visibleRows
 
   const tabCount = (tab: StatusTab): number => {
     if (!hasStatusTabs) return rows.length
@@ -547,7 +577,9 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
   }
 
   const dataCellCount = cols.length >= 2 ? cols.length - 1 : cols.length
-  const colSpan = isLeads ? 5 + 1 + 1 : 1 /* checkbox */ + dataCellCount + 1 /* status */ + 1 /* actions */
+  const colSpan = isRich
+    ? (listCols?.length ?? 0) + 1 /* status */ + 1 /* actions */
+    : 1 /* checkbox */ + dataCellCount + 1 /* status */ + 1 /* actions */
 
   const countLabel = total !== null
     ? `${total.toLocaleString()} ${def.label_plural.toLowerCase()}`
@@ -582,12 +614,9 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
       icon={<RowsIcon size={18} />}
       title={pp.title}
       kpis={shellKpis}
-      primaryAction={isLeads ? undefined : shellPrimary}
-      secondaryActions={isLeads ? undefined : (shellSecondary.length > 0 ? shellSecondary : undefined)}
-      filters={isLeads ? undefined : { search: { value: q, onChange: setQ, placeholder: `Search ${def.label_plural.toLowerCase()}` } }}
-      pageTabs={isLeads && !formOpen
-        ? <LeadGatesStrip leads={rows} orders={gateOrders} customers={gateCustomers} onOpenGate={(gateKey) => setGateOpen(gateKey)} />
-        : undefined}
+      primaryAction={shellPrimary}
+      secondaryActions={shellSecondary.length > 0 ? shellSecondary : undefined}
+      filters={{ search: { value: q, onChange: setQ, placeholder: `Search ${def.label_plural.toLowerCase()}` } }}
     >
 
       {readOnly && (
@@ -720,7 +749,7 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
           ) : undefined}
         />
       ) : (
-        <div className={'card' + (isLeads ? ' leads-flat' : '')} style={{ overflow: isLeads ? 'visible' : 'hidden', position: 'relative' }}>
+        <div className={'card' + (isRich ? ' leads-flat' : '')} style={{ overflow: isRich ? 'visible' : 'hidden', position: 'relative' }}>
           {selected.size > 0 && (
             <div className="bulkbar">
               <span style={{ fontWeight: 'var(--gx-weight-semibold)', fontSize: 'var(--gx-text-sm)' }}>{selected.size} selected</span>
@@ -765,42 +794,33 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
             </div>
           )}
 
-          {isLeads && (
+          {viewModes.length > 1 && (
             <div className="row" style={{ gap: 'var(--gx-space-2)', marginTop: 'calc(var(--gx-space-9) + var(--gx-space-8))', marginBottom: 'var(--gx-space-5)', alignItems: 'center' }}>
-              <Button variant={leadsView === 'table' ? 'primary' : 'ghost'} size="md" style={{ minWidth: 110, justifyContent: 'center' }} onClick={() => setLeadsViewMode('table')}>
-                <RowsIcon size={13} /> {t('leads.viewTable', 'Table')}
-              </Button>
-              <Button variant={leadsView === 'kanban' ? 'primary' : 'ghost'} size="md" style={{ minWidth: 110, justifyContent: 'center' }} onClick={() => setLeadsViewMode('kanban')}>
-                <LayersIcon size={13} /> {t('leads.viewKanban', 'Kanban')}
-              </Button>
-              <Button variant={leadsView === 'cards' ? 'primary' : 'ghost'} size="md" style={{ minWidth: 110, justifyContent: 'center' }} onClick={() => setLeadsViewMode('cards')}>
-                <PackageIcon size={13} /> {t('leads.viewCards', 'Cards')}
-              </Button>
-              {/* moved down here, right-aligned: search · download · new lead */}
-              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)' }}>
-                <input className="inp inp-md" value={q} onChange={(e) => setQ(e.target.value)}
-                  placeholder={`Search ${def.label_plural.toLowerCase()}…`} style={{ minWidth: 340 }} aria-label="Search" />
-                {(exportFormats?.csv || exportFormats?.xlsx || exportFormats?.pdf) && (
-                  <Button variant="secondary" size="md" disabled={exporting !== null}
-                    onClick={() => doExport(exportFormats?.csv ? 'csv' : exportFormats?.xlsx ? 'xlsx' : 'pdf')}>
-                    <DownloadIcon size={13} aria-hidden /> {t('common.download', 'Download')}
-                  </Button>
-                )}
-                {canCreate && (
-                  <Button variant="primary" size="md" onClick={openCreate}>
-                    <PlusIcon size={13} aria-hidden /> {t('common.new', 'New')} {def.label}
-                  </Button>
-                )}
-              </div>
+              {viewModes.includes('table') && (
+                <Button variant={leadsView === 'table' ? 'primary' : 'ghost'} size="md" style={{ minWidth: 110, justifyContent: 'center' }} onClick={() => setLeadsViewMode('table')}>
+                  <RowsIcon size={13} /> {t('leads.viewTable', 'Table')}
+                </Button>
+              )}
+              {viewModes.includes('kanban') && (
+                <Button variant={leadsView === 'kanban' ? 'primary' : 'ghost'} size="md" style={{ minWidth: 110, justifyContent: 'center' }} onClick={() => setLeadsViewMode('kanban')}>
+                  <LayersIcon size={13} /> {t('leads.viewKanban', 'Kanban')}
+                </Button>
+              )}
+              {viewModes.includes('cards') && (
+                <Button variant={leadsView === 'cards' ? 'primary' : 'ghost'} size="md" style={{ minWidth: 110, justifyContent: 'center' }} onClick={() => setLeadsViewMode('cards')}>
+                  <PackageIcon size={13} /> {t('leads.viewCards', 'Cards')}
+                </Button>
+              )}
+              {/* search · download · new-lead now live in the PageShell header (Zone A), next to the title */}
             </div>
           )}
 
-          {(!isLeads || leadsView === 'table') && (
-          <div className={'grid-wrap' + (isLeads ? ' leads-wrap' : '')}>
-            <table className={'grid' + (isLeads ? ' leads-grid' : '')}>
+          {(!isRich || leadsView === 'table') && (
+          <div className={'grid-wrap' + (flat ? ' leads-wrap' : '')}>
+            <table className={'grid' + (flat ? ' leads-grid' : '')}>
               <thead>
                 <tr>
-                  {!isLeads && (
+                  {!isRich && (
                     <th className="sel-col" scope="col">
                       <input
                         type="checkbox"
@@ -811,44 +831,30 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
                       />
                     </th>
                   )}
-                  {isLeads ? (
-                    <>
-                      <th scope="col">Lead ID</th>
-                      <th scope="col">Full Name</th>
-                      <th scope="col">Address</th>
-                      <th scope="col">Phone</th>
-                      <th scope="col">Email</th>
-                    </>
+                  {isRich && listCols ? (
+                    listCols.map((c) => (
+                      <th key={c.key} scope="col" style={c.width ? { width: c.width } : undefined}>{c.label}</th>
+                    ))
                   ) : (
                     cols.map((c, ci) => (
                       ci === 1 ? null : <th key={c.key} scope="col">{c.label}</th>
                     ))
                   )}
-                  <th scope="col">{isLeads ? 'Stage' : 'Status'}</th>
+                  <th scope="col" style={isRich && preset?.stageWidth ? { width: preset.stageWidth } : undefined}>{statusHeader}</th>
                   <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
                 </tr>
               </thead>
               <tbody>
                 {displayRows.map((r) => (
                   <tr key={r.id} className={selected.has(r.id) ? 'row-selected' : ''}
-                    onClick={isLeads && canEdit ? () => openEdit(r) : undefined}>
-                    {!isLeads && (
+                    onClick={isRich && canEdit ? () => openEdit(r) : undefined}>
+                    {!isRich && (
                       <td className="sel-col">
                         <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleRow(r.id)} aria-label="Select row" />
                       </td>
                     )}
-                    {isLeads ? (
-                      <>
-                        <td><span className="lead-id">{r.ref ? String(r.ref) : leadRef(r.id)}</span></td>
-                        <td>
-                          <span style={{ fontWeight: 'var(--gx-weight-semibold)' }}>
-                            {r.name ? String(r.name) : <span className="muted">—</span>}
-                          </span>
-                        </td>
-                        <td>{leadCell(r.address)}</td>
-                        <td>{leadCell(r.phone)}</td>
-                        <td>{leadCell(r.email)}</td>
-                      </>
+                    {isRich && listCols ? (
+                      listCols.map((c) => <td key={c.key}>{roleCell(c, r)}</td>)
                     ) : (
                       cols.map((c, ci) => (
                         ci === 1 ? null : (
@@ -948,14 +954,14 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
           </div>
           )}
 
-          {isLeads && leadsView === 'kanban' && (
-            // Leads-only board: columns are the LEAD lifecycle stages (Commercial Gate stages from
-            // the SST). The 20 most-recent leads (displayRows) flow across these columns — no orders.
+          {isRich && leadsView === 'kanban' && (
+            // Rich board: columns are the SST stages for this entity (Leads → Commercial Gate stages;
+            // Orders → Service-Delivery slice). The 20 most-recent records flow across them.
             <div className="kanban kanban-fill">
-              {LEAD_STAGES.map((stage) => {
+              {richStages.map((stage) => {
                 const key = stage.key.toLowerCase()
-                const leadsIn = displayRows.filter((r) => (r.status ?? '') === key)
-                const count = leadsIn.length
+                const recordsIn = displayRows.filter((r) => (r.status ?? '').toLowerCase() === key)
+                const count = recordsIn.length
                 return (
                   <div key={stage.key} className="kcol">
                     <div className="kcol-head">
@@ -963,7 +969,7 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
                       <span className="kcol-count">{count}</span>
                     </div>
                     <div className="kcol-body">
-                      {leadsIn.map((r) => leadCardEV(r))}
+                      {recordsIn.map((r) => recordCardEV(r))}
                       {count === 0 && (
                         <div style={{ padding: 'var(--gx-space-5)', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-sm)', borderRadius: 'var(--gx-radius-sm)', border: '1px dashed var(--gx-border)' }}>
                           {t('leads.emptyStage', 'Empty')}
@@ -976,13 +982,13 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
             </div>
           )}
 
-          {isLeads && leadsView === 'cards' && (
+          {isRich && leadsView === 'cards' && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(var(--gx-card-min-w), 1fr))', gap: 'var(--gx-space-5)', paddingBottom: 'var(--gx-space-6)' }}>
-              {displayRows.map((r) => leadCardEV(r))}
+              {displayRows.map((r) => recordCardEV(r))}
             </div>
           )}
 
-          {total !== null && total > PAGE_SIZE && !(isLeads && !needle) && (
+          {total !== null && total > PAGE_SIZE && !(isRich && !needle) && (
             <div className="table-foot" role="navigation" aria-label={t('pager.ariaLabel', 'Page navigation')}>
               <span style={{ color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-sm)' }} aria-live="polite">
                 {t('pager.info', '{from}–{to} / {total}')
@@ -1019,63 +1025,11 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
         />
       )}
 
-      {orderOpen && (
-        <OrderDetailModal
-          id={orderOpen}
-          customerNames={Object.fromEntries((gateCustomers as Array<{ id: string; name?: string }>).map((c) => [String(c.id), String(c.name ?? '')]))}
-          canEdit={canEdit}
-          onClose={() => setOrderOpen(null)}
-        />
-      )}
-
       {activityRow && (
         <Modal open onClose={() => setActivityRow(null)} title={`Activity · ${def.label}`} size="md">
           <ActivityTimeline entity={slug} record={activityRow.id} />
         </Modal>
       )}
-
-      {gateOpen && (() => {
-        const gate = GATES.find((g) => g.key === gateOpen)
-        if (!gate) return null
-        const data: Row[] = gate.entity === 'lead' ? rows : gate.entity === 'order' ? gateOrders : gateCustomers
-        const recs = data.filter((r) => gate.statuses.includes(r.status ?? ''))
-        const [one, many] = gate.entity === 'order' ? ['order', 'orders'] : gate.entity === 'customer' ? ['customer', 'customers'] : ['lead', 'leads']
-        const idLabel = (r: any) => r.ref ? String(r.ref) : r.number ? String(r.number) : leadRef(r.id)
-        const mainLabel = (r: any) => r.name ? String(r.name) : r.title ? String(r.title) : (r.customer_id ? `Customer ${String(r.customer_id).slice(0, 8)}` : '—')
-        const row = (r: any) => (
-          <>
-            <span className="mono" style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-link)' }}>{idLabel(r)}</span>
-            <span style={{ fontWeight: 'var(--gx-weight-semibold)', flex: 1 }}>{mainLabel(r)}</span>
-            {r.phone ? <span className="mono" style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>{String(r.phone)}</span> : null}
-            {r.status ? <StatusPill variant={mapEntityStatus(r.status, def)} label={r.status} size="sm" /> : null}
-          </>
-        )
-        const rowStyle = { display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', padding: 'var(--gx-space-5) var(--gx-space-6)', background: 'var(--gx-surface-2)', border: '1px solid var(--gx-border)', borderRadius: 'var(--gx-radius-md)', textAlign: 'left' as const, width: '100%' }
-        return (
-          <Modal open onClose={() => setGateOpen(null)} title={gate.name}
-            subtitle={`${recs.length} ${recs.length === 1 ? one : many} currently in this part`} size="md">
-            {recs.length === 0 ? (
-              <div style={{ padding: 'var(--gx-space-9)', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-sm)' }}>
-                No {many} in this part yet.
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)' }}>
-                {recs.map((r: any) => (
-                  gate.entity === 'lead' && canEdit ? (
-                    <button key={r.id} type="button" onClick={() => { setGateOpen(null); openEdit(r) }}
-                      style={{ ...rowStyle, cursor: 'pointer' }}>{row(r)}</button>
-                  ) : gate.entity === 'order' ? (
-                    <button key={r.id} type="button" onClick={() => { setGateOpen(null); setOrderOpen(r.id) }}
-                      style={{ ...rowStyle, cursor: 'pointer' }}>{row(r)}</button>
-                  ) : (
-                    <div key={r.id} style={rowStyle}>{row(r)}</div>
-                  )
-                ))}
-              </div>
-            )}
-          </Modal>
-        )
-      })()}
 
       {billingRow && (
         <CustomerBillingModal

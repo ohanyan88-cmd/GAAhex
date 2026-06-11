@@ -17,6 +17,15 @@ storybook-static
 backend/*.log
 **/dev.log
 
+# Coverage artifacts
+.coverage
+.coverage.*
+**/.coverage
+htmlcov/
+
+# Runtime upload storage (per-tenant attachments etc.) — never commit
+backend/uploads/
+
 # Session debris — auth artifacts (SECRETS — never commit)
 token.txt
 cookies*.txt
