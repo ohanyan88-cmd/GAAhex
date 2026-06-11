@@ -1,0 +1,120 @@
+# GitLab CI — the automated safety net (PERFECT-TARGET I7).
+#
+# Ported from .github/workflows/ci.yml after GitHub Actions was blocked by a $0 budget. Runs on the
+# owner's free instance runner (studio-instance-runner). Mirrors the GitHub jobs 1:1:
+#   backend      — ruff · tenant-filter static check · architecture-drift guard · pytest(+cov) [gaahex owner role]
+#   backend-rls  — RLS subset under the NOSUPERUSER gaahex_app role
+#   frontend     — tsc --noEmit · vitest
+#   secret-scan  — gitleaks (warn-only)
+#
+# GitLab services are reached by their alias hostname (postgres / redis), not localhost.
+
+stages:
+  - test
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+.pg_redis: &pg_redis
+  services:
+    - name: postgres:16
+      alias: postgres
+    - name: redis:7
+      alias: redis
+
+# --- Backend: lint + static gates + full pytest (as the gaahex table-owner role) --------------------
+backend:
+  stage: test
+  image: python:3.12
+  <<: *pg_redis
+  variables:
+    POSTGRES_USER: gaahex
+    POSTGRES_PASSWORD: gaahex
+    POSTGRES_DB: gaahex_test
+    DATABASE_URL: "postgresql+asyncpg://gaahex:gaahex@postgres:5432/gaahex_test"
+    OWNER_DATABASE_URL: "postgresql+asyncpg://gaahex:gaahex@postgres:5432/gaahex_test"
+    REDIS_URL: "redis://redis:6379/0"
+  cache:
+    key: pip-$CI_COMMIT_REF_SLUG
+    paths:
+      - .cache/pip
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq postgresql-client >/dev/null
+    - until pg_isready -h postgres -U gaahex -d gaahex_test; do echo "waiting for postgres"; sleep 1; done
+    - python -m pip install --upgrade pip -q
+    - pip install -q -r backend/requirements.txt -r backend/requirements-dev.txt ruff pip-audit
+  script:
+    - (cd backend && ruff check app/ --exit-zero)
+    - python backend/scripts/check_tenant_filter.py
+    - python tools/check_drift.py
+    - (cd backend && pytest --tb=short -q --cov=app --cov-report=term-missing --cov-fail-under=53)
+    - (cd backend && pip-audit -r requirements.txt --strict) || echo "pip-audit warnings (non-blocking)"
+
+# --- Backend RLS subset: prove the suite installs + runs under the NOSUPERUSER gaahex_app role -------
+backend-rls:
+  stage: test
+  image: python:3.12
+  <<: *pg_redis
+  variables:
+    POSTGRES_USER: gaahex
+    POSTGRES_PASSWORD: gaahex
+    POSTGRES_DB: gaahex_test
+    DATABASE_URL: "postgresql+asyncpg://gaahex_app:gaahex_app@postgres:5432/gaahex_test"
+    OWNER_DATABASE_URL: "postgresql+asyncpg://gaahex:gaahex@postgres:5432/gaahex_test"
+    REDIS_URL: "redis://redis:6379/0"
+    PGPASSWORD: gaahex
+  cache:
+    key: pip-$CI_COMMIT_REF_SLUG
+    paths:
+      - .cache/pip
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq postgresql-client >/dev/null
+    - until pg_isready -h postgres -U gaahex -d gaahex_test; do echo "waiting for postgres"; sleep 1; done
+    - python -m pip install --upgrade pip -q
+    - pip install -q -r backend/requirements.txt -r backend/requirements-dev.txt
+    # Provision the gaahex_app NOSUPERUSER NOBYPASSRLS role (mirrors migration 3a9203795d07; CREATEDB
+    # added only for the test conftest's drop/create). This is what makes RLS actually bite.
+    - |
+      psql -h postgres -U gaahex -d gaahex_test <<'SQL'
+      DO $$ BEGIN
+          IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'gaahex_app') THEN
+              CREATE ROLE gaahex_app LOGIN PASSWORD 'gaahex_app' NOSUPERUSER NOBYPASSRLS CREATEDB;
+          ELSE
+              ALTER ROLE gaahex_app WITH CREATEDB;
+          END IF;
+      END $$;
+      GRANT USAGE ON SCHEMA public TO gaahex_app;
+      GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO gaahex_app;
+      GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO gaahex_app;
+      ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO gaahex_app;
+      ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO gaahex_app;
+      SQL
+  script:
+    - cd backend
+    - pytest -v --tb=short tests/test_rls.py tests/test_rls_parametric.py tests/test_rls_wave4_spot.py tests/test_deploy_contract.py tests/test_workflow_engine.py
+
+# --- Frontend: typecheck + unit tests ----------------------------------------------------------------
+frontend:
+  stage: test
+  image: node:20
+  cache:
+    key: npm-$CI_COMMIT_REF_SLUG
+    paths:
+      - frontend/node_modules
+  before_script:
+    - cd frontend
+    - npm ci
+  script:
+    - npx tsc --noEmit
+    - npm run test:unit
+    - npm audit --audit-level=high || echo "npm audit warnings (non-blocking)"
+
+# --- Secret scan (warn-only) -------------------------------------------------------------------------
+secret-scan:
+  stage: test
+  image:
+    name: zricethezav/gitleaks:latest
+    entrypoint: [""]
+  allow_failure: true
+  script:
+    - gitleaks detect --source . --no-banner --redact || echo "gitleaks findings (warn-only)"

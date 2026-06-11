@@ -1,9 +1,10 @@
 name: CI
 
+# DISABLED on push/PR — GitHub Actions is budget-blocked ($0 cap, see [[project-gitlab-home]]); every
+# auto-run just fails in 2s and shows red. CI now lives in .gitlab-ci.yml on the owner's free runner.
+# Kept here (manual-only) so it can be re-enabled instantly if the GitHub budget is ever restored.
 on:
-  pull_request:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 jobs:
   backend:
