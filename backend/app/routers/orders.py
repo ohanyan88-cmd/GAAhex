@@ -25,13 +25,13 @@ from ..models.payment_method import PaymentMethod
 from ..models.product import Product
 from ..access import load_grants, can
 from ..kernel import (
-    assert_can_advance_to_scheduling, ControlGateNotPassed,
     assert_can, AccessDenied,
     assert_writer_owns_record_firstclass, OwnerViolation,
 )
 from .. import workflow, notify_hooks
 from ..services.payment_gateway_adapter import get_payment_gateway
 from ..services.stage8_gate import compute_stage8_status, apply_stage8_result
+from ..services.transition_guards import control_gate_stage8
 from ..utils.refnum import next_reference_number
 from .auth import current_user
 from .records import _node_path, _node_paths, _entity, _fields  # reuse the exact records scope primitives
@@ -480,28 +480,17 @@ async def advance_order(order_id: uuid.UUID, user: User = Depends(current_user),
 
     frm = order.status
 
-    # SPEC §3 / §10.4 — Stage 8 Control Gate. Fires on the Sales→Fulfillment crossing only
-    # (SUBMITTED → PROVISIONING here; the explicit Scheduling stage isn't modeled yet).
-    if frm == ORDER_GATE_FROM and nxt == ORDER_GATE_TO:
-        # Phase B.1: when control_pass hasn't been flipped TRUE yet, compute the full Stage 8
-        # predicate so callers get a precise blocker list (credit / deposit / payment_method /
-        # mandatory_approvals) rather than just the generic "control_pass != TRUE" message.
-        # When control_pass IS already TRUE (Revenue Control's verdict stand-in for older flows
-        # / tests), defer to the kernel gate alone — re-running compute here could surface stale
-        # checks (e.g. a credit_check_status still NULL on legacy rows that operator manually
-        # passed). Mirrors /release semantics.
-        if order.control_pass is not True:
-            stage8 = await compute_stage8_status(s, order.id)
-            if not stage8["pass"]:
-                raise HTTPException(
-                    status_code=409,
-                    detail="Stage 8 Control Gate not passed: " + " | ".join(stage8["blockers"]),
-                )
-        try:
-            await assert_can_advance_to_scheduling(s, order_id=order.id, control_pass=order.control_pass)
-        except ControlGateNotPassed as e:
-            # Router boundary maps the kernel exception to HTTP 409 per the SPEC §0 contract.
-            raise HTTPException(status_code=409, detail=str(e))
+    # SPEC §3 / §10.4 — Stage 8 Control Gate, now CONFIG-DECLARED (PERFECT-TARGET I3): the
+    # order_validated→scheduling transition references `guard: control_gate:stage8`; the Revenue-Control
+    # implementation runs from NAMED_GUARDS. The canonical-fire fallback (frm==ORDER_GATE_FROM →
+    # ORDER_GATE_TO) keeps the revenue safety from EVER silently disappearing if the config guard is
+    # absent (e.g. minimal test seed). Behaviour identical to the prior inline check.
+    _tr = workflow.find_transition(_trs, frm, nxt) if _trs else None
+    _guard = (_tr or {}).get("guard")
+    if _guard == "control_gate:stage8" or (not _guard and frm == ORDER_GATE_FROM and nxt == ORDER_GATE_TO):
+        _ok, _reason = await control_gate_stage8(s, order)
+        if not _ok:
+            raise HTTPException(status_code=409, detail=_reason)
 
     await _set_status(s, user, order, frm, nxt)
 

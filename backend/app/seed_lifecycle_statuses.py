@@ -70,7 +70,8 @@ _RECORD_STATUS_RENAMES: dict[str, dict[str, str]] = {
 # correct chain. order_created→order_validated stays for the manual draft-submit path.
 _ORDER_TRANSITIONS = [
     {"from": "order_created",     "to": "order_validated",   "guard": None},   # submit (manual draft)
-    {"from": "order_validated",   "to": "scheduling",        "guard": None},   # control gate fires here
+    {"from": "order_validated",   "to": "scheduling",        "guard": "control_gate:stage8"},  # Stage-8 gate
+
     {"from": "scheduling",        "to": "config",            "guard": None},
     {"from": "config",            "to": "installation",      "guard": None},
     {"from": "installation",      "to": "connection_test",   "guard": None},
