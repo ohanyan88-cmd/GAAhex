@@ -25,7 +25,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from .db import OwnerSessionLocal as SessionLocal  # privileged: seeding bypasses RLS
 from .models.tenant import Tenant
-from .models.meta import EntityDef, StatusDef
+from .models.meta import EntityDef, StatusDef, WorkflowDef
 from .models import Record
 
 _log = logging.getLogger("gaahex.seed_lifecycle_statuses")
@@ -65,11 +65,28 @@ _RECORD_STATUS_RENAMES: dict[str, dict[str, str]] = {
     "customer": {"monitoring": "active"},   # iron rule: the active-base status is ACTIVE, not "monitoring"
 }
 
+# Order WorkflowDef transitions (iron rule, order slice 7→13 + cancel exits). The dev DB carries a
+# legacy graph (NEW→FULFILLING→COMPLETED); we overwrite it so the config-driven advance reads the
+# correct chain. order_created→order_validated stays for the manual draft-submit path.
+_ORDER_TRANSITIONS = [
+    {"from": "order_created",     "to": "order_validated",   "guard": None},   # submit (manual draft)
+    {"from": "order_validated",   "to": "scheduling",        "guard": None},   # control gate fires here
+    {"from": "scheduling",        "to": "config",            "guard": None},
+    {"from": "config",            "to": "installation",      "guard": None},
+    {"from": "installation",      "to": "connection_test",   "guard": None},
+    {"from": "connection_test",   "to": "payment_confirmed", "guard": None},
+    {"from": "payment_confirmed", "to": "activation",        "guard": None},
+    {"from": "order_validated",   "to": "cancelled",         "guard": None},   # off-ramps
+    {"from": "scheduling",        "to": "cancelled",         "guard": None},
+    {"from": "config",            "to": "cancelled",         "guard": None},
+]
+
 
 async def seed_lifecycle_statuses_if_missing() -> dict:
     """Make lead + order entity_defs carry EXACTLY their iron-rule slice statuses, per tenant."""
     inserted = 0
     deleted = 0
+    wf_fixed = 0
     async with SessionLocal() as s:
         await s.connection(execution_options={"audit_tenant_filter": False})
         tenants = (await s.execute(select(Tenant))).scalars().all()
@@ -105,7 +122,19 @@ async def seed_lifecycle_statuses_if_missing() -> dict:
                     )
                 )
                 deleted += res.rowcount or 0
+                # 3) ORDER WorkflowDef transitions → iron-rule chain (the dev DB graph is legacy
+                #    NEW→FULFILLING→COMPLETED). This is what the config-driven advance reads.
+                if ent_key == "order":
+                    wf = (await s.execute(
+                        select(WorkflowDef).where(WorkflowDef.entity_def_id == ent.id)
+                    )).scalars().first()
+                    if wf is not None:
+                        cfg = dict(wf.config or {})
+                        if cfg.get("transitions") != _ORDER_TRANSITIONS:
+                            cfg["transitions"] = _ORDER_TRANSITIONS
+                            wf.config = cfg
+                            wf_fixed += 1
         await s.commit()
-    _log.info("seed_lifecycle_statuses: +%d SST status(es), -%d legacy on lead/order defs",
-              inserted, deleted)
-    return {"inserted": inserted, "deleted": deleted}
+    _log.info("seed_lifecycle_statuses: +%d SST status(es), -%d legacy, %d order-workflow fixed",
+              inserted, deleted, wf_fixed)
+    return {"inserted": inserted, "deleted": deleted, "workflow_fixed": wf_fixed}

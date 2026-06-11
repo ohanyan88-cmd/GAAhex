@@ -834,9 +834,13 @@ async def apply_test_seeds() -> None:
     set is deliberately minimal so the suite stays fast.
     """
     from .seed_demo_loop import seed_demo_loop_if_empty
+    from .seed_lifecycle_statuses import seed_lifecycle_statuses_if_missing
     await seed_if_empty()
     await seed_meta_if_empty()
     await seed_access_if_empty()
+    # Iron rule: normalize lead/order/customer statuses + the order WorkflowDef transitions to the
+    # SST slices (the config-driven order advance reads the order WorkflowDef). Shared with lifespan.
+    await seed_lifecycle_statuses_if_missing()
     # demo-loop seed guards on an empty subscription table — it MUST run before any
     # test creates subscriptions, or it becomes a no-op for the whole session.
     await seed_demo_loop_if_empty()

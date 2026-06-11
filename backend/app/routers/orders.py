@@ -51,10 +51,15 @@ ORDER_EDITABLE = ORDER_INITIAL            # only an unvalidated order can be edi
 
 # Legal forward steps for /advance — the SST fulfillment chain. `order_created` is NOT here:
 # it advances via /submit (order_created → order_validated), keeping the explicit submit step.
-_ADVANCE = {
-    "order_validated":   "scheduling",        # ← control gate fires here
-    "scheduling":        "config",             # NOC pre-configures the ONU at the office first
-    "config":            "installation",       # then the field team installs the ready ONU
+# The order stage sequence is config-driven — read from the order entity's WorkflowDef transitions at
+# advance time (seeded/normalized by seed_lifecycle_statuses). This canonical chain is the SAFE FALLBACK
+# for environments where the order entity_def/WorkflowDef isn't present or is stale (the order is still a
+# first-class table, not yet a full config Record — see Step-4 sub-project). The Stage-8 control gate
+# and activation side-effects (provisioning / customer / care-task) remain in-code hooks around it.
+_FORWARD_FALLBACK = {
+    "order_validated":   "scheduling",
+    "scheduling":        "config",
+    "config":            "installation",
     "installation":      "connection_test",
     "connection_test":   "payment_confirmed",
     "payment_confirmed": "activation",
@@ -441,7 +446,16 @@ async def advance_order(order_id: uuid.UUID, user: User = Depends(current_user),
     except AccessDenied as e:
         raise HTTPException(status_code=403, detail=str(e))
 
-    nxt = _ADVANCE.get(order.status)
+    # Config-driven stage sequence: the next forward stage comes from the order entity's WorkflowDef
+    # transitions (config), falling back to the canonical chain where that config isn't present/correct.
+    # "cancelled" is an off-ramp, never the forward step.
+    try:
+        order_ent = await _entity(s, user.tenant_id, "orders")
+        _trs = await workflow.get_transitions(s, order_ent.id)
+    except HTTPException:
+        _trs = []
+    _forwards = [t.get("to") for t in _trs if t.get("from") == order.status and t.get("to") != "cancelled"]
+    nxt = _forwards[0] if _forwards else _FORWARD_FALLBACK.get(order.status)
     if not nxt:
         raise HTTPException(409, f"Cannot advance an order in status {order.status}")
 
