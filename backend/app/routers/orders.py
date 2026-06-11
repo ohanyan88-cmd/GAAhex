@@ -29,6 +29,7 @@ from ..kernel import (
     assert_writer_owns_record_firstclass, OwnerViolation,
 )
 from .. import workflow, notify_hooks
+from ..kernel import events
 from ..services.payment_gateway_adapter import get_payment_gateway
 from ..services.stage8_gate import compute_stage8_status, apply_stage8_result
 from ..services.transition_guards import control_gate_stage8
@@ -272,6 +273,53 @@ async def _create_care_checkcall_task(s: AsyncSession, user: User, order: Order,
                          "for_customer": str(customer.id), "from_order": str(order.id)})
 
 
+# --- order.activated event choreography (PERFECT-TARGET I3) -----------------------------------------
+# At ACTIVATION the order publishes `order.activated`; the CRM / Care / Billing domains each subscribe
+# and react. orders.advance no longer hand-calls them — it publishes. (Handlers live here for now; the
+# follow-up relocates each to its own domain service so orders.py knows nothing about them.)
+
+async def _on_activated_crm(s: AsyncSession, *, order: Order, user: User):
+    """CRM domain: the customer joins the active base — created from the lead if the order has none yet."""
+    cust = None
+    if order.customer_id:
+        cust = (await s.execute(
+            select(Record).where(Record.id == order.customer_id, Record.tenant_id == user.tenant_id,
+                                 Record.entity_key == "customer")
+        )).scalar_one_or_none()
+    elif order.lead_id:
+        cust = await _create_customer_from_lead(s, user, order)
+        if cust is not None:
+            order.customer_id = cust.id
+    if cust is not None and cust.status != "active":
+        cust.status = "active"
+    return cust
+
+
+async def _on_activated_care(s: AsyncSession, *, order: Order, user: User):
+    """Customer-Care domain: the welcome / quality check-call auto-task on the new active customer."""
+    if not order.customer_id:
+        return None
+    cust = (await s.execute(
+        select(Record).where(Record.id == order.customer_id, Record.tenant_id == user.tenant_id,
+                             Record.entity_key == "customer")
+    )).scalar_one_or_none()
+    if cust is not None:
+        await _create_care_checkcall_task(s, user, order, cust)
+    return None
+
+
+async def _on_activated_billing(s: AsyncSession, *, order: Order, user: User) -> list[str]:
+    """Billing domain: provision ACTIVE subscriptions for the order's product lines."""
+    items = await _items(s, order.id)
+    return await _provision_subscriptions(s, user, order, items)
+
+
+# Registration order matters: CRM sets order.customer_id, which Care + Billing then read.
+events.subscribe("order.activated", "crm.activate_customer", _on_activated_crm)
+events.subscribe("order.activated", "care.welcome_task", _on_activated_care)
+events.subscribe("order.activated", "billing.provision", _on_activated_billing)
+
+
 # ---- CRUD ----
 
 @router.get("/orders")
@@ -496,28 +544,12 @@ async def advance_order(order_id: uuid.UUID, user: User = Depends(current_user),
 
     provisioned: list[str] = []
     if nxt == ORDER_PROVISION_AT:
-        # Iron rule: at ACTIVATION the customer joins the active base. Create it now if the order was
-        # born from a lead conversion (order.lead_id, no customer yet); else use the existing customer.
-        # Must precede provisioning so each subscription gets the customer_id.
-        cust = None
-        if order.customer_id:
-            cust = (await s.execute(
-                select(Record).where(
-                    Record.id == order.customer_id, Record.tenant_id == user.tenant_id,
-                    Record.entity_key == "customer",
-                )
-            )).scalar_one_or_none()
-        elif order.lead_id:
-            cust = await _create_customer_from_lead(s, user, order)
-            if cust is not None:
-                order.customer_id = cust.id
-        if cust is not None and cust.status != "active":
-            cust.status = "active"
-        # S14 replacement: force the Customer-Care welcome/quality check-call via an auto-task.
-        if cust is not None:
-            await _create_care_checkcall_task(s, user, order, cust)
-        items = await _items(s, order.id)
-        provisioned = await _provision_subscriptions(s, user, order, items)
+        # PERFECT-TARGET I3 — ACTIVATION is event choreography: the order publishes `order.activated`
+        # and the CRM (create+activate customer) · Care (welcome check-call task) · Billing (provision
+        # subscriptions) domains react independently, in the same transaction. orders.advance no longer
+        # hand-calls them. The provisioned list comes back from the Billing subscriber for the response.
+        _react = await events.publish(s, "order.activated", order=order, user=user)
+        provisioned = _react.get("billing.provision") or []
         # best-effort completion notification (no-op unless an `order.completed` def is seeded)
         try:
             recipients = await notify_hooks.resolve_recipients(s, tenant_id=user.tenant_id, record=order)
