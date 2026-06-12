@@ -74,6 +74,14 @@ async def lifespan(app: FastAPI):
     # See docs/M1A-DEPLOY-CONTRACT.md.
     _assert_production_deploy_contract()
 
+    # C1a-3e — runtime backstop: in production, refuse to boot if the app DB role can BYPASS RLS
+    # (superuser or BYPASSRLS). The sync contract above only checks the role NAME differs from the owner;
+    # this verifies the role's ACTUAL Postgres attributes, so config drift (a stray ALTER ROLE, a deploy
+    # slip) can't silently turn RLS into a no-op and un-isolate the platform. No-op outside production.
+    if settings.environment == "production":
+        from .db import assert_app_role_is_rls_subject  # noqa: PLC0415
+        await assert_app_role_is_rls_subject()
+
     # S1 — JWT secret fail-fast (default-OFF; prod sets REQUIRE_STRONG_SECRETS=true).
     # Guard fires ONLY when require_strong_secrets is explicitly enabled, so dev/test are unaffected.
     if settings.require_strong_secrets:

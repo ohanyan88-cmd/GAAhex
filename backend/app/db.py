@@ -81,3 +81,32 @@ async def get_session() -> AsyncSession:
                 await session.commit()
             except Exception:
                 pass
+
+
+async def assert_app_role_is_rls_subject(eng=None) -> None:
+    """C1a-3e — boot-time runtime backstop for the entire tenant-isolation guarantee.
+
+    The app DB role MUST be RLS-subject — NOT a superuser and NOT BYPASSRLS — or every RLS policy is
+    silently a no-op and tenant isolation is VOID (the exact leak C1a closes). This queries the connected
+    role's actual pg_roles attributes and raises if it can bypass RLS, turning "the app runs as
+    gaahex_app (NOSUPERUSER/NOBYPASSRLS)" from a config-trust claim in .env.production.example into a
+    self-enforcing check: a future .env edit, deploy slip, or accidental `ALTER ROLE ... SUPERUSER`
+    cannot silently un-isolate the platform without the app refusing to boot. The caller gates this to
+    production (dev/test intentionally run as the owner role)."""
+    eng = eng or engine
+    async with eng.connect() as conn:
+        row = (await conn.execute(
+            text("SELECT rolsuper, rolbypassrls FROM pg_roles WHERE rolname = current_user")
+        )).first()
+    if row is None:
+        raise RuntimeError(
+            "deploy contract: could not resolve the app DB role (current_user) to verify RLS subjection."
+        )
+    rolsuper, rolbypassrls = bool(row[0]), bool(row[1])
+    if rolsuper or rolbypassrls:
+        raise RuntimeError(
+            f"PRODUCTION deploy contract violation: the app DB role BYPASSES RLS "
+            f"(rolsuper={rolsuper}, rolbypassrls={rolbypassrls}). The app MUST connect as a NOSUPERUSER, "
+            f"NOBYPASSRLS role (gaahex_app) — otherwise RLS policies are a no-op and tenant isolation is "
+            f"VOID. Point DATABASE_URL at the gaahex_app role. See docs/M1A-DEPLOY-CONTRACT.md."
+        )
