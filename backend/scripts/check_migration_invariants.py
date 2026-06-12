@@ -45,10 +45,16 @@ def _fail_closed(expr):
 
 
 # Tables whose policy ALSO exposes `tenant_id IS NULL` rows to every tenant (an `OR tenant_id IS NULL`
-# clause). These are intentional GLOBAL DEFAULTS (shared i18n strings); per-tenant rows still carry a
-# tenant_id and remain fail-closed, so no cross-tenant leak. Allowed but GOVERNED — a NEW table sprouting
-# this shape FAILS the gate until it is reviewed and added here.
-GLOBAL_DEFAULT_OK = {"translation"}
+# clause). These are intentional GLOBAL DEFAULTS; per-tenant rows still carry a tenant_id and remain
+# fail-closed, so no cross-tenant leak. Allowed but GOVERNED — a NEW table sprouting this shape FAILS
+# the gate until reviewed and added here WITH a one-line justification (no bare names).
+# Qualification rule (to be ratified in the LAW-GV1 classification amendment): a table qualifies ONLY
+# if its NULL-tenant rows are non-sensitive shared REFERENCE data (UI labels, system enums, default
+# templates) — NEVER money, PII, credentials, or tenant-identifiable content.
+GLOBAL_DEFAULT_OK = {
+    "translation": "shared non-sensitive i18n UI default strings; per-tenant overrides carry tenant_id "
+                   "(verified: 56 NULL rows, all nav.* UI labels, 0 per-tenant rows)",
+}
 def _or_null_global(expr):
     return "is null) or" in (expr or "").lower()
 
