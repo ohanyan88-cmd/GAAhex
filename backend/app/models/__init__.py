@@ -1,4 +1,5 @@
 from .base import Base
+from . import auth_functions  # noqa: F401 — registers after_create DDL for the C1a-2 SECURITY DEFINER fns
 from .tenant import Tenant
 from .orgnode import OrgNode
 from .user import User

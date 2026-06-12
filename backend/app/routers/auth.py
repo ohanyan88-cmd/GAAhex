@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
-from sqlalchemy import select, update
+from sqlalchemy import select, update, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import settings
@@ -369,14 +369,16 @@ async def current_user(
     # Portal tokens carry kind='customer' — they must never authenticate a staff endpoint.
     if payload.get("kind") == "customer":
         raise HTTPException(status_code=401, detail="Portal token not accepted on staff endpoints")
-    # Look the user up via the OWNER session: the app session `s` is RLS-subject and has no tenant
-    # GUC set yet (chicken-and-egg), so a gaahex_app read of app_user here would default-deny.
-    async with OwnerSessionLocal() as o:
-        # Pre-auth owner session: user-by-id is the cluster-unique lookup that resolves the tenant.
-        await o.connection(execution_options={"audit_tenant_filter": False})
-        user = (await o.execute(select(User).where(User.id == uid))).scalar_one_or_none()
-    if not user:
+    # C1a-2: narrow SECURITY DEFINER identity lookup instead of a broad OwnerSessionLocal read of
+    # app_user. The request session `s` is RLS-subject and has no tenant GUC yet (chicken-and-egg);
+    # gx_auth_staff_user_by_id runs elevated (pinned search_path, static SQL) and returns ONLY (id,
+    # tenant_id). The full User is re-read below under RLS once the GUC is bound.
+    ident = (await s.execute(
+        text("SELECT id, tenant_id FROM gx_auth_staff_user_by_id(:id)"), {"id": uid}
+    )).mappings().all()
+    if len(ident) != 1:
         raise HTTPException(status_code=401, detail="User not found")
+    user_tenant = ident[0]["tenant_id"]
 
     # STRICT TENANT VALIDATION (Wave 1 — multi-tenant hardening):
     #   1. The JWT MUST carry a `tenant` claim. Legacy tokens minted before this change lacked it;
@@ -387,11 +389,15 @@ async def current_user(
     jwt_tenant = payload.get("tenant")
     if jwt_tenant is None:
         raise HTTPException(status_code=401, detail="Token missing tenant claim")
-    if str(user.tenant_id) != str(jwt_tenant):
+    if str(user_tenant) != str(jwt_tenant):
         raise HTTPException(status_code=401, detail="Token tenant mismatch")
 
-    # Bind RLS GUC to the user's authenticated tenant — the old single-tenant trapdoor is gone.
-    await set_tenant_guc(s, user.tenant_id)
+    # Bind RLS GUC to the user's authenticated tenant, THEN re-read the full User UNDER RLS (its own
+    # row). An empty re-read means the minimal lookup's tenant disagrees with the row → fail closed.
+    await set_tenant_guc(s, user_tenant)
+    user = (await s.execute(select(User).where(User.id == uid))).scalar_one_or_none()
+    if user is None:
+        raise HTTPException(status_code=401, detail="User not found")
     return user
 
 

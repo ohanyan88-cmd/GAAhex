@@ -34,11 +34,11 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import settings, the_tenant_id_async
-from ..db import get_session, get_owner_session, set_tenant_guc, OwnerSessionLocal
+from ..db import get_session, get_owner_session, set_tenant_guc
 from ..models.customer_user import CustomerUser
 from ..models.record import Record
 from ..security import verify_password, create_access_token, decode_token
@@ -107,25 +107,28 @@ async def portal_login(
 ):
     tenant_id = await the_tenant_id_async()
 
-    cu = (await s.execute(
-        select(CustomerUser).where(
-            CustomerUser.tenant_id == tenant_id,
-            CustomerUser.email == body.email,
-        )
-    )).scalar_one_or_none()
-
-    if not cu or not verify_password(body.password, cu.password_hash):
+    # C1a-2: narrow SECURITY DEFINER credential lookup instead of a broad owner-session CustomerUser
+    # read. SETOF — the APP enforces exactly-one (len != 1 -> 401, never an arbitrary pick), since
+    # email is not yet uniquely constrained per tenant. (DB-level UNIQUE(tenant_id, email) is tracked.)
+    rows = (await s.execute(
+        text("SELECT id, tenant_id, customer_id, is_active, password_hash, email, name "
+             "FROM gx_auth_customer_by_email(:t, :e)"), {"t": tenant_id, "e": body.email}
+    )).mappings().all()
+    if len(rows) != 1 or not verify_password(body.password, rows[0]["password_hash"]):
         raise HTTPException(401, "Invalid credentials")
-    if not cu.is_active:
+    cu = rows[0]
+    if not cu["is_active"]:
         raise HTTPException(403, "Account is inactive")
 
-    cu.last_login_at = datetime.now(timezone.utc)
+    # last_login stamp — a single self-row write; the broad-owner-session removal of this WRITE is
+    # deferred to C1a-3 (it stays on the owner session `s`). Targeted UPDATE, not a broad read.
+    await s.execute(text("UPDATE customer_user SET last_login_at = now() WHERE id = :id"), {"id": cu["id"]})
     await s.commit()
 
-    token = create_access_token(str(cu.id), {
+    token = create_access_token(str(cu["id"]), {
         "kind": "customer",
-        "customer_id": str(cu.customer_id),
-        "tenant_id": str(cu.tenant_id),
+        "customer_id": str(cu["customer_id"]),
+        "tenant_id": str(cu["tenant_id"]),
     })
 
     mode = _portal_auth_mode()
@@ -144,11 +147,11 @@ async def portal_login(
     return PortalTokenOut(
         access_token=body_token,
         customer={
-            "id": str(cu.id),
-            "email": cu.email,
-            "name": cu.name,
-            "customer_id": str(cu.customer_id),
-            "tenant_id": str(cu.tenant_id),
+            "id": str(cu["id"]),
+            "email": cu["email"],
+            "name": cu["name"],
+            "customer_id": str(cu["customer_id"]),
+            "tenant_id": str(cu["tenant_id"]),
         },
         csrf_token=csrf_token,
     )
@@ -218,26 +221,26 @@ async def current_customer(
         if not supplied_csrf or supplied_csrf != expected_csrf:
             raise HTTPException(403, "CSRF token missing or invalid")
 
-    # Use the owner session for the CustomerUser lookup (pre-RLS-GUC, same pattern as staff auth).
-    async with OwnerSessionLocal() as o:
-        # Pre-auth owner session: CustomerUser-by-id is the cluster-unique lookup.
-        await o.connection(execution_options={"audit_tenant_filter": False})
-        cu = (await o.execute(
-            select(CustomerUser).where(CustomerUser.id == cu_id)
-        )).scalar_one_or_none()
-
-    if not cu or not cu.is_active:
+    # C1a-2: narrow SECURITY DEFINER identity lookup instead of a broad owner-session CustomerUser read.
+    # Returns ONLY (id, tenant_id, is_active, token_not_before); the full CustomerUser is re-read under
+    # RLS once the GUC is bound below.
+    ident = (await s.execute(
+        text("SELECT id, tenant_id, is_active, token_not_before FROM gx_auth_customer_by_id(:id)"),
+        {"id": cu_id}
+    )).mappings().all()
+    if len(ident) != 1 or not ident[0]["is_active"]:
         raise HTTPException(401, "Customer not found or inactive")
+    row = ident[0]
 
     # S4 — defense-in-depth: assert the customer's stored tenant matches the token claim.
-    if cu.tenant_id != tenant_id:
+    if row["tenant_id"] != tenant_id:
         raise HTTPException(401, "Token/identity mismatch")
 
     # T1 remediation 2026-06-04: token-not-before check. A portal token issued BEFORE the
     # customer_user's token_not_before timestamp is rejected — this is how /portal/auth/logout
     # invalidates ALL outstanding portal access tokens for a user in a single column write,
     # without per-token bookkeeping (portal tokens are stateless JWTs, no refresh family).
-    if cu.token_not_before is not None:
+    if row["token_not_before"] is not None:
         iat_raw = payload.get("iat")
         if iat_raw is None:
             # Legacy / malformed token with no iat → can't prove it was issued after the cutoff.
@@ -250,10 +253,14 @@ async def current_customer(
                 iat_epoch = float(iat_raw)
             except (TypeError, ValueError):
                 raise HTTPException(401, "Malformed token")
-        if iat_epoch < cu.token_not_before.timestamp():
+        if iat_epoch < row["token_not_before"].timestamp():
             raise HTTPException(401, "Token issued before revocation cutoff")
 
+    # Bind RLS GUC, THEN re-read the full CustomerUser UNDER RLS (its own row). Empty re-read → fail closed.
     await set_tenant_guc(s, tenant_id)
+    cu = (await s.execute(select(CustomerUser).where(CustomerUser.id == cu_id))).scalar_one_or_none()
+    if cu is None:
+        raise HTTPException(401, "Customer not found or inactive")
     return cu
 
 
