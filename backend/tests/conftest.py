@@ -6,8 +6,36 @@ import asyncio
 # fall back to the local-dev default (:5433) when nothing was set. The session fixture explicitly
 # DROPs + CREATEs gaahex_test against this URL, so the dev DB (gaahex) is never touched as long as
 # the configured URL points at a test database — which CI's workflow guarantees.
-os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://gaahex:gaahex@localhost:5433/gaahex_test")
-os.environ.setdefault("OWNER_DATABASE_URL", "postgresql+asyncpg://gaahex:gaahex@localhost:5433/gaahex_test")
+# Per-worker DB isolation for pytest-xdist (`-n auto`): each parallel worker gets its OWN database
+# (gaahex_test_gw0, gaahex_test_gw1, …) so the workers never clash on a shared DB. A serial run (no
+# xdist) uses plain gaahex_test. The worker suffix is FORCED when PYTEST_XDIST_WORKER is set (workers
+# inherit the controller's env, so setdefault alone wouldn't re-isolate them); the _setup_db fixture
+# DROP/CREATEs whatever DB the URL points at, so each worker provisions its own.
+_DEFAULT_DB_URL = "postgresql+asyncpg://gaahex:gaahex@localhost:5433/gaahex_test"
+
+
+def _with_worker_db(url: str, worker: str) -> str:
+    from urllib.parse import urlparse, urlunparse
+    pr = urlparse(url)
+    return urlunparse(pr._replace(path="/" + pr.path.lstrip("/") + "_" + worker))
+
+
+_xdist_worker = os.environ.get("PYTEST_XDIST_WORKER")  # 'gw0'.. on workers; unset serially / controller
+if _xdist_worker:
+    _base = os.environ.get("DATABASE_URL", _DEFAULT_DB_URL)
+    _owner_base = os.environ.get("OWNER_DATABASE_URL", _base)
+    os.environ["DATABASE_URL"] = _with_worker_db(_base, _xdist_worker)
+    os.environ["OWNER_DATABASE_URL"] = _with_worker_db(_owner_base, _xdist_worker)
+    # Redis + local storage are the OTHER cross-worker shared resources — isolate them too, or cache /
+    # idempotency / attachment state bleeds across parallel workers (per-worker DBs alone aren't enough).
+    import tempfile as _tmp
+    from urllib.parse import urlparse as _up, urlunparse as _uu
+    _ri = int(_xdist_worker.replace("gw", "") or "0") % 16          # Redis logical DBs are 0-15
+    os.environ["REDIS_URL"] = _uu(_up(os.environ.get("REDIS_URL", "redis://localhost:6380/0"))._replace(path=f"/{_ri}"))
+    os.environ["STORAGE_LOCAL_PATH"] = os.path.join(_tmp.gettempdir(), f"portal-test-uploads-{_xdist_worker}")
+else:
+    os.environ.setdefault("DATABASE_URL", _DEFAULT_DB_URL)
+    os.environ.setdefault("OWNER_DATABASE_URL", _DEFAULT_DB_URL)
 # M1-C.1: force the mock payment gateway in tests regardless of any stray .env file.
 # Tests that exercise StripeGateway construct it explicitly (bypassing the factory) and
 # patch the stripe SDK with unittest.mock — they never touch the real Stripe API.
@@ -101,8 +129,11 @@ async def _setup_db():
     p = urlparse(owner_url_raw.replace("postgresql+asyncpg://", "postgresql://"))
     admin_url = urlunparse(p._replace(path="/postgres"))
     admin = await asyncpg.connect(admin_url)
-    await admin.execute("DROP DATABASE IF EXISTS gaahex_test WITH (FORCE)")
-    await admin.execute("CREATE DATABASE gaahex_test")
+    # The target DB name comes from the URL path — worker-suffixed under xdist (gaahex_test_gw0…),
+    # plain gaahex_test serially. Each worker DROP/CREATEs its own DB, so parallel runs never collide.
+    _target_db = p.path.lstrip("/") or "gaahex_test"
+    await admin.execute(f'DROP DATABASE IF EXISTS "{_target_db}" WITH (FORCE)')
+    await admin.execute(f'CREATE DATABASE "{_target_db}"')
     await admin.close()
 
     from sqlalchemy import text
