@@ -43,7 +43,7 @@ import SavedViewsView from './views/SavedViewsView'
 import ActivityFeedView from './views/ActivityFeedView'
 import CalendarView from './views/CalendarView'
 import SettingsView from './views/SettingsView'
-import OrgView from './views/OrgView'
+import OrgPage from './views/OrgPage'
 import OrdersView from './views/OrdersView'
 import RevenueAssuranceView from './views/RevenueAssuranceView'
 import CollectionsView from './views/CollectionsView'
@@ -644,7 +644,7 @@ export default function App() {
                   else if (type === 'helpdesk') navigate(id ? `/helpdesk?ticket=${encodeURIComponent(id)}` : '/helpdesk')
                   else if (type === 'entity' && id) navigate(`/entity/${id}`)
                 }} />} />
-                <Route path="/org"                element={<OrgView nodes={orgNodes} configVersion={pageConfigVersion} canConfigure={canConfigure} onRefresh={async () => setOrgNodes((await orgTree()).nodes)} />} />
+                <Route path="/org"                element={<OrgPage />} />
                 <Route path="/dashboards"         element={<DashboardView configVersion={pageConfigVersion} canConfigure={canConfigure} capabilities={capabilities} onNavigate={(target) => {
                   if (target.type === 'subscriptions') navigate('/subscriptions')
                   else if (target.type === 'invoices') navigate('/invoices')

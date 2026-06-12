@@ -94,15 +94,17 @@ export const NAV_SECTIONS: NavSectionDef[] = [
   ]),
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Operations — top-level group introduced 2026-06-04 (nav-backlog item 1).
-  // Currently houses the platform-level Warehouse module (distinct from the
-  // NOC "Network & Stock Inventory" sub-block above, which is the OLT-side
-  // hardware section). Module itself ships later; this is the nav entry only,
-  // wired to a coming-soon stub view per the existing pattern.
+  // Operations — top-level group. Houses the org/structure pages (surfaced here
+  // 2026-06-12 per Gev): the LIVE Org Structure page (OrgView at /org — OrgNode
+  // tree, 13 layouts, full CRUD) plus the Organisation stubs (chart / departments
+  // / legal entities), and the platform-level Warehouse module (built later).
   // ─────────────────────────────────────────────────────────────────────────
   s('operations', 'Operations', ActivityIcon, [
-    i('ops-warehouse', 'Warehouse', PackageIcon, 'coming-soon', { id: 'warehouse', title: 'Warehouse', parent: 'Operations' }),
-  ]),
+    // ONE Organisation page (/org → OrgPage): Hierarchy (role/position) · Branches (geo) ·
+    // Departments are tabs INSIDE it, not separate nav entries (Gev 2026-06-12).
+    i('ops-organisation', 'Organisation', BuildingIcon, 'org'),
+    i('ops-warehouse',    'Warehouse',    PackageIcon,  'coming-soon', { id: 'warehouse', title: 'Warehouse', parent: 'Operations' }),
+  ], { defaultOpen: true }),
 
   s('analytics_ai', 'Analytics & AI', ChartIcon, [
     i('aa-dashboards', 'Operational Dashboards', ChartIcon,    'dashboards'),
@@ -114,19 +116,8 @@ export const NAV_SECTIONS: NavSectionDef[] = [
     i('ent-hr',               'Human Resources',         UsersIcon,   'entity', { slug: 'employees' }),
     i('ent-procurement',      'Procurement & Vendors',   PackageIcon, 'entity', { slug: 'purchase-orders' }),
     i('ent-legal-audit',      'Legal & Security Audit',  ShieldIcon,  'entity', { slug: 'contracts' }),
-  ], {
-    // Organisation — nested menu added 2026-06-04 (nav-backlog item 2). Scope
-    // intentionally left as a 3-child scaffold (org chart / departments / legal
-    // entity tree); Gev will redirect once he sees it in place. All three are
-    // coming-soon stubs; no module work in this pass.
-    subsections: [
-      s('ent-organisation', 'Organisation', BuildingIcon, [
-        i('ent-org-chart',    'Organisation Chart', UsersIcon,  'coming-soon', { id: 'organisation-chart',    title: 'Organisation Chart',    parent: 'Enterprise · Organisation' }),
-        i('ent-org-depts',    'Departments',        LayersIcon, 'coming-soon', { id: 'organisation-depts',    title: 'Departments',           parent: 'Enterprise · Organisation' }),
-        i('ent-org-legal',    'Legal Entities',     ShieldIcon, 'coming-soon', { id: 'organisation-legal',    title: 'Legal Entities',        parent: 'Enterprise · Organisation' }),
-      ]),
-    ],
-  }),
+  ]),
+  // (Organisation sub-menu moved to Operations 2026-06-12 — see the Operations group above.)
 
   // ADMIN PANEL — SuperAdmin (user.can_configure) only. Houses Records (auto-injected
   // dynamic entities) + System + Dev Internals + Studio as sub-sections.

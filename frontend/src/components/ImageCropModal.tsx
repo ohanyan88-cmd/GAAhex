@@ -12,13 +12,14 @@ const OUT = 256       // output image edge (px)
 const MAX_ZOOM = 5
 
 export default function ImageCropModal({
-  open, src, title, applyLabel, busy, onCancel, onApply,
+  open, src, title, applyLabel, busy, guide = 'hex', onCancel, onApply,
 }: {
   open: boolean
   src: string | null
   title?: string
   applyLabel?: string
   busy?: boolean
+  guide?: 'hex' | 'circle' | 'none'
   onCancel: () => void
   onApply: (blob: Blob) => void
 }) {
@@ -126,10 +127,14 @@ export default function ImageCropModal({
               style={{ width: dw, height: dh, transform: `translate(${off.x}px, ${off.y}px)` }}
             />
           )}
-          {/* Hexagon guide — the region that shows in the avatar hex. */}
-          <svg className="crop-guide" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-            <polygon points="25,0 75,0 100,50 75,100 25,100 0,50" />
-          </svg>
+          {/* Guide — the region that shows in the final mask (hex avatar / circle card pic). */}
+          {guide !== 'none' && (
+            <svg className="crop-guide" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+              {guide === 'circle'
+                ? <circle cx="50" cy="50" r="49" />
+                : <polygon points="25,0 75,0 100,50 75,100 25,100 0,50" />}
+            </svg>
+          )}
         </div>
         <div className="crop-zoom">
           <button type="button" className="uc-pic-btn" onClick={() => setZoomKeepCenter(zoom / 1.2)} aria-label={t('crop.zoomOut', 'Zoom out')} disabled={zoom <= 1}>

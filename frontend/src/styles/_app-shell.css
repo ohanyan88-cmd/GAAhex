@@ -119,7 +119,7 @@
 .crop-vp { position:relative; overflow:hidden; border-radius:var(--gx-radius-lg); background:var(--gx-surface-2); user-select:none; flex-shrink:0; }
 .crop-img { position:absolute; top:0; left:0; max-width:none; user-select:none; -webkit-user-drag:none; }
 .crop-guide { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
-.crop-guide polygon { fill:none; stroke:#ffffff; stroke-width:1.5; stroke-opacity:.85; }
+.crop-guide polygon, .crop-guide circle { fill:none; stroke:#ffffff; stroke-width:1.5; stroke-opacity:.85; }
 .crop-zoom { display:flex; align-items:center; gap:var(--gx-space-4); width:100%; }
 .crop-range { flex:1; accent-color:var(--gx-interactive); }
 .menu-lang-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 10px; }
