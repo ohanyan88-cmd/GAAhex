@@ -57,6 +57,11 @@ from .migrate_interactions import migrate_interactions
 from .scheduler import start_scheduler, stop_scheduler
 from .routers import auth, meta, records, reports, notifications, notification_defs, dashboards, views, approvals, search, comm, export, activity, ops, billing_subscription, billing_invoice, billing_payment, billing_credit_note, billing_product, bulk, report_builder, orders, customer360, webhooks, apikeys, services, respool, usage, documents, i18n, accounts, analytics, ai, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests, search_assist, helpdesk, users, workitems, payment_gateway, calendar as calendar_router, portal_auth, portal, portal_billing, portal_support, portal_service, roles, automations, events, page_config, me, org_nodes, metrics, audit_log, studio_pages, feature_flags, page_bindings, assignments, mandatory_approvals, regions, kpis, customer_timeline, workflows, nav_registry, assets, procurement, contract_expiring, workspace, tariff_plans, credit_notes, dunning, revenue_assurance, payment_methods, install_board, noc_dashboard, noc_inventory, comments, watchers, tasks, slas, attachments, communications, configurations, escalations, relationships, imports_exports, lifecycle, privacy, mail, messaging
 
+# PERFECT-TARGET I3 — wire the order.activated choreography. Importing this registers the CRM / Care /
+# Billing domain reactions on the kernel event bus (in that order). The publisher (orders.py) is
+# decoupled from the subscribers; this is the only seam that ties them to the event.
+from .services import order_activation  # noqa: F401,E402
+
 
 _log = logging.getLogger("gaahex")
 

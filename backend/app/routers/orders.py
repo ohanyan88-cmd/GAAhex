@@ -17,10 +17,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from decimal import Decimal, InvalidOperation
 
 from ..db import get_session
-from ..models import User, Record, Task
-from ..models.access import RoleDef
+from ..models import User
 from ..models.order import Order, OrderItem
-from ..models.billing import Subscription, Payment
+from ..models.billing import Payment
 from ..models.payment_method import PaymentMethod
 from ..models.product import Product
 from ..access import load_grants, can
@@ -29,13 +28,12 @@ from ..kernel import (
     assert_writer_owns_record_firstclass, OwnerViolation,
 )
 from .. import workflow
-from ..kernel import events
 from ..services.payment_gateway_adapter import get_payment_gateway
 from ..services.stage8_gate import compute_stage8_status, apply_stage8_result
 from ..utils.refnum import next_reference_number
 from .auth import current_user
-from .records import _node_path, _node_paths, _entity, _fields  # reuse the exact records scope primitives
-from .billing import _money, _now, _add_cycle, _customer_or_422, _deny   # reuse billing helpers (DRY)
+from .records import _node_path, _node_paths, _entity  # reuse the exact records scope primitives
+from .billing import _money, _now, _customer_or_422, _deny   # reuse billing helpers (DRY)
 
 router = APIRouter(prefix="/api", tags=["orders"])
 
@@ -145,160 +143,6 @@ async def _replace_items(s, user: User, order: Order, lines_in) -> int:
         s.add(OrderItem(tenant_id=user.tenant_id, order_id=order.id, product_id=product_id,
                         description=desc, quantity=qty, unit_amount=unit, line_total=line_total))
     return total
-
-
-async def _provision_subscriptions(s, user: User, order: Order, items: list[OrderItem]) -> list[str]:
-    """On COMPLETED: for each item with a product_id, create an ACTIVE Subscription for the
-    customer (amount/cycle copied from the product). Items without a product (one-off charges) are
-    skipped, and a since-removed product is skipped rather than failing provisioning."""
-    created: list[str] = []
-    for it in items:
-        if not it.product_id:
-            continue
-        prod = (await s.execute(
-            select(Product).where(Product.id == it.product_id, Product.tenant_id == user.tenant_id)
-        )).scalar_one_or_none()
-        if not prod:
-            continue
-        started = _now()
-        sub = Subscription(
-            tenant_id=user.tenant_id, owner_node_id=order.owner_node_id, customer_id=order.customer_id,
-            product_id=prod.id, plan_name=prod.name, amount=prod.default_amount, cycle=prod.cycle,
-            status="ACTIVE", started_at=started, next_invoice_at=_add_cycle(started, prod.cycle),
-        )
-        s.add(sub)
-        await s.flush()
-        await workflow.emit(s, user.tenant_id, "CREATE", "subscription", sub.id, user.id,
-                            {"plan_name": prod.name, "amount": prod.default_amount, "from_order": str(order.id)})
-        created.append(str(sub.id))
-        # order → subscription → service: provision a Service fulfilling this subscription (lazy
-        # import avoids any router import cycle; fail-soft so a service hiccup never blocks the order).
-        try:
-            from .services import provision_service_for_subscription
-            await provision_service_for_subscription(
-                s, tenant_id=user.tenant_id, subscription=sub, owner_node_id=order.owner_node_id,
-                customer_id=order.customer_id, actor_user_id=user.id,
-            )
-        except Exception:
-            pass
-    return created
-
-
-async def _create_customer_from_lead(s: AsyncSession, user: User, order: Order) -> Record | None:
-    """Iron rule: at ACTIVATION an order born from a lead conversion (order.lead_id) creates its
-    CUSTOMER — the customer joins the active base here, never earlier. Carries the lead's identity
-    (intersection of lead.data with the customer entity's fields — invents nothing). Returns the new
-    customer Record, or None if the lead is missing.
-    """
-    lead = (await s.execute(
-        select(Record).where(Record.id == order.lead_id, Record.tenant_id == user.tenant_id,
-                             Record.entity_key == "lead")
-    )).scalar_one_or_none()
-    if lead is None:
-        return None
-    cust_ent = await _entity(s, user.tenant_id, "customers")
-    cust_field_keys = {f.key for f in await _fields(s, cust_ent.id) if f.type != "status"}
-    lead_data = lead.data or {}
-    cust_data = {k: lead_data[k] for k in cust_field_keys if k in lead_data}
-    cust_data["source_lead_id"] = str(lead.id)
-    cust_data["source_order_id"] = str(order.id)
-    cust_data["ref"] = await next_reference_number(s, tenant_id=user.tenant_id, prefix="CUS")
-    customer = Record(
-        tenant_id=user.tenant_id, entity_key=cust_ent.key,
-        owner_node_id=order.owner_node_id,
-        status="active",                                                # active base member (not a stage)
-        data=cust_data,
-    )
-    s.add(customer)
-    await s.flush()
-    # back-link the lead → customer for the full lead → order → customer trail
-    lead.data = {**lead_data, "converted_customer_id": str(customer.id)}
-    await workflow.emit(s, user.tenant_id, "CREATE", "customer", customer.id, user.id,
-                        {"data": cust_data, "status": "active", "from_order": str(order.id),
-                         "from_lead": str(lead.id)})
-    return customer
-
-
-async def _create_care_checkcall_task(s: AsyncSession, user: User, order: Order, customer: Record) -> None:
-    """Iron rule (the S14 replacement): at ACTIVATION an auto-task FORCES the Customer-Care welcome /
-    quality check-call ("services activated? were our people polite?"). Owner + assignee = the
-    Customer Care role; parent-linked to the new customer. Skipped (never silently wrong) if the tenant
-    has no customer_care role to own it.
-    """
-    cc = (await s.execute(
-        select(RoleDef).where(RoleDef.tenant_id == user.tenant_id, RoleDef.key == "customer_care")
-    )).scalar_one_or_none()
-    if cc is None:
-        return
-    name = (customer.data or {}).get("name") or order.number
-    ref = await next_reference_number(s, tenant_id=user.tenant_id, prefix="TSK", width=6)
-    task = Task(
-        tenant_id=user.tenant_id,
-        reference_number=ref,
-        title=f"Welcome / activation check-call — {name}",
-        task_type="CALL_CUSTOMER",
-        task_scope="OBJECT_LINKED",
-        status="OPEN",
-        priority="MEDIUM",
-        parent_entity_type="customer",
-        parent_entity_id=customer.id,
-        owner_type="ROLE", owner_id=cc.id,
-        assignee_type="ROLE", assignee_id=cc.id,
-        sla_status="NOT_APPLICABLE",
-        created_by=user.id,
-    )
-    s.add(task)
-    await s.flush()
-    await workflow.emit(s, user.tenant_id, "CREATE", "task", task.id, user.id,
-                        {"reference_number": ref, "task_type": "CALL_CUSTOMER",
-                         "for_customer": str(customer.id), "from_order": str(order.id)})
-
-
-# --- order.activated event choreography (PERFECT-TARGET I3) -----------------------------------------
-# At ACTIVATION the order publishes `order.activated`; the CRM / Care / Billing domains each subscribe
-# and react. orders.advance no longer hand-calls them — it publishes. (Handlers live here for now; the
-# follow-up relocates each to its own domain service so orders.py knows nothing about them.)
-
-async def _on_activated_crm(s: AsyncSession, *, order: Order, user: User):
-    """CRM domain: the customer joins the active base — created from the lead if the order has none yet."""
-    cust = None
-    if order.customer_id:
-        cust = (await s.execute(
-            select(Record).where(Record.id == order.customer_id, Record.tenant_id == user.tenant_id,
-                                 Record.entity_key == "customer")
-        )).scalar_one_or_none()
-    elif order.lead_id:
-        cust = await _create_customer_from_lead(s, user, order)
-        if cust is not None:
-            order.customer_id = cust.id
-    if cust is not None and cust.status != "active":
-        cust.status = "active"
-    return cust
-
-
-async def _on_activated_care(s: AsyncSession, *, order: Order, user: User):
-    """Customer-Care domain: the welcome / quality check-call auto-task on the new active customer."""
-    if not order.customer_id:
-        return None
-    cust = (await s.execute(
-        select(Record).where(Record.id == order.customer_id, Record.tenant_id == user.tenant_id,
-                             Record.entity_key == "customer")
-    )).scalar_one_or_none()
-    if cust is not None:
-        await _create_care_checkcall_task(s, user, order, cust)
-    return None
-
-
-async def _on_activated_billing(s: AsyncSession, *, order: Order, user: User) -> list[str]:
-    """Billing domain: provision ACTIVE subscriptions for the order's product lines."""
-    items = await _items(s, order.id)
-    return await _provision_subscriptions(s, user, order, items)
-
-
-# Registration order matters: CRM sets order.customer_id, which Care + Billing then read.
-events.subscribe("order.activated", "crm.activate_customer", _on_activated_crm)
-events.subscribe("order.activated", "care.welcome_task", _on_activated_care)
-events.subscribe("order.activated", "billing.provision", _on_activated_billing)
 
 
 # ---- CRUD ----
