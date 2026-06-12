@@ -34,6 +34,25 @@ OWNER, PW, HOST, PORT = pr.username, pr.password, pr.hostname, pr.port
 SCRATCH = "gaahex_p1_invariants"
 GUC = "current_setting('gaahex.tenant_id'"
 
+
+# A policy is FAIL-CLOSED only if it reads the GUC via NULLIF(current_setting(..., true), '') — so an
+# unset/empty GUC yields NULL -> predicate NULL -> zero rows (default-deny), never an error or match-all.
+# ADD-1 deepened: "references the GUC" is NOT enough; the empty-GUC pool-reset window must be provably
+# empty, else a recycled connection leaks in the gap between checkin-reset and the next request's GUC-set.
+def _fail_closed(expr):
+    e = (expr or "").lower()
+    return "nullif(current_setting('gaahex.tenant_id'" in e and ", true)" in e
+
+
+# Tables whose policy ALSO exposes `tenant_id IS NULL` rows to every tenant (an `OR tenant_id IS NULL`
+# clause). These are intentional GLOBAL DEFAULTS (shared i18n strings); per-tenant rows still carry a
+# tenant_id and remain fail-closed, so no cross-tenant leak. Allowed but GOVERNED — a NEW table sprouting
+# this shape FAILS the gate until it is reviewed and added here.
+GLOBAL_DEFAULT_OK = {"translation"}
+def _or_null_global(expr):
+    return "is null) or" in (expr or "").lower()
+
+
 def raw(db): return f"postgresql://{OWNER}:{PW}@{HOST}:{PORT}/{db}"
 def sa(db):  return f"postgresql+asyncpg://{OWNER}:{PW}@{HOST}:{PORT}/{db}"
 
@@ -69,25 +88,31 @@ async def check():
     tenant = [(r["table_name"], r["is_nullable"] == "YES") for r in rows]
     for t, _ in tenant:
         await c.execute(f'ALTER TABLE "{t}" FORCE ROW LEVEL SECURITY')  # cosmetic — gaahex is superuser
-    ok, weak, missing_required, exempt = [], [], [], []
+    ok, not_fail_closed, weak, missing_required, exempt, global_default = [], [], [], [], [], []
     for t, nullable in tenant:
         pols = await c.fetch(
             "SELECT polname, pg_get_expr(polqual, polrelid) AS using_expr "
             "FROM pg_policy p JOIN pg_class cl ON cl.oid=p.polrelid WHERE cl.relname=$1", t)
-        has_guc = any(GUC in (pl["using_expr"] or "") for pl in pols)
-        if has_guc:
-            ok.append((t, pols[0]["polname"]))
-        elif pols:                              # policy exists but does NOT reference the GUC (ADD 1)
+        fc = [pl for pl in pols if _fail_closed(pl["using_expr"])]
+        guc = [pl for pl in pols if GUC in (pl["using_expr"] or "")]
+        if fc:
+            if any(_or_null_global(pl["using_expr"]) for pl in fc):
+                global_default.append((t, t in GLOBAL_DEFAULT_OK))   # OR-tenant_id-IS-NULL global rows
+            else:
+                ok.append((t, fc[0]["polname"]))
+        elif guc:        # references the GUC but NOT via NULLIF(...,true) → errors or matches-all on
+            not_fail_closed.append((t, [pl["using_expr"] for pl in guc]))   # empty GUC → reset-window LEAK
+        elif pols:                              # policy exists but does NOT reference the GUC at all
             weak.append((t, [pl["using_expr"] for pl in pols]))
-        elif nullable:                          # nullable tenant_id → documented exemption
+        elif nullable:                          # nullable tenant_id, no policy → documented exemption
             exempt.append(t)
-        else:                                   # NOT NULL tenant_id and no GUC policy → REAL GAP
+        else:                                   # NOT NULL tenant_id and no policy → REAL GAP
             missing_required.append(t)
     trg = await c.fetch(
         "SELECT c.relname, tg.tgname FROM pg_trigger tg JOIN pg_class c ON c.oid=tg.tgrelid "
         "WHERE NOT tg.tgisinternal AND c.relname IN ('event','comment') ORDER BY c.relname, tg.tgname")
     await c.close()
-    return tenant, ok, weak, missing_required, exempt, trg, role
+    return tenant, ok, not_fail_closed, weak, missing_required, exempt, global_default, trg, role
 
 
 async def teardown():
@@ -98,11 +123,13 @@ async def teardown():
 
 async def main():
     await build()
-    tenant, ok, weak, missing_required, exempt, trg, role = await check()
+    tenant, ok, not_fail_closed, weak, missing_required, exempt, global_default, trg, role = await check()
+    bad_global = [t for t, allowed in global_default if not allowed]
     print(f"\nrole topology: gaahex_app present={role is not None} "
           f"super={role['rolsuper'] if role else '?'} bypassrls={role['rolbypassrls'] if role else '?'}")
-    print(f"tenant-scoped tables: {len(tenant)}  |  GUC-policy OK: {len(ok)}  |  "
-          f"weak-USING: {len(weak)}  |  missing(NOT NULL): {len(missing_required)}  |  exempt(nullable): {len(exempt)}")
+    print(f"tenant-scoped tables: {len(tenant)}  |  fail-closed OK: {len(ok)}  |  "
+          f"global-default(allowed): {len(global_default)}  |  NOT-fail-closed: {len(not_fail_closed)}  |  "
+          f"no-GUC: {len(weak)}  |  missing(NOT NULL): {len(missing_required)}  |  exempt(nullable): {len(exempt)}")
 
     REQUIRED_TRG = {("event", "prevent_update_event"), ("event", "prevent_delete_event"),
                     ("comment", "trg_comment_block_update_when_held"),
@@ -118,11 +145,19 @@ async def main():
         print(f"  OK   {t:28} policy={pol}")
     if len(ok) > 25:
         print(f"  ... (+{len(ok) - 25} more OK)")
+    if global_default:
+        print("\n--- global-default policies (OR tenant_id IS NULL — intentional shared rows) ---")
+        for t, allowed in global_default:
+            print(f"  {'OK ' if allowed else 'NEW'} {t}{'' if allowed else '  [FAIL — review + add to GLOBAL_DEFAULT_OK]'}")
     if exempt:
-        print("\n--- nullable-tenant_id (documented exemptions, not failed) ---")
+        print("\n--- nullable-tenant_id, no policy (documented exemptions, not failed) ---")
         print("  " + ", ".join(exempt))
+    if not_fail_closed:
+        print("\n--- NOT FAIL-CLOSED (references GUC but not via NULLIF(...,true) → empty-GUC leak) [FAIL] ---")
+        for t, exprs in not_fail_closed:
+            print(f"  {t}: {exprs}")
     if weak:
-        print("\n--- WEAK USING (policy exists but does NOT reference the GUC) [FAIL] ---")
+        print("\n--- NO-GUC (policy exists but does NOT reference the tenant GUC) [FAIL] ---")
         for t, exprs in weak:
             print(f"  {t}: {exprs}")
     if missing_required:
@@ -135,7 +170,7 @@ async def main():
             print(f"  {rel}.{tg}")
 
     await teardown()
-    failed = bool(weak or missing_required or missing_trg) or role is None
+    failed = bool(not_fail_closed or weak or missing_required or missing_trg or bad_global) or role is None
     print(f"\n==== P1 {'FAIL' if failed else 'PASS'} ====")
     sys.exit(1 if failed else 0)
 
