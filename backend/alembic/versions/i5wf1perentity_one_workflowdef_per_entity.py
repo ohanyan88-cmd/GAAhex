@@ -30,14 +30,20 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     # 1) Dedup any legacy duplicate lifecycle WorkflowDefs: keep the earliest per (tenant, entity), drop
     #    the rest. No-op on a clean DB (the current dev/test data already has 0 duplicates).
+    # NB: keeper is selected via `ORDER BY w2.id LIMIT 1`, NOT `MIN(w2.id)` — Postgres ships no
+    # min(uuid) aggregate, so MIN(id) raises `function min(uuid) does not exist` and the migration
+    # could never apply to a real DB (it was only ever validated on create_all, never `upgrade head`).
+    # uuid has a btree opclass, so ORDER BY id is valid and yields the same earliest-uuid7 keeper.
     op.execute("""
         DELETE FROM workflow_def w
         WHERE w.entity_def_id IS NOT NULL
           AND w.id <> (
-              SELECT MIN(w2.id)
+              SELECT w2.id
               FROM workflow_def w2
               WHERE w2.tenant_id = w.tenant_id
                 AND w2.entity_def_id = w.entity_def_id
+              ORDER BY w2.id
+              LIMIT 1
           )
     """)
     # 2) Enforce I5: one lifecycle WorkflowDef per entity (automations with NULL entity_def_id exempt).
