@@ -34,6 +34,14 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public AS $fu
 $func$;
 """
 
+_FN_STAFF_BY_EMAIL = """
+CREATE OR REPLACE FUNCTION gx_auth_staff_by_email(p_email text)
+RETURNS TABLE(id uuid, tenant_id uuid, password_hash text, status text)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public AS $func$
+    SELECT u.id, u.tenant_id, u.password_hash, u.status FROM app_user u WHERE u.email = p_email;
+$func$;
+"""
+
 _FN_CUSTOMER_BY_EMAIL = """
 CREATE OR REPLACE FUNCTION gx_auth_customer_by_email(p_tenant uuid, p_email text)
 RETURNS TABLE(id uuid, tenant_id uuid, customer_id uuid, is_active boolean,
@@ -45,5 +53,5 @@ $func$;
 """
 
 # One listener per function (single statements — robust for the asyncpg DBAPI), fired after create_all.
-for _sql in (_FN_STAFF_BY_ID, _FN_CUSTOMER_BY_ID, _FN_CUSTOMER_BY_EMAIL):
+for _sql in (_FN_STAFF_BY_ID, _FN_STAFF_BY_EMAIL, _FN_CUSTOMER_BY_ID, _FN_CUSTOMER_BY_EMAIL):
     event.listen(Base.metadata, "after_create", DDL(_sql))

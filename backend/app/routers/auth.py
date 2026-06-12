@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import re
 import secrets
 import uuid
@@ -11,7 +12,7 @@ from sqlalchemy import select, update, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import settings
-from ..db import get_session, get_owner_session, set_tenant_guc, OwnerSessionLocal
+from ..db import get_session, get_owner_session, set_tenant_guc, OwnerSessionLocal, SessionLocal
 from ..models import User
 from ..models.refresh_token import RefreshToken
 from ..models.apikey import ApiKey
@@ -22,6 +23,27 @@ from .. import workflow
 router = APIRouter(prefix="/auth", tags=["auth"])
 # auto_error=False so a missing Bearer doesn't 401 before we get a chance to try the X-API-Key path.
 oauth2 = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
+
+logger = logging.getLogger("gaahex.auth")
+
+
+async def _audit_login_failed(tenant_id, user_id, email, ip, reason: str) -> None:
+    """C1a-3a (D2) — durable, tenant-scoped USER_LOGIN_FAILED audit for a KNOWN user, on a FRESH app
+    session (gaahex_app) independent of the request flow that's about to raise 401. The tenant GUC is set
+    on THIS session so the RLS WITH CHECK permits the Event write (tenant_id == GUC). Best-effort — an
+    audit failure must never surface as a 500. (Unknown-user attempts have no tenant -> no Event possible;
+    they are recorded via the logger.warning sink at the call site.)"""
+    try:
+        async with SessionLocal() as a:
+            await set_tenant_guc(a, tenant_id)
+            await workflow.emit(
+                a, tenant_id=tenant_id, type_="USER_LOGIN_FAILED", entity_key="user",
+                record_id=user_id, actor_user_id=None,
+                data={"email": email, "ip": ip, "reason": reason}, category="SECURITY", actor_type="USER",
+            )
+            await a.commit()
+    except Exception:
+        pass
 
 
 class LoginIn(BaseModel):
@@ -137,76 +159,54 @@ async def revoke_session_family(s: AsyncSession, session_id: uuid.UUID) -> int:
 # ---- endpoints ----
 
 @router.post("/login", response_model=TokenOut)
-async def login(body: LoginIn, request: Request, s: AsyncSession = Depends(get_owner_session)):
-    # owner session: the email→user lookup is pre-auth (no tenant yet), so it must bypass RLS.
-    user = (await s.execute(
-        select(User).where(User.email == body.email)
-        .execution_options(audit_tenant_filter=False)
-    )).scalar_one_or_none()
+async def login(body: LoginIn, request: Request, s: AsyncSession = Depends(get_session)):
     client_ip = request.client.host if request.client else None
-    if not user or not verify_password(body.password, user.password_hash):
-        # A1 remediation 2026-06-04: emit a USER_LOGIN_FAILED audit event. There is no auth
-        # context (the credential is bad by definition) so we open a FRESH OwnerSessionLocal
-        # rather than reuse the dependency-injected `s` (which we're about to leave via the
-        # HTTPException without committing). A fresh session also gives the failure event its
-        # own transaction independent of any rollback of `s` on the way out.
-        # Event.tenant_id is NOT NULL. We can only audit when the email matched a real user (we
-        # know their tenant). Unknown-email attempts are NOT audited at the per-event level here —
-        # those are best surfaced as platform-level rate-limit / brute-force telemetry, not as
-        # rows in the per-tenant Event log (which they'd violate the schema of). The Event model
-        # docstring (file 06 / standard 19) explicitly governs Event as tenant-scoped.
-        if user is not None:
-            try:
-                async with OwnerSessionLocal() as o:                   # tenant-filter-ok: — pre-auth audit emit on failure, owner session
-                    await o.connection(execution_options={"audit_tenant_filter": False})
-                    await workflow.emit(
-                        o,
-                        tenant_id=user.tenant_id,
-                        type_="USER_LOGIN_FAILED",
-                        entity_key="user",
-                        record_id=user.id,
-                        actor_user_id=None,
-                        data={"email": body.email, "ip": client_ip},
-                        category="SECURITY",
-                        actor_type="USER",
-                    )
-                    await o.commit()
-            except Exception:
-                pass                                                   # audit failures must never leak as a 500
+    # C1a-3a: narrow SECURITY DEFINER credential lookup instead of a broad owner-session read. The
+    # request session is gaahex_app with no tenant GUC yet (pre-auth); gx_auth_staff_by_email runs
+    # elevated (pinned search_path, static SQL) and returns ONLY (id, tenant_id, password_hash, status).
+    # email is UNIQUE -> at most one row; the len != 1 check is a structural belt.
+    rows = (await s.execute(
+        text("SELECT id, tenant_id, password_hash, status FROM gx_auth_staff_by_email(:e)"),
+        {"e": body.email},
+    )).mappings().all()
+    cred = rows[0] if len(rows) == 1 else None
+
+    if cred is None or not verify_password(body.password, cred["password_hash"]):
+        # Telemetry sink (D1): a structured WARNING for EVERY failed login. The unknown-user case has no
+        # tenant, so it CANNOT be a per-tenant Event (Event.tenant_id is NOT NULL) — the log line is the
+        # only record and must exist. Fuller brute-force observability (rate-limit, per-IP metrics,
+        # alerting) is the security-observability track.
+        logger.warning("login failed", extra={
+            "email": body.email, "ip": client_ip,
+            "reason": "unknown_user" if cred is None else "bad_password"})
+        if cred is not None:  # KNOWN user, bad password: durable tenant-scoped audit (D2, fresh app session)
+            await _audit_login_failed(cred["tenant_id"], cred["id"], body.email, client_ip, "bad_password")
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    # S2 remediation 2026-06-04: a deactivated user cannot log in even with a valid password.
-    # We block on the negative side (status == 'INACTIVE') rather than allowlist 'ACTIVE' because
-    # the deployed dataset still carries pre-D5 lowercase 'active' rows on some test/legacy seed
-    # paths (see e.g. tests/test_job_extension.py:_ensure). Soft-delete in routers/users.py
-    # writes UPPER_SNAKE_CASE 'INACTIVE' (the canonical D5/file-14 value); fold to upper here so
-    # any lowercase 'inactive' row that lands in production is still rejected. The intent of the
-    # finding (D4: a deactivated principal can't authenticate) is satisfied either way.
-    if (user.status or "").upper() == "INACTIVE":
-        try:
-            await workflow.emit(
-                s, tenant_id=user.tenant_id, type_="USER_LOGIN_FAILED",
-                entity_key="user", record_id=user.id, actor_user_id=None,
-                data={"email": body.email, "ip": client_ip, "reason": "inactive"},
-                category="SECURITY",
-            )
-        except Exception:
-            pass
+
+    # S2: a deactivated user cannot log in even with a valid password. Block on status == 'INACTIVE'
+    # (fold legacy lowercase 'inactive' to upper) rather than allowlisting 'ACTIVE'.
+    if (cred["status"] or "").upper() == "INACTIVE":
+        logger.warning("login failed", extra={"email": body.email, "ip": client_ip, "reason": "inactive"})
+        await _audit_login_failed(cred["tenant_id"], cred["id"], body.email, client_ip, "inactive")
         raise HTTPException(status_code=401, detail="User account is inactive")
-    # Multi-tenant: bake the user's tenant_id into the JWT. `current_user` re-validates this claim
-    # against the user's stored tenant_id on every request (defense against stolen-token tenant
-    # injection) and binds the RLS GUC to the user's tenant — never to a fixed singleton.
+
+    # Bind RLS to the user's tenant, THEN re-read the full User UNDER RLS (its own row) for the success
+    # path (token claims, refresh-token mint, must-change flag, audit). Empty re-read -> fail closed.
+    await set_tenant_guc(s, cred["tenant_id"])
+    user = (await s.execute(select(User).where(User.id == cred["id"]))).scalar_one_or_none()
+    if user is None:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    # Multi-tenant: bake the user's tenant_id into the JWT. current_user re-validates this claim on every
+    # request and binds the RLS GUC to the user's tenant — never to a fixed singleton.
     token = create_access_token(str(user.id), {"email": user.email, "tenant": str(user.tenant_id)})
     refresh, _row = await _issue_refresh_token(s, user)
-    # Forced first-login change for the seeded default admin only: if its password_changed_at is
-    # still NULL it's still on the seed `admin123` password. The access token IS issued so the
-    # client can call /api/me/password with it; the flag just routes the UI to the change screen.
+    # Forced first-login change for the seeded default admin only (still on the seed `admin123` password).
     must_change = user.email == "admin@demo.isp" and user.password_changed_at is None
-    # A1 remediation 2026-06-04: audit a successful login.
     await workflow.emit(
         s, tenant_id=user.tenant_id, type_="USER_LOGIN_SUCCESS",
         entity_key="user", record_id=user.id, actor_user_id=user.id,
-        data={"ip": client_ip},
-        category="SECURITY",
+        data={"ip": client_ip}, category="SECURITY",
     )
     await s.commit()
     return TokenOut(access_token=token, refresh_token=refresh, must_change_password=must_change)
