@@ -1,6 +1,12 @@
 import os
 import asyncio
 
+# C3/C4 — the app now defaults ENVIRONMENT to "production" (fail-closed). The test suite MUST declare
+# itself as a non-production environment BEFORE any app module imports settings, or every test would
+# boot production-strict (weak-JWT/field-key refusal, demo seeds gated off). setdefault respects an
+# explicit override (e.g. a test that wants ENVIRONMENT=production).
+os.environ.setdefault("ENVIRONMENT", "test")
+
 # Point the app at an isolated test database BEFORE importing any app module. Respect any URL the
 # environment already supplied (CI sets DATABASE_URL to its own postgres service on :5432); only
 # fall back to the local-dev default (:5433) when nothing was set. The session fixture explicitly

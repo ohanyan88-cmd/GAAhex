@@ -237,8 +237,8 @@ def _audit_enabled() -> bool:
     # order from this module).
     if raw == "":
         try:
-            from .config import settings
-            if settings.environment == "production":
+            from .config import is_production
+            if is_production():
                 return False
         except Exception:
             pass

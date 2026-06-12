@@ -51,6 +51,20 @@ def _get_key() -> bytes:
 _FERNET = Fernet(_get_key())
 
 
+def assert_production_key_is_real() -> None:
+    """C4 — boot guard: in production, refuse to run on the in-source DEV Fernet key.
+
+    Pairs with the JWT-secret check: production PII must be encrypted with an operator-provided
+    ``GAAHEX_FIELD_KEY``, never the public dev key baked into the source. Fail-closed via
+    is_production() (a typo'd or unset ENVIRONMENT counts as production)."""
+    from ..config import is_production  # local import avoids a config<->crypto import-time cycle
+    if is_production() and not os.environ.get("GAAHEX_FIELD_KEY"):
+        raise RuntimeError(
+            "GAAHEX_FIELD_KEY is unset in production — refusing to boot on the public in-source DEV "
+            "Fernet key (SPEC §4.4). Set a real 44-char url-safe base64 Fernet key."
+        )
+
+
 def _reload_fernet() -> None:
     """Re-read ``GAAHEX_FIELD_KEY`` from env and rebuild the cached Fernet.
 

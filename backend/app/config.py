@@ -8,10 +8,13 @@ class Settings(BaseSettings):
     """Runtime configuration, loaded from environment / .env."""
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    # M1-A Wave 4 — deploy-time environment signal. Default "development" keeps dev/test/CI
-    # unaffected; production deploys MUST set ENVIRONMENT=production so the deploy-contract
-    # guard in `_assert_production_deploy_contract()` fires (see docs/M1A-DEPLOY-CONTRACT.md).
-    environment: str = "development"
+    # M1-A Wave 4 / C3-C4 — deploy-time environment signal. Default is "production" so the posture is
+    # FAIL-CLOSED: a forgotten/unset ENVIRONMENT is treated as production-strict, never permissive.
+    # dev/test/CI declare themselves EXPLICITLY (conftest sets ENVIRONMENT=test; .env.example +
+    # docker-compose set ENVIRONMENT=development). Every security gate keys off is_production() (below),
+    # not a raw `== "production"` compare, so a typo ("prod"/"Production") also fails closed.
+    # See docs/M1A-DEPLOY-CONTRACT.md.
+    environment: str = "production"
     database_url: str = "postgresql+asyncpg://gaahex:gaahex@localhost:5433/gaahex"
     # Privileged (RLS-bypassing) role for the few pre-auth / no-tenant paths: seeding, the
     # login + current_user user lookup, and /org-tree. Falls back to database_url when unset (e.g.
@@ -189,6 +192,45 @@ class Settings(BaseSettings):
 settings = Settings()
 
 
+# ---- C3/C4 — fail-safe production detection -------------------------------------------------------
+# The deploy contract + every secret/credential gate keys off is_production(), NOT a raw
+# `settings.environment == "production"` compare, so a TYPO ("prod", "Production") or an UNSET/empty
+# ENVIRONMENT can never silently downgrade a real deployment to permissive behaviour. Only an EXPLICIT,
+# recognised non-production value relaxes; everything else (including the default) is production-strict.
+_NON_PRODUCTION_ENVIRONMENTS: frozenset[str] = frozenset({
+    "development", "dev", "test", "testing", "ci", "local",
+})
+_RECOGNISED_ENVIRONMENTS: frozenset[str] = _NON_PRODUCTION_ENVIRONMENTS | frozenset({"production", "staging"})
+
+
+def is_production() -> bool:
+    """True (strict posture) unless ENVIRONMENT is an EXPLICIT recognised non-production value.
+
+    Fail-closed: unset/empty, typo'd, or unrecognised values all resolve to production-strict. Only
+    development/dev/test/testing/ci/local relax. 'staging' is treated as production (a real deploy with
+    real secrets)."""
+    return (settings.environment or "").strip().lower() not in _NON_PRODUCTION_ENVIRONMENTS
+
+
+def environment_is_recognised() -> bool:
+    """Whether ENVIRONMENT is a known value — a false result means a typo is being treated as
+    production-strict, and boot logs a warning so the operator can fix the spelling."""
+    return (settings.environment or "").strip().lower() in _RECOGNISED_ENVIRONMENTS
+
+
+def assert_production_secrets() -> None:
+    """C3 — refuse to boot in production on a weak/default JWT secret.
+
+    Keyed off is_production() (fail-closed), NOT the opt-in require_strong_secrets flag — a forgotten
+    flag must never let the dev secret reach a real deploy. require_strong_secrets is retained as an
+    extra force-on so non-production hardening checks can be exercised too."""
+    if is_production() or settings.require_strong_secrets:
+        if settings.jwt_secret == "dev-only-change-me" or len(settings.jwt_secret) < 32:
+            raise RuntimeError(
+                "Weak JWT secret in production — set a 32+ byte JWT_SECRET. Refusing to boot."
+            )
+
+
 # ---- M1-A Wave 4 — production deploy contract ----------------------------------------------------
 def _assert_production_deploy_contract() -> None:
     """Refuse to boot in production if RLS won't engage.
@@ -203,8 +245,8 @@ def _assert_production_deploy_contract() -> None:
 
     See docs/M1A-DEPLOY-CONTRACT.md for the deploy contract details.
     """
-    if settings.environment != "production":
-        return  # dev / test / staging — no requirement
+    if not is_production():
+        return  # explicit dev / test — no requirement (fail-closed: typo/unset → strict)
 
     db_url = settings.database_url
     owner_url = settings.owner_database_url or settings.database_url
@@ -235,8 +277,9 @@ def _assert_production_deploy_contract() -> None:
     # H3 — CORS wildcard refusal. A production deploy with
     # CORS_ORIGINS=* (or any entry containing '*') would allow every origin on
     # the internet to talk to the API with credentials; that's never the right
-    # configuration for a real ISP tenant. Dev/test/staging keep the default
-    # "*" because settings.environment != "production" exits early above.
+    # configuration for a real ISP tenant. Dev/test keep the default "*" because not is_production()
+    # exits early at the top of this function; staging + production both refuse it (is_production()
+    # is True for both).
     cors_raw = (settings.cors_origins or "").strip()
     if cors_raw == "*" or any(o.strip() == "*" or "*" in o for o in cors_raw.split(",")):
         raise RuntimeError(

@@ -37,7 +37,7 @@ from pydantic import BaseModel
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..config import settings, the_tenant_id_async
+from ..config import settings, the_tenant_id_async, is_production
 from ..db import get_session, get_owner_session, set_tenant_guc
 from ..models.customer_user import CustomerUser
 from ..models.record import Record
@@ -76,7 +76,7 @@ def _set_portal_cookie(response: Response, token: str) -> None:
         value=token,
         max_age=settings.access_token_minutes * 60,
         httponly=True,
-        secure=(settings.environment == "production"),
+        secure=is_production(),
         samesite="lax",
         path="/portal",
     )

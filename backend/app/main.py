@@ -18,7 +18,13 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy import text, select
 
-from .config import settings, _assert_production_deploy_contract
+from .config import (
+    settings,
+    _assert_production_deploy_contract,
+    is_production,
+    environment_is_recognised,
+    assert_production_secrets,
+)
 from .db import SessionLocal, OwnerSessionLocal, engine, owner_engine
 from .utils.ids import uuid7
 from .models import (  # noqa: F401  (imported so the mappers register)
@@ -70,7 +76,7 @@ _log = logging.getLogger("gaahex")
 async def lifespan(app: FastAPI):
     # M1-A Wave 4 — production deploy contract: refuse to boot if RLS won't engage
     # (DATABASE_URL and OWNER_DATABASE_URL must use distinct Postgres roles in prod).
-    # No-op when settings.environment != "production", so dev/test/CI are unaffected.
+    # No-op when not is_production(), so dev/test/CI are unaffected (fail-closed: typo/unset → strict).
     # See docs/M1A-DEPLOY-CONTRACT.md.
     _assert_production_deploy_contract()
 
@@ -78,15 +84,23 @@ async def lifespan(app: FastAPI):
     # (superuser or BYPASSRLS). The sync contract above only checks the role NAME differs from the owner;
     # this verifies the role's ACTUAL Postgres attributes, so config drift (a stray ALTER ROLE, a deploy
     # slip) can't silently turn RLS into a no-op and un-isolate the platform. No-op outside production.
-    if settings.environment == "production":
+    if is_production():
         from .db import assert_app_role_is_rls_subject  # noqa: PLC0415
         await assert_app_role_is_rls_subject()
 
-    # S1 — JWT secret fail-fast (default-OFF; prod sets REQUIRE_STRONG_SECRETS=true).
-    # Guard fires ONLY when require_strong_secrets is explicitly enabled, so dev/test are unaffected.
-    if settings.require_strong_secrets:
-        if settings.jwt_secret == "dev-only-change-me" or len(settings.jwt_secret) < 32:
-            raise RuntimeError("Weak JWT secret; set a 32+ byte JWT_SECRET")
+    # C3/C4 — secrets fail-fast in production. Keyed off is_production() (fail-closed: typo/unset →
+    # strict), NOT the opt-in require_strong_secrets flag — a forgotten flag must never let weak secrets
+    # reach a real deploy. JWT + field-encryption key are both checked.
+    assert_production_secrets()
+    from .security.field_crypto import assert_production_key_is_real  # noqa: PLC0415
+    assert_production_key_is_real()
+    # Boot-time typo guard: an unrecognised ENVIRONMENT was just treated as production-strict (above) —
+    # log it loudly so the operator can fix the spelling rather than wonder why prod gates engaged.
+    if not environment_is_recognised():
+        _log.warning(
+            "Unrecognised ENVIRONMENT %r — treating as production-strict (fail-closed). "
+            "Set ENVIRONMENT to one of development/test/staging/production.", settings.environment,
+        )
 
     # Schema is managed by Alembic migrations — run `alembic upgrade head` before starting.
     # On boot we only seed demo data (idempotent).
@@ -189,9 +203,9 @@ async def lifespan(app: FastAPI):
 
     # N1 — RLS-bypass / superuser safety check (best-effort, fail-soft; informational only).
     # Warns when the app DB role is a superuser that can bypass RLS, which would be a
-    # misconfiguration in a real multi-tenant deployment.  Only loud when require_strong_secrets
-    # is on (prod); silent in dev so it doesn't clutter test output.
-    if settings.require_strong_secrets:
+    # misconfiguration in a real multi-tenant deployment.  Loud in production (fail-closed) or when
+    # require_strong_secrets is forced on; silent in dev so it doesn't clutter test output.
+    if is_production() or settings.require_strong_secrets:
         try:
             async with SessionLocal() as _s:
                 row = (await _s.execute(text("SELECT current_setting('is_superuser')"))).scalar()

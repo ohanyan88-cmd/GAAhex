@@ -6,7 +6,7 @@ from sqlalchemy import select, func
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy_utils import Ltree
 
-from .config import _set_the_tenant_id, settings
+from .config import _set_the_tenant_id, settings, is_production
 from .db import OwnerSessionLocal as SessionLocal   # seeding runs privileged (bypasses RLS)
 from .models import (
     Tenant, OrgNode, User, EntityDef, FieldDef, StatusDef, WorkflowDef,
@@ -227,7 +227,7 @@ async def seed_if_empty() -> None:
         # C5 — admin@demo.isp/admin123 is a guessable super-admin (perms=["*"]). NEVER seed it in
         # production; on a fresh prod boot the real super-admin is created from env creds instead
         # (see seed_bootstrap_admin_if_missing). Dev/test still get it — the test suite depends on it.
-        if settings.environment != "production":
+        if not is_production():
             admin = User(
                 tenant_id=tenant.id, primary_node_id=group.id,
                 email="admin@demo.isp", name="Demo Admin", password_hash=hash_password("admin123"),
@@ -602,7 +602,7 @@ async def seed_access_if_empty() -> None:
         # C5 — agent@demo.isp/agent123 is a known-credential account; gate it OUT of production. The
         # roles + permission catalog above ARE config and seed in prod; only the credential user is
         # withheld. (The admin Assignment above self-skips in prod — admin@demo.isp is None there.)
-        if settings.environment != "production":
+        if not is_production():
             agent_user = User(
                 tenant_id=tenant.id, primary_node_id=team.id if team else None,
                 email="agent@demo.isp", name="Demo Agent", password_hash=hash_password("agent123"),
@@ -762,7 +762,7 @@ async def seed_portal_if_empty() -> None:
     # C5 — this function's sole purpose is the demo portal login (portal@demo.isp/portal123). Never
     # seed a known-credential customer login in production (the email is discoverable from the public
     # portal login page). A clean early-return is correct here — there is nothing else to seed.
-    if settings.environment == "production":
+    if is_production():
         return
     async with SessionLocal() as s:
         # Owner-session seeding is intentionally cross-tenant — bypass the tenant-filter audit.
@@ -824,7 +824,7 @@ async def seed_bootstrap_admin_if_missing() -> None:
     The new admin logs in with ``must_change_password`` set (auth.py), forcing the env password to be
     rotated to a human-held secret on first use.
     """
-    if settings.environment != "production":
+    if not is_production():
         return
     email = settings.bootstrap_admin_email.strip().lower()
     pw = settings.bootstrap_admin_password
