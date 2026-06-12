@@ -238,6 +238,13 @@ async def payment_callback(provider: str, request: Request):
     The tenant GUC is set via set_tenant_guc after resolving the order, exactly as the scheduler
     resolves a system actor before calling job handlers.
     """
+    # C2 kill-switch — payment callbacks are DISABLED until go-live. Default OFF closes the unsigned-
+    # callback forgery surface platform-wide (no provider is live yet). Flip FEATURE_PAYMENTS_ENABLED=true
+    # ONLY after reviewing the active provider's signature verification (per-vendor go-live checklist).
+    from ..config import settings  # noqa: PLC0415
+    if not settings.feature_payments_enabled:
+        raise HTTPException(503, "Payment processing is disabled")
+
     body = await request.body()
     headers = dict(request.headers)
 

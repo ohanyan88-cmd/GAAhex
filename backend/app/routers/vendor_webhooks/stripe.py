@@ -60,6 +60,10 @@ async def stripe_webhook(
     session: AsyncSession = Depends(get_owner_session),
 ) -> dict:
     """Verify, dedupe, dispatch, audit. Always returns 200 (signature failures excepted)."""
+    # C2 kill-switch — payment webhooks are DISABLED until go-live (FEATURE_PAYMENTS_ENABLED default OFF).
+    from ...config import settings  # noqa: PLC0415
+    if not settings.feature_payments_enabled:
+        raise HTTPException(status_code=503, detail="Payment processing is disabled")
     payload = await request.body()
     gw = get_payment_gateway()
     try:

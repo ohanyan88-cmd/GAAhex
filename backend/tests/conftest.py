@@ -40,6 +40,9 @@ else:
 # Tests that exercise StripeGateway construct it explicitly (bypassing the factory) and
 # patch the stripe SDK with unittest.mock — they never touch the real Stripe API.
 os.environ.setdefault("PAYMENT_GATEWAY_PROVIDER", "mock")
+# C2 kill-switch defaults OFF in prod (payment callbacks/webhooks blocked until go-live). Tests exercise
+# the enabled path, so turn it ON here; a dedicated test flips it OFF to prove the 503 block.
+os.environ.setdefault("FEATURE_PAYMENTS_ENABLED", "true")
 # Attachment storage — point at a writable tmp dir so CI runners (no /app/uploads) don't fail.
 # LocalDiskBackend defaults to /app/uploads (the Docker container WORKDIR) which CI lacks.
 import tempfile as _tempfile

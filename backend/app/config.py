@@ -94,6 +94,13 @@ class Settings(BaseSettings):
 
     # ---- payment gateway (opt-in; dev ⇒ deterministic DevGateway, no external calls) ----
     payment_provider: str = "dev"              # dev|idram|telcell|arca|easypay
+    # C2 KILL-SWITCH — inbound payment callbacks/webhooks are DISABLED until go-live. Default OFF: every
+    # inbound payment callback (/payment/callback/{provider} AND /api/webhooks/stripe) returns 503 before
+    # any verification or settle, so the unsigned-callback forgery surface is closed platform-wide while
+    # NO provider is genuinely live. Flip FEATURE_PAYMENTS_ENABLED=true ONLY after reviewing the active
+    # provider's signature verification (the per-vendor go-live checklist: idram/easypay/telcell/arca
+    # default ok=False + full-payload-bound signatures; easypay/telcell check_status is still a stub).
+    feature_payments_enabled: bool = False
     idram_merchant_id: str | None = None
     idram_secret_key: str | None = None
     telcell_merchant: str | None = None
