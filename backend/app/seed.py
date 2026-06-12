@@ -807,7 +807,7 @@ async def seed_business_flags_if_empty() -> None:
         for tenant in tenants:
             for key, label in _CANONICAL_BUSINESS_FLAGS:
                 existing = (await s.execute(
-                    select(FeatureFlag.id).where(  # noqa: tenant-filter — owner-session cross-tenant idempotent seed; per-tenant uniqueness enforced by unique constraint (tenant_id, key)
+                    select(FeatureFlag.id).where(  # tenant-filter-ok: — owner-session cross-tenant idempotent seed; per-tenant uniqueness enforced by unique constraint (tenant_id, key)
                         FeatureFlag.tenant_id == tenant.id,
                         FeatureFlag.key == key,
                     )

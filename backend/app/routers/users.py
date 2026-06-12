@@ -298,6 +298,6 @@ async def delete_user(
         # token for the target. login/refresh both already enforce status=='ACTIVE' (S2), but a
         # token that's still in the DB as non-revoked is a liability for incident response and
         # for accurate session telemetry — burn them all down here.
-        revoked = await revoke_all_refresh_tokens_for_user(s, target.id)  # noqa: tenant-filter — target is tenant-confirmed by _get_user above
+        revoked = await revoke_all_refresh_tokens_for_user(s, target.id)  # tenant-filter-ok: — target is tenant-confirmed by _get_user above
     await s.commit()
     return {"ok": True, "id": str(target.id), "status": target.status, "refresh_tokens_revoked": revoked}

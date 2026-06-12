@@ -75,7 +75,7 @@ async def _flip_service_status(
 ) -> bool:
     """Set ``Service.status`` to new_status. Returns True if a row was found/updated."""
     svc = (await session.execute(
-        select(Service).where(Service.id == service_id)  # noqa: tenant-filter cross-tenant — pure helper; RLS-scoped session; service_id is tenant-anchored FK from caller
+        select(Service).where(Service.id == service_id)  # tenant-filter-ok: cross-tenant — pure helper; RLS-scoped session; service_id is tenant-anchored FK from caller
     )).scalar_one_or_none()
     if svc is None:
         return False

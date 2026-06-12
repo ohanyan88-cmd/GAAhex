@@ -102,7 +102,7 @@ async def _get_dashboard(s: AsyncSession, tenant_id, key: str) -> DashboardDef:
 
 async def _widgets(s: AsyncSession, dashboard_id) -> list[WidgetDef]:
     return (await s.execute(
-        select(WidgetDef).where(WidgetDef.dashboard_def_id == dashboard_id).order_by(WidgetDef.order)  # noqa: tenant-filter cross-tenant — RLS-scoped session; dashboard tenant validated by caller via _get_dashboard()
+        select(WidgetDef).where(WidgetDef.dashboard_def_id == dashboard_id).order_by(WidgetDef.order)  # tenant-filter-ok: cross-tenant — RLS-scoped session; dashboard tenant validated by caller via _get_dashboard()
     )).scalars().all()
 
 

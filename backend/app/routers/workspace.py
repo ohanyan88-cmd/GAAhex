@@ -108,7 +108,7 @@ async def _derive_from_assignments(s: AsyncSession, user: User) -> str | None:
     """Pick the highest-priority workspace role across the user's assignments. Returns None when
     none of the user's role_def.keys are mappable."""
     rows = (await s.execute(
-        select(RoleDef.key)  # noqa: tenant-filter cross-tenant — RLS-scoped session; query joins user-owned Assignments
+        select(RoleDef.key)  # tenant-filter-ok: cross-tenant — RLS-scoped session; query joins user-owned Assignments
         .join(Assignment, Assignment.role_id == RoleDef.id)
         .where(Assignment.user_id == user.id)
     )).all()
@@ -142,7 +142,7 @@ async def get_workspace_role(
     """
     # Reload on the RLS-subject session so the user's columns are fresh (the dep-injected user came
     # from an owner session at login). Pattern mirrors me.py._own_row.
-    row = (await s.execute(select(User).where(User.id == user.id))).scalar_one_or_none()  # noqa: tenant-filter cross-tenant — RLS-scoped self-reload (mirrors me.py._own_row)
+    row = (await s.execute(select(User).where(User.id == user.id))).scalar_one_or_none()  # tenant-filter-ok: cross-tenant — RLS-scoped self-reload (mirrors me.py._own_row)
     if row is None:
         raise HTTPException(404, "User not found")
 
@@ -200,7 +200,7 @@ async def set_workspace_role_override(
             f"Invalid workspace role '{override}'. Allowed: {sorted(VALID_WORKSPACE_ROLES)}",
         )
 
-    row = (await s.execute(select(User).where(User.id == user.id))).scalar_one_or_none()  # noqa: tenant-filter cross-tenant — RLS-scoped self-reload (mirrors me.py._own_row)
+    row = (await s.execute(select(User).where(User.id == user.id))).scalar_one_or_none()  # tenant-filter-ok: cross-tenant — RLS-scoped self-reload (mirrors me.py._own_row)
     if row is None:
         raise HTTPException(404, "User not found")
 

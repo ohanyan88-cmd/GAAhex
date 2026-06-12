@@ -75,7 +75,7 @@ async def _get_pool(s, user: User, pool_id) -> ResourcePool:
 
 async def _allocated_values(s, pool_id) -> set[str]:
     rows = (await s.execute(
-        select(PoolAllocation.value).where(  # noqa: tenant-filter cross-tenant — helper; caller validates pool tenant via _get_pool
+        select(PoolAllocation.value).where(  # tenant-filter-ok: cross-tenant — helper; caller validates pool tenant via _get_pool
             PoolAllocation.pool_id == pool_id, PoolAllocation.status == "ALLOCATED")
     )).scalars().all()
     return set(rows)
@@ -308,7 +308,7 @@ async def release_by_value(pool_id: uuid.UUID, payload: dict, user: User = Depen
     if not value:
         raise HTTPException(422, "value is required")
     alloc = (await s.execute(
-        select(PoolAllocation).where(  # noqa: tenant-filter cross-tenant — pool tenant validated by _get_pool above
+        select(PoolAllocation).where(  # tenant-filter-ok: cross-tenant — pool tenant validated by _get_pool above
             PoolAllocation.pool_id == pool.id, PoolAllocation.value == value, PoolAllocation.status == "ALLOCATED")
     )).scalar_one_or_none()
     if not alloc:
@@ -330,7 +330,7 @@ async def release_by_id(pool_id: uuid.UUID, alloc_id: uuid.UUID, user: User = De
     except AccessDenied as e:
         raise HTTPException(403, detail=str(e))
     alloc = (await s.execute(
-        select(PoolAllocation).where(PoolAllocation.id == alloc_id, PoolAllocation.pool_id == pool.id)  # noqa: tenant-filter cross-tenant — pool tenant validated by _get_pool above
+        select(PoolAllocation).where(PoolAllocation.id == alloc_id, PoolAllocation.pool_id == pool.id)  # tenant-filter-ok: cross-tenant — pool tenant validated by _get_pool above
     )).scalar_one_or_none()
     if not alloc:
         raise HTTPException(404, "Allocation not found")
@@ -344,7 +344,7 @@ async def list_allocations(pool_id: uuid.UUID, status: str | None = None, user: 
     grants = await load_grants(s, user)
     if not can(grants, "resource_pool", "view", await _node_path(s, pool.owner_node_id)):
         _deny("resource_pool.view")
-    q = select(PoolAllocation).where(PoolAllocation.pool_id == pool.id)  # noqa: tenant-filter cross-tenant — pool tenant validated by _get_pool above
+    q = select(PoolAllocation).where(PoolAllocation.pool_id == pool.id)  # tenant-filter-ok: cross-tenant — pool tenant validated by _get_pool above
     if status:
         q = q.where(PoolAllocation.status == status)
     rows = (await s.execute(q.order_by(PoolAllocation.allocated_at.desc()))).scalars().all()

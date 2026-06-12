@@ -44,7 +44,7 @@ async def _own_row(s: AsyncSession, user: User) -> User:
     """Reload the caller's own app_user row on the RLS-subject request session so we can UPDATE it
     (the dependency-injected `user` is detached from `s`). The tenant GUC is already set, so the
     row resolves under tenant_isolation; missing ⇒ 404 (should not happen for an authed caller)."""
-    row = (await s.execute(select(User).where(User.id == user.id))).scalar_one_or_none()  # noqa: tenant-filter cross-tenant — RLS-scoped (tenant GUC set); self-row reload
+    row = (await s.execute(select(User).where(User.id == user.id))).scalar_one_or_none()  # tenant-filter-ok: cross-tenant — RLS-scoped (tenant GUC set); self-row reload
     if not row:
         raise HTTPException(404, "User not found")
     return row
@@ -100,6 +100,6 @@ async def change_password(
     # it expires on its normal schedule. Refresh tokens, however, would otherwise allow the
     # OLD password to keep minting new access tokens for days, defeating the whole point of
     # a password change. Same helper is reused by routers/users.py on user soft-deactivation.
-    revoked = await revoke_all_refresh_tokens_for_user(s, row.id)  # noqa: tenant-filter — self-user UPDATE, tenant GUC set
+    revoked = await revoke_all_refresh_tokens_for_user(s, row.id)  # tenant-filter-ok: — self-user UPDATE, tenant GUC set
     await s.commit()
     return {"ok": True, "refresh_tokens_revoked": revoked}

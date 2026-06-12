@@ -51,7 +51,7 @@ async def recompute_account_balance(session: AsyncSession, account_id: uuid.UUID
     Idempotent — safe to call repeatedly. The caller commits.
     """
     acc = (await session.execute(
-        select(Account).where(Account.id == account_id)  # noqa: tenant-filter cross-tenant — pure helper; RLS-scoped session; account_id is tenant-anchored FK from caller
+        select(Account).where(Account.id == account_id)  # tenant-filter-ok: cross-tenant — pure helper; RLS-scoped session; account_id is tenant-anchored FK from caller
     )).scalar_one_or_none()
     if acc is None:
         return _ZERO
@@ -113,7 +113,7 @@ async def consolidated_balance(session: AsyncSession, root_account_id: uuid.UUID
         }
     """
     root = (await session.execute(
-        select(Account).where(Account.id == root_account_id)  # noqa: tenant-filter cross-tenant — pure helper; RLS-scoped session; root_account_id is tenant-anchored FK from caller
+        select(Account).where(Account.id == root_account_id)  # tenant-filter-ok: cross-tenant — pure helper; RLS-scoped session; root_account_id is tenant-anchored FK from caller
     )).scalar_one_or_none()
     if root is None:
         return {
@@ -169,7 +169,7 @@ async def rebuild_hierarchy_path(session: AsyncSession, account_id: uuid.UUID) -
     use ``rebuild_descendants_paths`` after to fix descendants).
     """
     acc = (await session.execute(
-        select(Account).where(Account.id == account_id)  # noqa: tenant-filter cross-tenant — pure helper; RLS-scoped session; account_id is tenant-anchored FK from caller
+        select(Account).where(Account.id == account_id)  # tenant-filter-ok: cross-tenant — pure helper; RLS-scoped session; account_id is tenant-anchored FK from caller
     )).scalar_one_or_none()
     if acc is None:
         return
@@ -180,7 +180,7 @@ async def rebuild_hierarchy_path(session: AsyncSession, account_id: uuid.UUID) -
         return
 
     parent = (await session.execute(
-        select(Account).where(Account.id == acc.parent_account_id)  # noqa: tenant-filter cross-tenant — parent FK from already-validated acc; RLS-scoped session
+        select(Account).where(Account.id == acc.parent_account_id)  # tenant-filter-ok: cross-tenant — parent FK from already-validated acc; RLS-scoped session
     )).scalar_one_or_none()
     if parent is None:
         # Parent vanished (shouldn't happen — FK protects this) — fall back to standalone.

@@ -38,7 +38,7 @@ def _now() -> datetime:
 
 
 async def _load_order(s: AsyncSession, order_id: uuid.UUID) -> Order:
-    o = (await s.execute(select(Order).where(Order.id == order_id))).scalar_one_or_none()  # noqa: tenant-filter cross-tenant — pure helper; RLS-scoped session; order_id is tenant-anchored FK from caller
+    o = (await s.execute(select(Order).where(Order.id == order_id))).scalar_one_or_none()  # tenant-filter-ok: cross-tenant — pure helper; RLS-scoped session; order_id is tenant-anchored FK from caller
     if o is None:
         raise ValueError(f"Order {order_id} not found")
     return o
@@ -50,7 +50,7 @@ async def _load_payment_method(
     if payment_method_id is None:
         return None
     return (await s.execute(
-        select(PaymentMethod).where(PaymentMethod.id == payment_method_id)  # noqa: tenant-filter cross-tenant — pure helper; RLS-scoped session; payment_method_id is tenant-anchored FK from caller
+        select(PaymentMethod).where(PaymentMethod.id == payment_method_id)  # tenant-filter-ok: cross-tenant — pure helper; RLS-scoped session; payment_method_id is tenant-anchored FK from caller
     )).scalar_one_or_none()
 
 
@@ -63,7 +63,7 @@ async def _count_pending_approvals(s: AsyncSession, order_id: uuid.UUID) -> int:
     SPEC §4.5 gate, not the M12 workflow gate.
     """
     rows = (await s.execute(
-        select(Approval).where(  # noqa: tenant-filter cross-tenant — pure helper; RLS-scoped session; order_id is tenant-anchored FK from caller
+        select(Approval).where(  # tenant-filter-ok: cross-tenant — pure helper; RLS-scoped session; order_id is tenant-anchored FK from caller
             Approval.target_entity_key == "order",
             Approval.target_record_id == order_id,
             Approval.status == "PENDING",

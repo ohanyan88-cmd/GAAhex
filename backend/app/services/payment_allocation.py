@@ -82,7 +82,7 @@ async def invoice_balance_components(
     on the wrong ledger. This single canonical now unifies both.
     """
     inv_total = (await session.execute(
-        select(Invoice.total).where(Invoice.id == invoice_id)  # noqa: tenant-filter cross-tenant — pure helper; RLS-scoped session; invoice_id is tenant-anchored FK from caller
+        select(Invoice.total).where(Invoice.id == invoice_id)  # tenant-filter-ok: cross-tenant — pure helper; RLS-scoped session; invoice_id is tenant-anchored FK from caller
     )).scalar_one_or_none()
     if inv_total is None:
         return {"total": _ZERO, "paid": _ZERO, "credited": _ZERO, "outstanding": _ZERO}
@@ -97,7 +97,7 @@ async def invoice_balance_components(
     # for that Payment. When an allocation appears, ledger ownership shifts to the
     # allocation rows so we DON'T double-count the legacy attribution.
     has_alloc = (
-        select(PaymentAllocation.id)  # noqa: tenant-filter — correlated EXISTS subquery; outer query (below) is RLS-bound on Payment, invoice_id is tenant-validated by caller.
+        select(PaymentAllocation.id)  # tenant-filter-ok: — correlated EXISTS subquery; outer query (below) is RLS-bound on Payment, invoice_id is tenant-validated by caller.
         .where(PaymentAllocation.payment_id == Payment.id)
         .exists()
     )

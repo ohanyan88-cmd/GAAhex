@@ -83,13 +83,13 @@ async def _entity(s: AsyncSession, tenant_id, slug: str) -> EntityDef:
 
 async def _fields(s: AsyncSession, entity_id) -> list[FieldDef]:
     return list((await s.execute(
-        select(FieldDef).where(FieldDef.entity_def_id == entity_id).order_by(FieldDef.order)  # noqa: tenant-filter cross-tenant — RLS-scoped session; entity tenant validated by caller via _entity()
+        select(FieldDef).where(FieldDef.entity_def_id == entity_id).order_by(FieldDef.order)  # tenant-filter-ok: cross-tenant — RLS-scoped session; entity tenant validated by caller via _entity()
     )).scalars().all())
 
 
 async def _initial_status(s: AsyncSession, entity_id) -> str | None:
     st = (await s.execute(
-        select(StatusDef).where(StatusDef.entity_def_id == entity_id, StatusDef.is_initial == True)  # noqa: tenant-filter, E712 — RLS-scoped session; entity tenant validated by caller via _entity()
+        select(StatusDef).where(StatusDef.entity_def_id == entity_id, StatusDef.is_initial == True)  # noqa: E712  # tenant-filter-ok — RLS-scoped session; entity tenant validated by caller via _entity()
     )).scalar_one_or_none()
     return st.key if st else None
 
@@ -102,7 +102,7 @@ async def _node_paths(s: AsyncSession, tenant_id) -> dict[str, str]:
 async def _node_path(s: AsyncSession, node_id) -> str | None:
     if not node_id:
         return None
-    p = (await s.execute(select(OrgNode.path).where(OrgNode.id == node_id))).scalar_one_or_none()  # noqa: tenant-filter cross-tenant — RLS-scoped session; node_id is tenant-anchored FK from caller
+    p = (await s.execute(select(OrgNode.path).where(OrgNode.id == node_id))).scalar_one_or_none()  # tenant-filter-ok: cross-tenant — RLS-scoped session; node_id is tenant-anchored FK from caller
     return str(p) if p is not None else None
 
 

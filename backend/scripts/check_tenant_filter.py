@@ -24,7 +24,7 @@ For every `.py` file under ``backend/app/routers/`` and ``backend/app/services/`
 
 Bypass mechanisms
 -----------------
-* ``# noqa: tenant-filter`` on the same line as the query starter → skipped.
+* ``# tenant-filter-ok:`` on the same line as the query starter → skipped.
 * Function name starts with ``seed_``, ``migrate_`` → skipped (one-shot setup
   code; tenant scoping is owned by the caller).
 * Function declares a parameter named ``owner_session`` or ``_owner`` →
@@ -169,14 +169,16 @@ def _is_query_starter(call: ast.Call) -> tuple[bool, str | None]:
 
 
 def _has_noqa(source_lines: list[str], lineno: int) -> bool:
-    """True iff the line carrying the query starter has a `# noqa: tenant-filter`
+    """True iff the line carrying the query starter has a `# tenant-filter-ok:`
     pragma. Cheap whole-line substring check — anchored exact match would be
     overly strict if devs add a justification after the pragma.
     """
     if not (1 <= lineno <= len(source_lines)):
         return False
     line = source_lines[lineno - 1]
-    return "noqa: tenant-filter" in line or "noqa:tenant-filter" in line
+    # Our OWN bypass marker — deliberately NOT a `# noqa:` directive: `tenant-filter` is not a Ruff
+    # code, so `# noqa: tenant-filter` made Ruff warn "Invalid `# noqa` directive" on every use.
+    return "tenant-filter-ok" in line
 
 
 def _enclosing_func(path: list[ast.AST]) -> ast.FunctionDef | ast.AsyncFunctionDef | None:
@@ -315,7 +317,7 @@ def _write_baseline(violations: list[str]) -> None:
         "# Tenant-filter static-analysis baseline.\n"
         "# Each line below is a legacy violation the CI gate tolerates. New\n"
         "# violations cause the CI step to fail; fix them at the source or, if\n"
-        "# legitimate, add `# noqa: tenant-filter` with justification.\n"
+        "# legitimate, add `# tenant-filter-ok:` with justification.\n"
         "# Regenerate (rare) with: python backend/scripts/check_tenant_filter.py --write-baseline\n"
     )
     body = "\n".join(sorted(violations)) + ("\n" if violations else "")
@@ -377,7 +379,7 @@ def main(argv: list[str]) -> int:
     print(
         f"\n{len(new)} new violation(s). Either:\n"
         "  1. Add a `tenant_id` filter to the query (the right fix), or\n"
-        "  2. Add `# noqa: tenant-filter` on the query-starter line with a justification, or\n"
+        "  2. Add `# tenant-filter-ok:` on the query-starter line with a justification, or\n"
         "  3. (rare) Move the query into a `seed_*` / `migrate_*` function or pass `owner_session`.\n",
         file=sys.stderr,
     )

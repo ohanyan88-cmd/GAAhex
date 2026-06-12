@@ -50,7 +50,7 @@ async def list_regions(
 ):
     """List regions for the caller's tenant. RLS scopes the query — no manual filter."""
     rows = (await s.execute(
-        select(Region).order_by(Region.region_type.asc(), Region.code.asc())  # noqa: tenant-filter cross-tenant — RLS-scoped session enforces tenant; see docstring
+        select(Region).order_by(Region.region_type.asc(), Region.code.asc())  # tenant-filter-ok: cross-tenant — RLS-scoped session enforces tenant; see docstring
     )).scalars().all()
     return [_region(r) for r in rows]
 
@@ -63,7 +63,7 @@ async def get_region(
 ):
     """Get one region. 404 if not in the caller's tenant (RLS hides cross-tenant rows)."""
     row = (await s.execute(
-        select(Region).where(Region.id == region_id)  # noqa: tenant-filter cross-tenant — RLS hides cross-tenant rows; see docstring
+        select(Region).where(Region.id == region_id)  # tenant-filter-ok: cross-tenant — RLS hides cross-tenant rows; see docstring
     )).scalar_one_or_none()
     if not row:
         raise HTTPException(404, "Region not found")

@@ -110,7 +110,7 @@ async def revoke_all_refresh_tokens_for_user(s: AsyncSession, user_id: uuid.UUID
     /api/users/{id} DELETE (soft-deactivation) so a password reset / lockout truly kills every
     still-live session for that principal — not just the access token's short window."""
     result = await s.execute(
-        update(RefreshToken)  # noqa: tenant-filter — RLS-bound `s` enforces tenant via RefreshToken.tenant_id; user_id provenance is tenant-scoped (callers: /api/me/password, /api/users/{id} DELETE).
+        update(RefreshToken)  # tenant-filter-ok: — RLS-bound `s` enforces tenant via RefreshToken.tenant_id; user_id provenance is tenant-scoped (callers: /api/me/password, /api/users/{id} DELETE).
         .where(RefreshToken.user_id == user_id, RefreshToken.revoked_at.is_(None))
         .values(revoked_at=_utcnow())
     )
@@ -127,7 +127,7 @@ async def revoke_session_family(s: AsyncSession, session_id: uuid.UUID) -> int:
     re-authenticate. The trade-off (forced re-login on false positives) is the right default for
     a security event."""
     result = await s.execute(
-        update(RefreshToken)  # noqa: tenant-filter — RLS-bound `s` enforces tenant; session_id provenance is tenant-scoped (T2 replay-detection call site).
+        update(RefreshToken)  # tenant-filter-ok: — RLS-bound `s` enforces tenant; session_id provenance is tenant-scoped (T2 replay-detection call site).
         .where(RefreshToken.session_id == session_id, RefreshToken.revoked_at.is_(None))
         .values(revoked_at=_utcnow())
     )
@@ -157,7 +157,7 @@ async def login(body: LoginIn, request: Request, s: AsyncSession = Depends(get_o
         # docstring (file 06 / standard 19) explicitly governs Event as tenant-scoped.
         if user is not None:
             try:
-                async with OwnerSessionLocal() as o:                   # noqa: tenant-filter — pre-auth audit emit on failure, owner session
+                async with OwnerSessionLocal() as o:                   # tenant-filter-ok: — pre-auth audit emit on failure, owner session
                     await o.connection(execution_options={"audit_tenant_filter": False})
                     await workflow.emit(
                         o,
@@ -284,7 +284,7 @@ async def logout(body: RefreshIn, s: AsyncSession = Depends(get_owner_session)):
     """Revoke a refresh token. Idempotent: an unknown or already-revoked token still returns ok."""
     # Pre-auth lookup via owner session — refresh-token hash is cluster-unique.
     rt = (await s.execute(
-        select(RefreshToken).where(RefreshToken.token_hash == _hash_token(body.refresh_token))  # noqa: tenant-filter — owner session, token hash is cluster-unique
+        select(RefreshToken).where(RefreshToken.token_hash == _hash_token(body.refresh_token))  # tenant-filter-ok: — owner session, token hash is cluster-unique
         .execution_options(audit_tenant_filter=False)
     )).scalar_one_or_none()
     if rt and rt.revoked_at is None:
@@ -316,7 +316,7 @@ async def _user_from_api_key(raw_key: str) -> tuple[User, list[str] | None] | tu
         # Pre-auth owner session: API-key hash and user-by-id are cluster-unique lookups.
         await o.connection(execution_options={"audit_tenant_filter": False})
         ak = (await o.execute(
-            select(ApiKey).where(ApiKey.key_hash == _hash_token(raw_key))  # noqa: tenant-filter — owner session, key hash is cluster-unique
+            select(ApiKey).where(ApiKey.key_hash == _hash_token(raw_key))  # tenant-filter-ok: — owner session, key hash is cluster-unique
         )).scalar_one_or_none()
         if not ak or ak.revoked_at is not None:
             return None, None
@@ -325,7 +325,7 @@ async def _user_from_api_key(raw_key: str) -> tuple[User, list[str] | None] | tu
             return None, None
         ak.last_used_at = _utcnow()
         scopes = list(ak.scopes) if ak.scopes else None
-        user = (await o.execute(select(User).where(User.id == ak.acts_as_user_id))).scalar_one_or_none()  # noqa: tenant-filter — owner session, user-by-id is cluster-unique
+        user = (await o.execute(select(User).where(User.id == ak.acts_as_user_id))).scalar_one_or_none()  # tenant-filter-ok: — owner session, user-by-id is cluster-unique
         await o.commit()
     return user, scopes
 

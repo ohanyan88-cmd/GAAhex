@@ -184,7 +184,7 @@ async def list_product_versions(
     """List every minted version of a product, ordered by ``version_no`` ascending."""
     await _get_product(s, user, product_id)  # 404 + tenant check
     rows = (await s.execute(
-        select(ProductVersion)  # noqa: tenant-filter — `_get_product` above 404s on cross-tenant product_id; RLS-bound `s` additionally enforces ProductVersion.tenant_id.
+        select(ProductVersion)  # tenant-filter-ok: — `_get_product` above 404s on cross-tenant product_id; RLS-bound `s` additionally enforces ProductVersion.tenant_id.
         .where(ProductVersion.product_id == product_id)
         .order_by(ProductVersion.version_no)
     )).scalars().all()

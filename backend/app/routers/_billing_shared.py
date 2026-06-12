@@ -307,7 +307,7 @@ async def _get_invoice(s, user: User, inv_id) -> Invoice:
 
 async def _invoice_lines(s, invoice_id) -> list[InvoiceLine]:
     return list((await s.execute(
-        select(InvoiceLine).where(InvoiceLine.invoice_id == invoice_id)  # noqa: tenant-filter cross-tenant — helper; caller validates invoice tenant via _get_invoice
+        select(InvoiceLine).where(InvoiceLine.invoice_id == invoice_id)  # tenant-filter-ok: cross-tenant — helper; caller validates invoice tenant via _get_invoice
     )).scalars().all())
 
 

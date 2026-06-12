@@ -28,7 +28,7 @@ async def portal_summary(
     cid = cu.customer_id
 
     # Customer record name
-    record = (await s.execute(select(Record).where(Record.id == cid))).scalar_one_or_none()  # noqa: tenant-filter cross-tenant — customer-portal; cid is current_customer.customer_id (auth-bound)
+    record = (await s.execute(select(Record).where(Record.id == cid))).scalar_one_or_none()  # tenant-filter-ok: cross-tenant — customer-portal; cid is current_customer.customer_id (auth-bound)
     customer_name = record.data.get("name") if record and record.data else None
 
     # Open invoices (ISSUED or OVERDUE)
@@ -43,7 +43,7 @@ async def portal_summary(
     # single source of truth (services/payment_allocation.invoice_balance_components) so
     # legacy payments AND applied credit notes are both accounted for.
     open_inv_ids_rows = (await s.execute(
-        select(Invoice.id).where(  # noqa: tenant-filter cross-tenant — customer-portal; scoped by cid (current_customer.customer_id)
+        select(Invoice.id).where(  # tenant-filter-ok: cross-tenant — customer-portal; scoped by cid (current_customer.customer_id)
             Invoice.customer_id == cid,
             Invoice.status.in_(["ISSUED", "OVERDUE"]),
         )

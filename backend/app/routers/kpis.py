@@ -77,7 +77,7 @@ async def list_kpis(
 
     RLS scopes the query to the caller's tenant; no manual tenant filter needed.
     """
-    q = select(KpiDef)  # noqa: tenant-filter cross-tenant — RLS-scoped session enforces tenant; see docstring
+    q = select(KpiDef)  # tenant-filter-ok: cross-tenant — RLS-scoped session enforces tenant; see docstring
     if owner_module:
         q = q.where(KpiDef.owner_module == owner_module)
     if stage_key:
