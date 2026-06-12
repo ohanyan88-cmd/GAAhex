@@ -42,6 +42,16 @@ from sqlalchemy.orm import Mapped, mapped_column
 from .base import Base
 
 
+# EventCategory (SST: docs/standards file 14 — E14/E21). The 16-value UPPER_SNAKE superset, now a
+# CODE-ENFORCED set (not a free-text comment): workflow.emit() rejects any Event whose category is not
+# in this set (or None). Audit = the compliance slice (SECURITY/COMPLIANCE/FINANCIAL); Timeline = the
+# chronological view — both project over this single append-only store (D1).
+EVENT_CATEGORIES: frozenset[str] = frozenset({
+    "LIFECYCLE", "STATUS", "ASSIGNMENT", "OWNERSHIP", "APPROVAL", "FINANCIAL", "COMMENT", "ATTACHMENT",
+    "COMMUNICATION", "TASK", "ESCALATION", "NOTIFICATION", "AUTOMATION", "INTEGRATION", "SECURITY", "SYSTEM",
+})
+
+
 class Event(Base):
     """A domain event emitted by the kernel. Append-only (DB triggers). Foundation for
     Audit (compliance projection) and Activity Timeline (user-facing projection) — D1."""
@@ -70,9 +80,8 @@ class Event(Base):
     # Old rows: NULL until the backfill job runs.
     event_name: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
 
-    # EventCategory enum (file 14 / E14/E21):
-    # LIFECYCLE|STATUS|ASSIGNMENT|OWNERSHIP|APPROVAL|FINANCIAL|COMMENT|ATTACHMENT|
-    # COMMUNICATION|TASK|ESCALATION|NOTIFICATION|AUTOMATION|INTEGRATION|SECURITY|SYSTEM
+    # EventCategory (file 14 / E14/E21) — one of EVENT_CATEGORIES (16 UPPER_SNAKE values, above) or
+    # NULL. Enforced in code at the single write path (workflow.emit), not just documented here.
     category: Mapped[str | None] = mapped_column(String(30), nullable=True)
 
     # Schema version — default 1; bump when payload shape changes.

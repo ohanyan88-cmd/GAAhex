@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .config import settings
 from .models import WorkflowDef, FieldDef, Event, Record, OrgNode, RoleDef, Assignment
+from .models.event import EVENT_CATEGORIES
 from .models.approval import PendingApproval
 from .access import _scope_ok, _has_perm
 
@@ -172,6 +173,12 @@ async def emit(
     # sees a consistent case regardless of what the call site passed.  This
     # mirrors the .upper() fold R7-B added to notify_hooks.fire().
     type_ = (type_ or "").upper()
+    # E14/E21 — EventCategory is a CODE-ENFORCED enum (docs/standards file 14), not free text: reject any
+    # category outside the 16-value set at the single append-only write path. None stays allowed (legacy).
+    if category is not None and category not in EVENT_CATEGORIES:
+        raise ValueError(
+            f"invalid EventCategory {category!r}; must be one of {sorted(EVENT_CATEGORIES)} or None"
+        )
     s.add(Event(
         tenant_id=tenant_id, type=type_, entity_key=entity_key,
         record_id=record_id, actor_user_id=actor_user_id, data=data,
