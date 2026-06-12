@@ -1,5 +1,6 @@
 // Orders domain — shared types and pure helper functions.
 // Extracted from OrdersView.tsx; no logic changes.
+import { SERVICE_DELIVERY_STAGES } from '../../lib/lifecycle'
 
 export type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
 
@@ -64,6 +65,17 @@ const _NEXT_VERB: Record<string, string> = {
 }
 export function nextAdvanceLabel(status: string): string | null {
   return _NEXT_VERB[(status ?? '').toLowerCase()] ?? null
+}
+
+// The order's forward fulfillment chain = the SST service-delivery stages (lifecycle.ts), lowercased to
+// match the backend status strings — the SINGLE source, NOT a parallel hardcoded map. Returns the {to}
+// target for the unified transition route (POST /api/orders/{id}/transition), or null at the chain end.
+const _ORDER_CHAIN = SERVICE_DELIVERY_STAGES.map((s) => s.key.toLowerCase())
+export function nextOrderStatus(status: string): string | null {
+  const cur = (status ?? '').toLowerCase()
+  if (cur === 'order_created') return _ORDER_CHAIN[0] ?? null   // /submit: sales-terminal → first order stage
+  const i = _ORDER_CHAIN.indexOf(cur)
+  return i >= 0 && i + 1 < _ORDER_CHAIN.length ? _ORDER_CHAIN[i + 1] : null
 }
 
 // Stage 8 column pill — derived from the persisted control_pass verdict on the

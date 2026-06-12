@@ -28,16 +28,14 @@ from ..kernel import (
     assert_can, AccessDenied,
     assert_writer_owns_record_firstclass, OwnerViolation,
 )
-from .. import workflow, notify_hooks
+from .. import workflow
 from ..kernel import events
 from ..services.payment_gateway_adapter import get_payment_gateway
 from ..services.stage8_gate import compute_stage8_status, apply_stage8_result
-from ..services.transition_guards import control_gate_stage8
 from ..utils.refnum import next_reference_number
 from .auth import current_user
 from .records import _node_path, _node_paths, _entity, _fields  # reuse the exact records scope primitives
 from .billing import _money, _now, _add_cycle, _customer_or_422, _deny   # reuse billing helpers (DRY)
-from .notifications import emit_notification
 
 router = APIRouter(prefix="/api", tags=["orders"])
 
@@ -46,25 +44,8 @@ router = APIRouter(prefix="/api", tags=["orders"])
 # order does NOT carry its own parallel status vocabulary anymore (the legacy
 # DRAFT/SUBMITTED/PROVISIONING/COMPLETED set was deleted 2026-06-11). Kept in sync with the SST.
 ORDER_INITIAL = "order_created"           # SST #6 — created from a contract-signed lead
-ORDER_GATE_FROM, ORDER_GATE_TO = "order_validated", "scheduling"   # SST #7→#8 control gate
-ORDER_PROVISION_AT = "activation"         # SST #13 — provisions ACTIVE subscriptions, becomes a monitored customer
 ORDER_EDITABLE = ORDER_INITIAL            # only an unvalidated order can be edited
 
-# Legal forward steps for /advance — the SST fulfillment chain. `order_created` is NOT here:
-# it advances via /submit (order_created → order_validated), keeping the explicit submit step.
-# The order stage sequence is config-driven — read from the order entity's WorkflowDef transitions at
-# advance time (seeded/normalized by seed_lifecycle_statuses). This canonical chain is the SAFE FALLBACK
-# for environments where the order entity_def/WorkflowDef isn't present or is stale (the order is still a
-# first-class table, not yet a full config Record — see Step-4 sub-project). The Stage-8 control gate
-# and activation side-effects (provisioning / customer / care-task) remain in-code hooks around it.
-_FORWARD_FALLBACK = {
-    "order_validated":   "scheduling",
-    "scheduling":        "config",
-    "config":            "installation",
-    "installation":      "connection_test",
-    "connection_test":   "payment_confirmed",
-    "payment_confirmed": "activation",
-}
 
 
 # ---- serializers ----
@@ -512,160 +493,6 @@ async def transition_order(order_id: uuid.UUID, payload: dict, user: User = Depe
     return result
 
 
-@router.post("/orders/{order_id}/submit")
-async def submit_order(order_id: uuid.UUID, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
-    order = await _get_order(s, user, order_id)
-    grants = await load_grants(s, user)
-    if not can(grants, "order", "edit", await _node_path(s, order.owner_node_id)):
-        _deny("order.edit")
-    # SPEC §0.1 single-owner (first-class) — only Orders may write order.
-    await _owner_gate(s, table_name="order", writer_module="Orders")
-    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
-    try:
-        await assert_can(
-            s, user,
-            action="edit",
-            entity_key="order",
-            region_id=getattr(order, "region_id", None),
-            owner_user_id=order.control_pass_by,
-        )
-    except AccessDenied as e:
-        raise HTTPException(403, detail=str(e))
-    if order.status != ORDER_INITIAL:
-        raise HTTPException(409, f"Only a new ({ORDER_INITIAL}) order can be submitted (status is {order.status})")
-    await _set_status(s, user, order, ORDER_INITIAL, "order_validated")
-    await s.commit()
-    await s.refresh(order)
-    return _order(order, await _items(s, order.id))
-
-
-@router.post("/orders/{order_id}/advance")
-async def advance_order(order_id: uuid.UUID, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
-    """Move the order one legal step forward: SUBMITTED→PROVISIONING→COMPLETED. Illegal → 409.
-
-    SPEC §3 Stage 8 Control Gate: SUBMITTED→PROVISIONING is the Sales→Fulfillment boundary in this
-    codebase (the closest analog to SPEC's stage 7→9 "Order Created → Scheduling" transition while
-    the explicit Scheduling/Dispatch module is still pending). Refuses the advance unless
-    `order.control_pass` is TRUE. PROVISIONING→COMPLETED is post-gate and unaffected.
-
-    On reaching COMPLETED, provisions ACTIVE Subscriptions for each item with a product.
-    """
-    order = await _get_order(s, user, order_id)
-    grants = await load_grants(s, user)
-    if not can(grants, "order", "edit", await _node_path(s, order.owner_node_id)):
-        _deny("order.edit")
-
-    # SPEC §0.1 single-owner (first-class) — only Orders may write order. Note: advance also
-    # creates Subscriptions on COMPLETED (Billing Accounts side-effect); that's the canonical
-    # SPEC §2.2 cross-module trigger (Order COMPLETE → Billing Accounts provisions Subscription).
-    await _owner_gate(s, table_name="order", writer_module="Orders")
-
-    # SPEC §4 default-deny — proof-of-life wire-up of the kernel permissions engine. The legacy
-    # role check above is preserved (Studio/M0 has roles to keep working); this kernel call
-    # additionally evaluates Role × Department × Region × Ownership and raises AccessDenied →
-    # 403 if any layer denies. Step 6 wires this ONE touchpoint; a full router sweep lands later.
-    try:
-        await assert_can(
-            s, user,
-            action="edit",
-            entity_key="order",
-            region_id=getattr(order, "region_id", None),
-            owner_user_id=order.control_pass_by,  # closest stand-in until order.created_by lands
-        )
-    except AccessDenied as e:
-        raise HTTPException(status_code=403, detail=str(e))
-
-    # Config-driven stage sequence: the next forward stage comes from the order entity's WorkflowDef
-    # transitions (config), falling back to the canonical chain where that config isn't present/correct.
-    # "cancelled" is an off-ramp, never the forward step.
-    try:
-        order_ent = await _entity(s, user.tenant_id, "orders")
-        _trs = await workflow.get_transitions(s, order_ent.id)
-    except HTTPException:
-        _trs = []
-    # order_created → order_validated is the /submit step (manual draft submit), NOT a forward /advance
-    # step — exclude it so a fresh order must still be submitted first. (This per-verb split collapses
-    # into the unified /transition route at cutover step 5; until then /advance stays the chain mover.)
-    _forwards = [t.get("to") for t in _trs
-                 if t.get("from") == order.status and t.get("to") != "cancelled"
-                 and t.get("from") != ORDER_INITIAL]
-    nxt = _forwards[0] if _forwards else _FORWARD_FALLBACK.get(order.status)
-    if not nxt:
-        raise HTTPException(409, f"Cannot advance an order in status {order.status}")
-
-    frm = order.status
-
-    # SPEC §3 / §10.4 — Stage 8 Control Gate, now CONFIG-DECLARED (PERFECT-TARGET I3): the
-    # order_validated→scheduling transition references `guard: control_gate:stage8`; the Revenue-Control
-    # implementation runs from NAMED_GUARDS. The canonical-fire fallback (frm==ORDER_GATE_FROM →
-    # ORDER_GATE_TO) keeps the revenue safety from EVER silently disappearing if the config guard is
-    # absent (e.g. minimal test seed). Behaviour identical to the prior inline check.
-    _tr = workflow.find_transition(_trs, frm, nxt) if _trs else None
-    _guard = (_tr or {}).get("guard")
-    if _guard == "control_gate:stage8" or (not _guard and frm == ORDER_GATE_FROM and nxt == ORDER_GATE_TO):
-        _ok, _reason = await control_gate_stage8(s, order)
-        if not _ok:
-            raise HTTPException(status_code=409, detail=_reason)
-
-    reactions = await _set_status(s, user, order, frm, nxt)
-
-    # PERFECT-TARGET I3 — ACTIVATION choreography is now CONFIG-DECLARED: the activation transition
-    # carries `publish: order.activated`, so the SHARED kernel (complete_transition, via _set_status)
-    # fires it and the CRM (create+activate customer) · Care (welcome check-call task) · Billing
-    # (provision subscriptions) domains react in the same transaction. advance_order no longer
-    # hand-publishes — it just reads the Billing subscriber's reaction for the response.
-    provisioned: list[str] = reactions.get("billing.provision") or []
-    if nxt == ORDER_PROVISION_AT:
-        # best-effort completion notification (no-op unless an `order.completed` def is seeded)
-        try:
-            recipients = await notify_hooks.resolve_recipients(s, tenant_id=user.tenant_id, record=order)
-            for uid in recipients:
-                if uid == user.id:
-                    continue
-                await emit_notification(s, tenant_id=user.tenant_id, def_key="order.completed", user_id=uid,
-                                        entity_key="order", record_id=order.id,
-                                        context={"number": order.number, "total": order.total,
-                                                 "provisioned": len(provisioned)})
-        except Exception:
-            pass
-
-    await s.commit()
-    await s.refresh(order)
-    result = _order(order, await _items(s, order.id))
-    if nxt == ORDER_PROVISION_AT:
-        result["provisioned_subscriptions"] = provisioned
-    return result
-
-
-@router.post("/orders/{order_id}/cancel")
-async def cancel_order(order_id: uuid.UUID, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
-    """Cancel an order. A COMPLETED order cannot be cancelled (its subscriptions already exist)."""
-    order = await _get_order(s, user, order_id)
-    grants = await load_grants(s, user)
-    if not can(grants, "order", "edit", await _node_path(s, order.owner_node_id)):
-        _deny("order.edit")
-    # SPEC §0.1 single-owner (first-class) — only Orders may write order.
-    await _owner_gate(s, table_name="order", writer_module="Orders")
-    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
-    try:
-        await assert_can(
-            s, user,
-            action="edit",
-            entity_key="order",
-            region_id=getattr(order, "region_id", None),
-            owner_user_id=order.control_pass_by,
-        )
-    except AccessDenied as e:
-        raise HTTPException(403, detail=str(e))
-    if order.status in (ORDER_PROVISION_AT, "cancelled"):
-        raise HTTPException(409, f"Cannot cancel an order in status {order.status}")
-    frm = order.status
-    await _set_status(s, user, order, frm, "cancelled")
-    await s.commit()
-    await s.refresh(order)
-    return _order(order, await _items(s, order.id))
-
-
 # ==========================================================================================
 # Phase B.1 — Stage 8 Control Gate + deposit collection
 # ==========================================================================================
@@ -738,43 +565,6 @@ async def stage8_apply(
     result["control_pass"] = order.control_pass
     result["control_gate_block_reason"] = order.control_gate_block_reason
     return result
-
-
-@router.post("/orders/{order_id}/release")
-async def release_order(
-    order_id: uuid.UUID,
-    user: User = Depends(current_user),
-    s: AsyncSession = Depends(get_session),
-) -> dict:
-    """Advance ``Order.status`` from SUBMITTED → PROVISIONING after enforcing Stage 8.
-
-    Calls ``apply_stage8_result`` first to refresh the verdict, then refuses with 409 +
-    ``control_gate_block_reason`` if the gate is closed. Admin-gated.
-    """
-    order = await _get_order(s, user, order_id)
-    await _require_admin_or_order_edit(s, user, order)
-    await _owner_gate(s, table_name="order", writer_module="Orders")
-
-    if order.status != ORDER_GATE_FROM:
-        raise HTTPException(
-            409,
-            f"Only an {ORDER_GATE_FROM} order can be released through the gate (status is {order.status})",
-        )
-
-    # Run the predicate fresh + persist the verdict (idempotent).
-    await apply_stage8_result(s, order.id, actor_id=user.id)
-    await s.flush()
-
-    if not order.control_pass:
-        raise HTTPException(
-            409,
-            f"Stage 8 Control Gate not passed: {order.control_gate_block_reason}",
-        )
-
-    await _set_status(s, user, order, ORDER_GATE_FROM, ORDER_GATE_TO)
-    await s.commit()
-    await s.refresh(order)
-    return _order(order, await _items(s, order.id))
 
 
 @router.post("/orders/{order_id}/collect-deposit")

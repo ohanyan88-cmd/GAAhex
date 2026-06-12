@@ -76,7 +76,9 @@ export function Stage8Modal({
     if (busy) return
     setBusy(true)
     try {
-      await bpost(token!, `/api/orders/${orderId}/release`)
+      // The release move (order_validated → scheduling) goes through the unified transition route; the
+      // control_gate:stage8 named guard fires inside it and returns the same 409 + block reason if unmet.
+      await bpost(token!, `/api/orders/${orderId}/transition`, { to: 'scheduling' })
       toast.success(`Order released to provisioning`)
       onChanged()
       onClose()

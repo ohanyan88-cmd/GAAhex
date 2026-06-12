@@ -32,7 +32,7 @@ import { PageShell, type KPISpec } from '../page-shell'
 import { Button, Pagination, StatusPill } from '../primitives'
 import { fmtDate } from '../lib/time'
 import {
-  type OrderRow, mapOrderStatus, nextAdvanceLabel, stage8RowPill,
+  type OrderRow, mapOrderStatus, nextAdvanceLabel, nextOrderStatus, stage8RowPill,
 } from './orders/types'
 import { CreateOrderModal } from './orders/CreateOrderModal'
 import { OrderDetailModal } from './orders/OrderDetailModal'
@@ -167,17 +167,21 @@ export default function OrdersView({ capabilities }: {
   }
 
   // Lifecycle actions. Each maps to one backend route; on success we toast + refresh.
+  // Every stage move goes through the ONE config-driven transition route (POST /api/orders/{id}/transition,
+  // {to}) — the same contract the generic entity engine uses. No per-verb endpoints; the {to} target is
+  // resolved from the SST (nextOrderStatus) for advance, or fixed for submit/cancel.
   async function doAdvance(o: OrderRow) {
+    const to = nextOrderStatus(o.status)
+    if (!to) return
     try {
-      const updated: any = await bpost(token!, `/api/orders/${o.id}/advance`)
-      const to = (updated?.status ?? '').toLowerCase()
-      toast.success(`Order ${o.number} → ${to}`)
+      const updated: any = await bpost(token!, `/api/orders/${o.id}/transition`, { to })
+      toast.success(`Order ${o.number} → ${(updated?.status ?? to).toLowerCase()}`)
       await load()
     } catch (e) { toast.error((e as Error).message) }
   }
   async function doSubmit(o: OrderRow) {
     try {
-      await bpost(token!, `/api/orders/${o.id}/submit`)
+      await bpost(token!, `/api/orders/${o.id}/transition`, { to: 'order_validated' })
       toast.success(`Order ${o.number} submitted`)
       await load()
     } catch (e) { toast.error((e as Error).message) }
@@ -185,7 +189,7 @@ export default function OrdersView({ capabilities }: {
   async function doCancel(o: OrderRow) {
     if (!window.confirm(`Cancel order ${o.number}? This cannot be undone.`)) return
     try {
-      await bpost(token!, `/api/orders/${o.id}/cancel`)
+      await bpost(token!, `/api/orders/${o.id}/transition`, { to: 'cancelled' })
       toast.success(`Order ${o.number} cancelled`)
       await load()
     } catch (e) { toast.error((e as Error).message) }

@@ -12,7 +12,7 @@ import { humanizeStatus } from '../../lib/humanize'
 import { ArrowRightIcon, CheckIcon, CloseIcon } from '../../components/icons'
 import { Button } from '../../primitives'
 import { fmtDate } from '../../lib/time'
-import { type OrderRow, mapOrderStatus, nextAdvanceLabel } from './types'
+import { type OrderRow, mapOrderStatus, nextAdvanceLabel, nextOrderStatus } from './types'
 
 export function OrderDetailModal({
   id, customerNames, canEdit, onClose,
@@ -42,9 +42,15 @@ export function OrderDetailModal({
   async function action(verb: 'submit' | 'advance' | 'cancel') {
     if (!order || busy) return
     if (verb === 'cancel' && !window.confirm(`Cancel order ${order.number}?`)) return
+    // One config-driven transition route ({to}) for every move — no per-verb endpoints. The advance
+    // target is resolved from the SST; submit/cancel are fixed.
+    const to = verb === 'submit' ? 'order_validated'
+      : verb === 'cancel' ? 'cancelled'
+      : nextOrderStatus(order.status)
+    if (!to) return
     setBusy(true)
     try {
-      await bpost(token!, `/api/orders/${order.id}/${verb}`)
+      await bpost(token!, `/api/orders/${order.id}/transition`, { to })
       toast.success(`Order ${verb}${verb === 'cancel' ? 'led' : verb === 'advance' ? 'd' : 'ted'}`)
       await load()
     } catch (e) { toast.error((e as Error).message) }

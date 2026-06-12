@@ -1,13 +1,13 @@
-"""Phase B.1 — Order /release + /collect-deposit + stage-8-gated /advance tests.
+"""Phase B.1 — Order control-gate /transition + /collect-deposit + stage-8-gated tests.
 
-Covers:
-  * POST /api/orders/{id}/release succeeds when Stage 8 passes; status flips SUBMITTED→PROVISIONING
-  * /release returns 409 with control_gate_block_reason in detail when Stage 8 fails
+Covers (transition endpoints now go through the unified POST /api/orders/{id}/transition):
+  * /transition to scheduling succeeds when Stage 8 passes; status flips order_validated→scheduling
+  * /transition to scheduling returns 409 with control_gate_block_reason in detail when Stage 8 fails
   * /collect-deposit creates a Payment row of method='card' tagged as deposit (invoice_id NULL)
   * /collect-deposit accumulates: $50 + $50 = $100 deposit_collected
   * /collect-deposit with payment_method_id charges through LoggingGateway — synthetic charge_id
     surfaces on the Payment.note + the API response
-  * Existing /advance to PROVISIONING is also Stage-8-gated — refuses when checks fail
+  * The order_validated → scheduling crossing via /transition is also Stage-8-gated — refuses when checks fail
 """
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ async def _order_with_credit_pass(client, admin, customer_id: str, amount: int =
         "items": [{"description": "x", "quantity": 1, "unit_amount": amount}],
     })).json()
     # submit + flip credit to PASS so the stage 8 check is clear
-    await client.post(f"/api/orders/{order['id']}/submit", headers=admin)
+    await client.post(f"/api/orders/{order['id']}/transition", headers=admin, json={"to": "order_validated"})
     async with SessionLocal() as s:
         o = (await s.execute(select(Order).where(Order.id == uuid.UUID(order["id"])))).scalar_one()
         o.credit_check_status = "PASS"
@@ -46,7 +46,10 @@ async def test_release_succeeds_when_stage8_passes(client, admin):
     cust = await _customer(client, admin, "Release happy")
     order = await _order_with_credit_pass(client, admin, cust)
 
-    r = await client.post(f"/api/orders/{order['id']}/release", headers=admin)
+    # Cutover split: the bundled /release became /stage8-apply (persist the Revenue-Control verdict →
+    # control_pass=True) + the gated /transition. The frontend Stage8Modal does exactly this 2-step.
+    await client.post(f"/api/orders/{order['id']}/stage8-apply", headers=admin)
+    r = await client.post(f"/api/orders/{order['id']}/transition", headers=admin, json={"to": "scheduling"})
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["status"] == "scheduling"
@@ -66,10 +69,13 @@ async def test_release_409_with_block_reason_when_stage8_fails(client, admin):
         "customer_id": cust,
         "items": [{"description": "x", "quantity": 1, "unit_amount": 1000}],
     })).json()
-    await client.post(f"/api/orders/{order['id']}/submit", headers=admin)
+    await client.post(f"/api/orders/{order['id']}/transition", headers=admin, json={"to": "order_validated"})
     # credit_check_status left NULL — stage 8 should fail with "credit check pending"
 
-    r = await client.post(f"/api/orders/{order['id']}/release", headers=admin)
+    # Persist the (failing) verdict via /stage8-apply → control_pass=False + block reason, then the
+    # gated /transition refuses (mirrors the UI's stage8-apply → release 2-step).
+    await client.post(f"/api/orders/{order['id']}/stage8-apply", headers=admin)
+    r = await client.post(f"/api/orders/{order['id']}/transition", headers=admin, json={"to": "scheduling"})
     assert r.status_code == 409, r.text
     detail = r.json().get("detail", "")
     assert "stage 8" in detail.lower() or "control gate" in detail.lower(), detail
@@ -198,10 +204,10 @@ async def test_advance_to_provisioning_refuses_when_stage8_fails(client, admin):
         "customer_id": cust,
         "items": [{"description": "x", "quantity": 1, "unit_amount": 1000}],
     })).json()
-    await client.post(f"/api/orders/{order['id']}/submit", headers=admin)
+    await client.post(f"/api/orders/{order['id']}/transition", headers=admin, json={"to": "order_validated"})
     # credit_check left NULL → stage 8 fails
 
-    r = await client.post(f"/api/orders/{order['id']}/advance", headers=admin)
+    r = await client.post(f"/api/orders/{order['id']}/transition", headers=admin, json={"to": "scheduling"})
     assert r.status_code == 409
     detail = r.json().get("detail", "").lower()
     assert "stage 8" in detail or "control gate" in detail or "control_pass" in detail
