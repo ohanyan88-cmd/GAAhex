@@ -1,9 +1,10 @@
-from sqlalchemy import text
+from sqlalchemy import text, event
 from sqlalchemy.ext.asyncio import (
     create_async_engine,
     async_sessionmaker,
     AsyncSession,
 )
+from sqlalchemy.util import await_only
 from .config import settings
 
 # Pool sizing: each authenticated request uses an app session AND a short owner session (RLS-flip
@@ -14,6 +15,21 @@ _POOL = dict(pool_size=10, max_overflow=10, pool_pre_ping=True, pool_timeout=10)
 
 engine = create_async_engine(settings.database_url, echo=False, future=True, **_POOL)
 SessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+
+# ── C1a condition 1 — GUARANTEED tenant-GUC reset on connection return to the pool ──────────────────
+# The tenant GUC is session-level `set_config(..., is_local=false)` (it must survive the app's
+# mid-request commits). That means it also survives a connection being recycled — so without this, a
+# pooled connection could carry tenant A's scope into tenant B's next request. This checkin listener
+# wipes `gaahex.tenant_id` on EVERY connection return, unconditionally — the guaranteed reset point no
+# request outcome can skip (replaces the old best-effort, error-swallowing request-teardown reset as
+# the load-bearing layer). If the reset itself FAILS we let it raise: SQLAlchemy then INVALIDATES and
+# discards the connection rather than returning it to the pool with a possibly-stale GUC. Safety rests
+# on the policies being default-DENY on an empty GUC (verified + gated by check_migration_invariants).
+@event.listens_for(engine.sync_engine, "checkin")
+def _wipe_tenant_guc_on_checkin(dbapi_connection, connection_record):
+    raw = dbapi_connection.driver_connection  # the raw asyncpg.Connection
+    await_only(raw.execute("SELECT set_config('gaahex.tenant_id', NULL, false)"))
 
 # Owner (RLS-bypass) engine for the pre-auth / no-tenant paths (seeding, login + user lookup,
 # org-tree). Falls back to the app engine's URL when owner_database_url is unset — so tests and the
