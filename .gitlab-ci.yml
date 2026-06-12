@@ -93,6 +93,34 @@ backend-rls:
     - cd backend
     - pytest -v --tb=short tests/test_rls.py tests/test_rls_parametric.py tests/test_rls_wave4_spot.py tests/test_deploy_contract.py tests/test_workflow_engine.py
 
+# --- Migration-backed invariant gate (closes audit CRITICAL #6) --------------------------------------
+# The main suite builds its schema with `create_all`, so migration-only DDL (RLS policies, append-only
+# triggers, partial unique indexes) is ABSENT from every test run — a migration that RENDERS + CHAINS
+# but does not APPLY (e.g. the i5 `min(uuid)` bug) was invisible. This job builds a FRESH DB via real
+# `alembic upgrade head`, then asserts every tenant table has a GUC-referencing RLS policy + the
+# append-only/hold triggers exist. A non-appliable or un-isolated migration now fails CI, forever.
+migration-invariants:
+  stage: test
+  image: python:3.12
+  <<: *pg_redis
+  variables:
+    POSTGRES_USER: gaahex
+    POSTGRES_PASSWORD: gaahex
+    POSTGRES_DB: gaahex_test
+    DATABASE_URL: "postgresql+asyncpg://gaahex:gaahex@postgres:5432/gaahex_test"
+    OWNER_DATABASE_URL: "postgresql+asyncpg://gaahex:gaahex@postgres:5432/gaahex_test"
+  cache:
+    key: pip-$CI_COMMIT_REF_SLUG
+    paths:
+      - .cache/pip
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq postgresql-client >/dev/null
+    - until pg_isready -h postgres -U gaahex -d gaahex_test; do echo "waiting for postgres"; sleep 1; done
+    - python -m pip install --upgrade pip -q
+    - pip install -q -r backend/requirements.txt -r backend/requirements-dev.txt
+  script:
+    - python backend/scripts/check_migration_invariants.py
+
 # --- Frontend: typecheck + unit tests ----------------------------------------------------------------
 frontend:
   stage: test
