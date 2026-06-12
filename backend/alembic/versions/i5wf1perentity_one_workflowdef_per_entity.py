@@ -57,4 +57,26 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    # Drop the index — the ONLY reversible half of this migration. The upgrade's dedup DELETE of
+    # duplicate lifecycle WorkflowDef rows is NOT undone here: a DELETE has no inverse, and this
+    # downgrade deliberately does not fabricate one (no invented re-insert that would manufacture a
+    # reversibility claim the operation cannot honor). Operators who need the deleted duplicates must
+    # restore them from a backup taken BEFORE the upgrade ran. The downgrade emits a loud WARNING so
+    # this is never silent.
     op.drop_index('uq_workflow_def_one_per_entity', table_name='workflow_def')
+    # Loud signal to the OPERATOR running the downgrade (stderr → surfaced in the alembic command
+    # output; the server-side RAISE WARNING below only reaches the Postgres log, which asyncpg swallows).
+    import sys
+    print(
+        "WARNING [i5wf1perentity downgrade]: dropped uq_workflow_def_one_per_entity (reversible). "
+        "The upgrade's dedup DELETE of duplicate lifecycle WorkflowDefs is IRREVERSIBLE and is NOT "
+        "restored — recover those rows from a pre-upgrade backup if you need them.",
+        file=sys.stderr,
+    )
+    op.execute(
+        "DO $$ BEGIN "
+        "RAISE WARNING 'i5wf1perentity downgrade: dropped uq_workflow_def_one_per_entity. "
+        "The upgrade''s dedup DELETE of duplicate lifecycle WorkflowDefs is IRREVERSIBLE and is NOT "
+        "restored — recover those rows from a pre-upgrade backup if needed.'; "
+        "END $$;"
+    )
