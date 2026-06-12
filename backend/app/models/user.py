@@ -30,6 +30,10 @@ class User(Base):
     # data URL travels with the row (RLS-scoped, survives restarts, works in tests with no shared volume)
     # and drops straight into an <img src>.
     avatar_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Focal point for the avatar image as a CSS object-position string, e.g. "50% 40%" (x% y%).
+    # NULL = default center ("50% 50%"). Set via PUT /api/me/avatar/position when the user drags the
+    # picture to reposition it; applied as object-position on every avatar <img>.
+    avatar_pos: Mapped[str | None] = mapped_column(String(20), nullable=True)
     # SPEC §4.1 home department (Sales, Billing, NOC, Customer Care, HR, Finance, …). The Department
     # layer in the 4-way AND evaluated by app.kernel.invariants.assert_can. Nullable until
     # backfill — NULL = no department membership (the kernel treats it accordingly).

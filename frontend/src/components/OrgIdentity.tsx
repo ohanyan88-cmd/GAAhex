@@ -1,29 +1,27 @@
-// OrgIdentity — left-side topbar chip that lets a tenant admin edit the company name + logo
-// (single-tenant; this is NOT a tenant switcher). Backed by GET/PUT /api/tenant/settings,
-// reading the same `name` field that powers the rest of the app and the new `logo_url` column
-// (P3 migration f9ef47c3db77). Logo upload posts multipart to POST /api/tenant/logo via bupload()
-// (same pattern as the avatar upload in /api/me/avatar). The returned URL is a served static path,
-// not a base64 blob — logo is no longer stored in the DB column as a data URL.
+// OrgIdentity — left-side topbar chip + popover for the tenant's company identity (single-tenant;
+// NOT a tenant switcher). Backed by GET/PUT /api/tenant/settings + POST /api/tenant/logo.
 //
-// Mirrors the kit OrgIdentity in design-system/ui_kits/portal/Shell.jsx — same `.org`/`.org-pop`
-// markup and behavior (chip → popover → save → toast). Outside-click + Escape close.
+// The popover mirrors the UserMenu card (same `.user-card` markup): the company logo with inline
+// camera-change / ✕-remove, plus the company name as an inline-editable field. Everything applies
+// IMMEDIATELY (no Save button) — the name persists on Enter/blur, the logo on pick/remove.
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useFetch } from '../hooks/useFetch'
 import { toast } from './Toast'
-import { EditIcon, CheckIcon, CloseIcon } from './icons'
+import { EditIcon, CloseIcon } from './icons'
 import { Camera } from 'lucide-react'
-import { Button } from '../primitives'  // T-P3-7
 
 import { bupload, bput } from '../lib/billing'
+import { assetUrl } from '../lib/config'
 
 interface TenantSettings {
   name: string
+  currency: string | null
   logo_url: string | null
+  logo_pos: string | null
 }
 
-// "Yerevan Net" → "YN", "Tenant" → "T", "" → "GX". Matches the kit's ini() but keeps the GAAhex
-// fallback the rest of the app uses for empty user names.
+// "Yerevan Net" → "YN", "Tenant" → "T", "" → "GX".
 function initialsOf(name: string | null | undefined, fallback = 'GX'): string {
   const parts = (name || '').trim().split(/\s+/).filter(Boolean)
   if (parts.length === 0) return fallback
@@ -31,30 +29,32 @@ function initialsOf(name: string | null | undefined, fallback = 'GX'): string {
   return ((parts[0][0] || '') + (parts[1][0] || '')).toUpperCase()
 }
 
+const ALLOWED_LOGO_TYPES = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp'])
+const MAX_LOGO_BYTES = 2 * 1024 * 1024
+
 export default function OrgIdentity() {
   const { token } = useAuth()
   const { data: settings, refetch: reloadSettings } = useFetch<TenantSettings>('/api/tenant/settings')
   const name = settings?.name ?? ''
   const logoUrl = settings?.logo_url ?? null
+  const logoPos = settings?.logo_pos ?? null
   const [open, setOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
   const [draftName, setDraftName] = useState('')
-  // draftLogo: preview URL for display (object URL while a new file is selected; existing logo_url otherwise)
-  const [draftLogo, setDraftLogo] = useState<string | null>(null)
-  // pendingFile: the raw File chosen by the user, waiting to be uploaded on save
-  const [pendingFile, setPendingFile] = useState<File | null>(null)
-  const [saving, setSaving] = useState(false)
+  const [savingName, setSavingName] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  // Outside-click + Escape — same UX as user-menu / create-menu.
+  // Seed the editable name each time the card opens.
+  useEffect(() => { if (open) setDraftName(name) }, [open])  // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Outside-click + Escape — same UX as the user menu.
   useEffect(() => {
     if (!open) return
     function onMouseDown(e: MouseEvent) {
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false)
     }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setOpen(false)
-    }
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') setOpen(false) }
     document.addEventListener('mousedown', onMouseDown)
     document.addEventListener('keydown', onKey)
     return () => {
@@ -63,67 +63,64 @@ export default function OrgIdentity() {
     }
   }, [open])
 
-  function openEditor() {
-    setDraftName(name)
-    setDraftLogo(logoUrl)
-    setPendingFile(null)
-    setOpen(true)
-  }
-
-  // Mirrors ALLOWED_LOGO_TYPES in backend/app/routers/tenant_settings.py.
-  const ALLOWED_LOGO_TYPES = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp'])
-  const MAX_LOGO_BYTES = 2 * 1024 * 1024
-
-  function pickLogo(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files && e.target.files[0]
-    if (!f) return
-    if (!ALLOWED_LOGO_TYPES.has(f.type)) {
-      toast.error('Logo must be a PNG, JPEG, GIF, or WebP image')
-      return
-    }
-    if (f.size > MAX_LOGO_BYTES) {
-      toast.error('Logo too large (max 2MB)')
-      return
-    }
-    // Show an instant object-URL preview; the actual upload happens on save.
-    setPendingFile(f)
-    setDraftLogo(URL.createObjectURL(f))
-  }
-
-  async function save() {
-    const next = draftName.trim() || 'Company'
-    setSaving(true)
+  // Pick a logo → upload immediately (no staging, no Save), then re-fetch so the chip updates live.
+  async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0]
+    e.target.value = '' // allow re-picking the same file
+    if (!f || !token) return
+    if (!ALLOWED_LOGO_TYPES.has(f.type)) { toast.error('Logo must be a PNG, JPEG, GIF, or WebP image'); return }
+    if (f.size > MAX_LOGO_BYTES) { toast.error('Logo too large (max 2MB)'); return }
+    setBusy(true)
     try {
-      // 1. If a new file was selected, upload it first via multipart POST.
-      if (pendingFile) {
-        const form = new FormData()
-        form.append('file', pendingFile)
-        await bupload<{ logo_url: string }>(token!, '/api/tenant/logo', form)
-        setPendingFile(null)
-      } else if (draftLogo === null && logoUrl !== null) {
-        // Logo was explicitly cleared — write null via settings PUT.
-        await bput(token!, '/api/tenant/settings', { logo_url: null })
-      }
-
-      // 2. Save the company name (always; even a name-only edit lands here).
-      await bput(token!, '/api/tenant/settings', { name: next })
-
-      toast.success('Company identity updated')
-      setOpen(false)
-      // Re-fetch so the chip reflects what the server committed.
+      const form = new FormData()
+      form.append('file', f)
+      await bupload<{ logo_url: string }>(token, '/api/tenant/logo', form)
       reloadSettings()
+      toast.success('Logo updated')
     } catch (err) {
-      toast.error(`Could not save: ${(err as Error).message}`)
+      toast.error(`Could not upload: ${(err as Error).message}`)
     } finally {
-      setSaving(false)
+      setBusy(false)
+    }
+  }
+
+  // Save the company name inline — auto-persists on Enter/blur when changed (no Save button).
+  async function saveName() {
+    const next = draftName.trim()
+    if (!token || !next || next === name) return
+    setSavingName(true)
+    try {
+      await bput(token, '/api/tenant/settings', { name: next })
+      reloadSettings()
+      toast.success('Company name updated')
+    } catch (err) {
+      toast.error(`Could not save name: ${(err as Error).message}`)
+      setDraftName(name)  // revert on failure
+    } finally {
+      setSavingName(false)
+    }
+  }
+
+  // Remove the logo immediately (clears logo_url + its focal point server-side).
+  async function onRemove() {
+    if (!token) return
+    setBusy(true)
+    try {
+      await bput(token, '/api/tenant/settings', { logo_url: null })
+      reloadSettings()
+      toast.success('Logo removed')
+    } catch (err) {
+      toast.error(`Could not remove: ${(err as Error).message}`)
+    } finally {
+      setBusy(false)
     }
   }
 
   return (
     <div className="org-wrap" ref={wrapRef}>
-      <button className="org" onClick={openEditor} title="Edit company name & logo">
+      <button className={'org' + (open ? ' on' : '')} onClick={() => setOpen((o) => !o)} title={name || 'Company'}>
         {logoUrl
-          ? <img className="org-badge org-badge-img" src={logoUrl} alt="" />
+          ? <img className="org-badge org-badge-img" src={assetUrl(logoUrl)} alt="" style={{ objectPosition: logoPos || undefined }} />
           : <span className="org-badge">{initialsOf(name)}</span>}
         <span className="org-name">{name || 'Company'}</span>
         <EditIcon size={12} className="org-edit" style={{ color: 'var(--gx-text-3)' }} />
@@ -131,36 +128,41 @@ export default function OrgIdentity() {
 
       {open && (
         <div className="menu fade-fast org-pop" onClick={(e) => e.stopPropagation()}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', marginTop: 'var(--gx-space-6)', marginBottom: 'var(--gx-space-7)' }}>
-            <div className="org-pop-logo-wrap">
-              {draftLogo
-                ? <img src={draftLogo} alt="" className="org-pop-logo-preview" />
-                : <span className="org-badge" style={{ width: 46, height: 46, fontSize: 'var(--gx-text-lg)', fontWeight: 'var(--gx-weight-bold)' }}>{initialsOf(draftName)}</span>}
-              <button type="button" className="user-card-av-edit" onClick={() => fileRef.current?.click()} title="Change logo" aria-label="Change logo">
-                <Camera size={11} />
-              </button>
-              {draftLogo && (
-                <button type="button" className="user-card-av-remove" onClick={() => { setDraftLogo(null); setPendingFile(null) }} title="Remove logo" aria-label="Remove logo">
-                  <CloseIcon size={10} />
+          <div className="user-card">
+            <div className="uc-pic-col">
+              {logoUrl
+                ? <img src={assetUrl(logoUrl)} alt="" className="uc-logo" />
+                : <span className="uc-logo-ph">{initialsOf(name)}</span>}
+              <div className="uc-pic-actions">
+                <button type="button" className="uc-pic-btn" onClick={() => !busy && fileRef.current?.click()} title="Change logo" aria-label="Change logo" disabled={busy}>
+                  <Camera size={13} />
                 </button>
-              )}
-              <input ref={fileRef} type="file" accept="image/*" onChange={pickLogo} style={{ display: 'none' }} />
+                {logoUrl && (
+                  <button type="button" className="uc-pic-btn danger" onClick={onRemove} title="Remove logo" aria-label="Remove logo" disabled={busy}>
+                    <CloseIcon size={13} />
+                  </button>
+                )}
+              </div>
+              <input ref={fileRef} type="file" accept="image/*" onChange={onPick} style={{ display: 'none' }} />
             </div>
-            <input
-              className="inp inp-sm"
-              style={{ flex: 1 }}
-              value={draftName}
-              onChange={(e) => setDraftName(e.target.value)}
-              placeholder="Company name"
-              autoFocus
-              onKeyDown={(e) => { if (e.key === 'Enter') void save() }}
-            />
-          </div>
-          <div style={{ display: 'flex', gap: 'var(--gx-space-3)', justifyContent: 'flex-end' }}>
-            <Button variant="ghost" size="sm" onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
-            <Button variant="primary" size="sm" onClick={save} disabled={saving}>
-              <CheckIcon size={13} />{saving ? 'Saving…' : 'Save'}
-            </Button>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <input
+                className="user-card-name oi-name-input"
+                value={draftName}
+                onChange={(e) => setDraftName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') e.currentTarget.blur()
+                  if (e.key === 'Escape') { setDraftName(name); e.currentTarget.blur() }
+                }}
+                onBlur={saveName}
+                disabled={savingName}
+                placeholder="Company name"
+                aria-label="Company name"
+                spellCheck={false}
+              />
+              <div className="user-card-email mono">{settings?.currency || '—'}</div>
+              <div className="user-card-meta"><span>Company workspace</span></div>
+            </div>
           </div>
         </div>
       )}

@@ -1,4 +1,4 @@
-"""Current-user self-service: avatar upload + change password.
+"""Current-user self-service: avatar upload/remove + change password.
 
 Both endpoints act ONLY on the authenticated caller's own app_user row — there is no user-id in the
 path, the principal comes from `current_user`. Re-fetch the row on the RLS-subject request session
@@ -23,6 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..db import get_session
 from ..models import User
 from ..security import hash_password, verify_password
+from ..utils.position import validate_object_position
 from .auth import current_user, revoke_all_refresh_tokens_for_user
 
 router = APIRouter(prefix="/api/me", tags=["me"])
@@ -38,6 +39,10 @@ MIN_PASSWORD_LENGTH = 8
 class PasswordChangeIn(BaseModel):
     current_password: str
     new_password: str
+
+
+class AvatarPositionIn(BaseModel):
+    pos: str | None = None
 
 
 async def _own_row(s: AsyncSession, user: User) -> User:
@@ -72,8 +77,38 @@ async def upload_avatar(
 
     row = await _own_row(s, user)
     row.avatar_url = data_url
+    row.avatar_pos = None  # new image → reset focal point to center
     await s.commit()
     return {"avatar_url": data_url}
+
+
+@router.delete("/avatar")
+async def delete_avatar(
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+):
+    """Remove the caller's profile picture — clears `avatar_url` (and its focal point) so the UI
+    falls back to the name initial. Idempotent: a no-op delete still returns {"avatar_url": null}."""
+    row = await _own_row(s, user)
+    row.avatar_url = None
+    row.avatar_pos = None
+    await s.commit()
+    return {"avatar_url": None}
+
+
+@router.put("/avatar/position")
+async def set_avatar_position(
+    body: AvatarPositionIn,
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+):
+    """Set the avatar's focal point (CSS object-position "x% y%") when the user drags to reposition.
+    null/empty re-centers. Validated so the value is always safe to drop into object-position."""
+    pos = validate_object_position(body.pos)
+    row = await _own_row(s, user)
+    row.avatar_pos = pos
+    await s.commit()
+    return {"avatar_pos": pos}
 
 
 @router.post("/password")

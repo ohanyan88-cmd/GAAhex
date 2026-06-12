@@ -64,7 +64,6 @@ import { RowsIcon, ChevronRightIcon, ServerIcon } from './components/icons'
 import { PanelLeft, LogIn, Shield, Eye, EyeOff, Sun, Moon, Mail, MessageCircle, Calendar } from 'lucide-react'
 import { fetchCapabilities, FULL_ACCESS, type Capabilities } from './lib/capabilities'
 import { useAuth } from './context/AuthContext'
-import ProfileModal from './modals/ProfileModal'
 import SecurityModal from './modals/SecurityModal'
 import { ShortcutsModal, DocsModal, WhatsNewModal } from './modals/SupportModals'
 
@@ -216,7 +215,7 @@ export default function App() {
   const [error, setError] = useState('')
   const [navOpen, setNavOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
-  const [accountModal, setAccountModal] = useState<'profile' | 'security' | 'shortcuts' | 'docs' | 'whatsnew' | null>(null)
+  const [accountModal, setAccountModal] = useState<'security' | 'shortcuts' | 'docs' | 'whatsnew' | null>(null)
   const { t, lang, setLang } = useI18n()
 
   const [navSections, setNavSections] = useState<NavSectionDef[]>(NAV_SECTIONS)
@@ -730,14 +729,6 @@ export default function App() {
           />
         )}
 
-        <ProfileModal
-          open={accountModal === 'profile'}
-          onClose={() => setAccountModal(null)}
-          name={user?.name ?? ''}
-          email={user?.email ?? ''}
-          avatarUrl={user?.avatar_url ?? null}
-          onAvatarChange={(avatar_url) => setUser((u) => (u ? { ...u, avatar_url } : u))}
-        />
         <SecurityModal
           open={accountModal === 'security'}
           onClose={() => setAccountModal(null)}

@@ -54,30 +54,38 @@
 .avatar { width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg,var(--cobalt-600),var(--cobalt-800)); color:var(--gx-on-primary); display:flex; align-items:center; justify-content:center; font-size:var(--gx-text-11); font-weight:var(--gx-weight-semibold); flex-shrink:0; overflow:hidden; }
 .avatar-img { width:100%; height:100%; object-fit:cover; display:block; }
 /* User-menu avatar = HEXAGON (brand motif). Width:height ≈ 1.13 → a regular flat-top hex. */
-.uc-av { width:38px; height:34px; font-size:var(--gx-text-sm); border-radius:0; clip-path:polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%); }
+.uc-av { width:44px; height:40px; font-size:var(--gx-text-md); border-radius:0; clip-path:polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%); }
 .uc-av-lg { width:46px; height:40px; font-size:var(--gx-text-md); border-radius:0; clip-path:polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%); }
+/* Company logo placeholder (no logo) — gold ROUNDED SQUARE, never a hexagon (the hexagon is the
+   user avatar's motif; the company mark stays square per Gev). */
+.uc-logo-ph { width:44px; height:44px; border-radius:var(--gx-radius-md); display:inline-flex; align-items:center; justify-content:center; font-size:var(--gx-text-md); font-weight:var(--gx-weight-bold); color:var(--gx-text-on-gold); background:linear-gradient(135deg,var(--gold-400),var(--gold-700)); flex-shrink:0; }
+/* Inline-editable company name in the OrgIdentity card — reads as text, reveals a field on hover/focus. */
+.oi-name-input { width:100%; max-width:172px; background:transparent; border:1px solid transparent; border-radius:var(--gx-radius-sm); color:var(--gx-text-1); font-size:13.5px; font-weight:600; padding:1px 5px; margin:-1px -5px 1px; }
+.oi-name-input:hover { border-color:var(--gx-border-subtle); }
+.oi-name-input:focus { outline:none; border-color:var(--gx-border); background:var(--gx-surface-2); }
+.oi-name-input::placeholder { color:var(--gx-text-3); font-weight:500; }
 
 /* ---- OrgIdentity (P3): left-side editable company chip ---- */
 .org-wrap { position:relative; }
-.org { display:inline-flex; align-items:center; gap:10px; height:44px; margin-left:1.5cm; padding:0 var(--gx-space-8) 0 6px; background:transparent; border:1px solid transparent; border-radius:var(--gx-radius-md); cursor:pointer; color:var(--gx-text-1); transition:all var(--gx-dur-fast); }
+.org { display:inline-flex; align-items:center; gap:10px; height:48px; margin-left:1.5cm; padding:0 var(--gx-space-8) 0 6px; background:transparent; border:1px solid transparent; border-radius:var(--gx-radius-md); cursor:pointer; color:var(--gx-text-1); transition:all var(--gx-dur-fast); }
 .org:hover { background:var(--gx-hover); border-color:var(--gx-border-subtle); }
 .org:hover .org-edit { opacity:1; }
 /* DI badge = HEXAGON (brand motif), sized to match the user-menu avatar. */
-.org-badge { width:calc(var(--gx-header-h) / 2); height:calc(var(--gx-header-h) / 2); border-radius:var(--gx-radius-md); flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; font-size:var(--gx-text-11); font-weight:var(--gx-weight-bold); color:var(--gx-text-on-gold); background:linear-gradient(135deg,var(--gold-400),var(--gold-700)); object-fit:cover; overflow:hidden; }
+.org-badge { width:40px; height:40px; border-radius:var(--gx-radius-md); flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; font-size:var(--gx-text-11); font-weight:var(--gx-weight-bold); color:var(--gx-text-on-gold); background:linear-gradient(135deg,var(--gold-400),var(--gold-700)); object-fit:cover; overflow:hidden; }
 /* When a real logo image is uploaded — wider pill, contain-fit so the full logo shows */
-.org-badge-img { width:auto; max-width:120px; height:calc(var(--gx-header-h) / 2); background:var(--gx-surface-raised); object-fit:contain; padding:0 var(--gx-space-2); }
+.org-badge-img { width:auto; max-width:140px; height:40px; background:var(--gx-surface-raised); object-fit:contain; padding:0 var(--gx-space-2); }
 /* Logo preview in the edit popover */
 .org-pop-logo-preview { width:140px; height:46px; border-radius:var(--gx-radius-md); object-fit:contain; background:var(--gx-surface-raised); flex-shrink:0; padding:0 var(--gx-space-2); }
-.org-name { font-size:14px; font-weight:600; max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.org-name { font-size:15px; font-weight:600; max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .org-edit { opacity:0; transition:opacity var(--gx-dur-fast); flex-shrink:0; }
 .org-pop { position:absolute; top:calc(100% + 6px); left:0; width:280px; padding:8px; z-index:var(--gx-z-popover); }
 
 /* ---- UserMenu (P5): right-side user chip + profile/account popover ---- */
 .user-wrap { position:relative; }
-.userchip { display:inline-flex; align-items:center; gap:10px; height:44px; padding:0 10px 0 6px; background:transparent; border:1px solid transparent; border-radius:var(--gx-radius-md); cursor:pointer; color:var(--gx-text-1); transition:all var(--gx-dur-fast); }
+.userchip { display:inline-flex; align-items:center; gap:10px; height:48px; padding:0 10px 0 6px; background:transparent; border:1px solid transparent; border-radius:var(--gx-radius-md); cursor:pointer; color:var(--gx-text-1); transition:all var(--gx-dur-fast); }
 .userchip:hover, .userchip.on { background:var(--gx-hover); border-color:var(--gx-border-subtle); }
 .userchip-meta { display:flex; flex-direction:column; align-items:flex-start; line-height:1.2; min-width:0; }
-.userchip-name { font-size:14px; font-weight:600; color:var(--gx-text-1); max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.userchip-name { font-size:15px; font-weight:600; color:var(--gx-text-1); max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .userchip-role { font-size:12px; color:var(--gx-text-3); }
 @media (max-width:900px) { .userchip-meta { display:none; } }
 .menu.user-pop { position:absolute; top:calc(100% + 6px); right:0; width:280px; padding:8px; z-index:var(--gx-z-popover); }
@@ -95,6 +103,25 @@
 .org-pop-logo-wrap { position:relative; display:inline-flex; flex-shrink:0; align-items:center; }
 .user-card-av-remove { position:absolute; top:0; right:0; width:16px; height:16px; border-radius:50%; border:none; background:var(--gx-danger); color:var(--gx-on-primary); display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; transition:background var(--gx-dur-fast); }
 .user-card-av-remove:hover { background:var(--gx-danger-fg); }
+/* Inline (NOT overlaid) picture controls: camera + ✕ sit BELOW the picture on flat surface, never on
+   top of the image. The text block moves to the right of this left column. */
+.uc-pic-col { display:flex; flex-direction:column; align-items:center; gap:var(--gx-space-2); flex-shrink:0; }
+.uc-pic-actions { display:inline-flex; gap:var(--gx-space-2); }
+.uc-pic-btn { width:26px; height:26px; border-radius:var(--gx-radius-md); border:none; background:var(--gx-surface-2); color:var(--gx-text-2); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; padding:0; transition:all var(--gx-dur-fast); }
+.uc-pic-btn:hover { background:var(--gx-hover); color:var(--gx-text-1); }
+.uc-pic-btn:disabled { opacity:.5; cursor:default; }
+.uc-pic-btn.danger:hover { background:var(--gx-danger-soft); color:var(--gx-danger); }
+/* Company logo in the OrgIdentity card — shown WHOLE (contain), NOT cropped to a hexagon. */
+.uc-logo { width:auto; max-width:120px; height:44px; object-fit:contain; border-radius:var(--gx-radius-md); background:var(--gx-surface-raised); padding:0 var(--gx-space-2); display:block; }
+
+/* ImageCropModal — "position & size" avatar cropper */
+.crop-wrap { display:flex; flex-direction:column; align-items:center; gap:var(--gx-space-5); }
+.crop-vp { position:relative; overflow:hidden; border-radius:var(--gx-radius-lg); background:var(--gx-surface-2); user-select:none; flex-shrink:0; }
+.crop-img { position:absolute; top:0; left:0; max-width:none; user-select:none; -webkit-user-drag:none; }
+.crop-guide { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+.crop-guide polygon { fill:none; stroke:#ffffff; stroke-width:1.5; stroke-opacity:.85; }
+.crop-zoom { display:flex; align-items:center; gap:var(--gx-space-4); width:100%; }
+.crop-range { flex:1; accent-color:var(--gx-interactive); }
 .menu-lang-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 10px; }
 .menu-lang-label { font-size:11.5px; color:var(--gx-text-3); }
 

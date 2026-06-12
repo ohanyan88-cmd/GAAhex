@@ -21,6 +21,7 @@ class Tenant(Base):
     locale: Mapped[str | None] = mapped_column(String(8), nullable=True, default="en")      # en | hy
     logo_text: Mapped[str | None] = mapped_column(String(40), nullable=True)                # short company mark, e.g. "GA·ex"
     logo_url: Mapped[str | None] = mapped_column(Text, nullable=True)                        # uploaded company logo: data:image/<mime>;base64,... OR https URL
+    logo_pos: Mapped[str | None] = mapped_column(String(20), nullable=True)                  # logo focal point as CSS object-position "x% y%"; NULL = center
     onboarded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)  # set when onboarding finishes
     # ---- Studio AppearancePane → design tokens (Prompt 6 sub-area 4); JSONB so the kit can grow ----
     # tokens without a per-field migration. Shape (any/all keys optional; missing ⇒ frontend default):

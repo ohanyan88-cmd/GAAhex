@@ -18,6 +18,7 @@ from ..db import get_session
 from ..kernel import assert_can, AccessDenied
 from ..models import Tenant, User
 from ..access import load_grants, can
+from ..utils.position import validate_object_position
 from .. import workflow
 from .auth import current_user
 
@@ -55,6 +56,7 @@ def _serialize(t: Tenant) -> dict:
         "locale": t.locale or "en",
         "logo_text": t.logo_text,
         "logo_url": t.logo_url,
+        "logo_pos": t.logo_pos,
         "onboarded": t.onboarded_at is not None,
         "onboarded_at": t.onboarded_at.isoformat() if t.onboarded_at else None,
     }
@@ -117,7 +119,7 @@ async def update_settings(payload: dict, user: User = Depends(current_user), s: 
     await _require_settings(s, user)
     t = await _tenant(s, user)
 
-    allowed = {"name", "currency", "locale", "logo_text", "logo_url"}
+    allowed = {"name", "currency", "locale", "logo_text", "logo_url", "logo_pos"}
     unknown = set(payload) - allowed
     if unknown:
         raise HTTPException(422, f"Cannot set {sorted(unknown)}; allowed: {sorted(allowed)}")
@@ -143,8 +145,13 @@ async def update_settings(payload: dict, user: User = Depends(current_user), s: 
         changed["logo_text"] = t.logo_text
     if "logo_url" in payload:
         t.logo_url = _validate_logo_url(payload["logo_url"])
+        if t.logo_url is None:
+            t.logo_pos = None  # logo cleared → drop its focal point too
         # Don't log the full base64 in the audit Event — record only that the logo changed.
         changed["logo_url"] = "<set>" if t.logo_url else None
+    if "logo_pos" in payload:
+        t.logo_pos = validate_object_position(payload["logo_pos"])
+        changed["logo_pos"] = t.logo_pos
 
     await workflow.emit(s, user.tenant_id, "UPDATE", "tenant", t.id, user.id, {"changed": changed})
     await s.commit()
@@ -212,6 +219,7 @@ async def upload_logo(
     logo_url = f"/uploads/logos/{user.tenant_id}.{ext}"
     t = await _tenant(s, user)
     t.logo_url = logo_url
+    t.logo_pos = None  # new image → reset focal point to center
     await workflow.emit(s, user.tenant_id, "UPDATE", "tenant", t.id, user.id, {"logo_url": "<file-upload>"})
     await s.commit()
     return {"logo_url": logo_url}

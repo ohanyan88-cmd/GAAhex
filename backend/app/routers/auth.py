@@ -453,5 +453,6 @@ async def me(user: User = Depends(current_user), s: AsyncSession = Depends(get_s
         "tenant_id": str(user.tenant_id),
         "primary_node_id": str(user.primary_node_id) if user.primary_node_id else None,
         "avatar_url": user.avatar_url,
+        "avatar_pos": user.avatar_pos,
         "can_configure": can(grants, "config", "manage"),
     }

@@ -1,7 +1,9 @@
 /* ===================== NOTIFICATIONS (NotificationBell, P4) ===================== */
 .notif-wrap { position:relative; }
 .notif-pop {
-  position:absolute; top:calc(100% + 6px); right:0;
+  /* Left-side topbar tool: open to the RIGHT (left:0) so the 280px panel doesn't extend back
+     under the sidebar / off the left edge. Right-anchored popovers belong to the right-side chips. */
+  position:absolute; top:calc(100% + 6px); left:0;
   z-index:var(--gx-z-popover);
   width:280px; max-height:520px;   /* match the Email/Messenger popovers (tb-pop) */
   background:var(--gx-surface);

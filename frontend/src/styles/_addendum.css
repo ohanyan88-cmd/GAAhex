@@ -59,7 +59,9 @@
 /* Email / Messenger topbar popovers — quick panel with a "View all" footer. */
 .tb-pop-wrap { position: relative; display: inline-flex; }
 .tb-pop {
-  position: absolute; top: calc(100% + var(--gx-space-2)); right: 0; z-index: 61; width: 280px;
+  /* Left-side topbar tools (Email / Messenger / Calendar): open to the RIGHT (left:0) so the panel
+     doesn't extend back under the sidebar / off the left edge. */
+  position: absolute; top: calc(100% + var(--gx-space-2)); left: 0; z-index: 61; width: 280px;
   background: var(--gx-elevated); border: 1px solid var(--gx-border); border-radius: var(--gx-radius-md);
   box-shadow: var(--gx-shadow-md); overflow: hidden;
 }
