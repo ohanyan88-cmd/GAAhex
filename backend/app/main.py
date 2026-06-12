@@ -93,8 +93,12 @@ async def lifespan(app: FastAPI):
     # SM-5 — apply_test_seeds is the canonical minimum set shared with conftest, so the
     # test environment can't drift from prod boot. main.py extends it with the broader
     # production-shape seeds below.
-    from .seed import apply_test_seeds  # noqa: PLC0415
+    from .seed import apply_test_seeds, seed_bootstrap_admin_if_missing  # noqa: PLC0415
     await apply_test_seeds()
+    # C5 — in production, create the real super-admin from env creds (BOOTSTRAP_ADMIN_*). The demo
+    # admin@demo.isp/admin123 god-account is gated out of prod by apply_test_seeds; this fills the gap.
+    # Runs AFTER apply_test_seeds so the tenant + super_admin role already exist. No-op in dev/test.
+    await seed_bootstrap_admin_if_missing()
     await seed_demo_regions_if_empty()  # SPEC §0.6 — one canonical region per tenant (idempotent)
     await seed_spec_roles_if_missing()      # SPEC §4.3 — ensure all SPEC roles exist (idempotent)
     await backfill_demo_user_departments()  # SPEC §4.1 — M0 demo dept backfill (idempotent; NULL-only)

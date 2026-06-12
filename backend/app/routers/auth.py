@@ -201,8 +201,12 @@ async def login(body: LoginIn, request: Request, s: AsyncSession = Depends(get_s
     # request and binds the RLS GUC to the user's tenant — never to a fixed singleton.
     token = create_access_token(str(user.id), {"email": user.email, "tenant": str(user.tenant_id)})
     refresh, _row = await _issue_refresh_token(s, user)
-    # Forced first-login change for the seeded default admin only (still on the seed `admin123` password).
-    must_change = user.email == "admin@demo.isp" and user.password_changed_at is None
+    # Forced first-login change for a seeded admin still on its seed/env password (password_changed_at
+    # is NULL until /api/me/password stamps it). Covers the demo admin AND the C5 production bootstrap
+    # super-admin (settings.bootstrap_admin_email) so the env-provided password is rotated immediately.
+    must_change = user.password_changed_at is None and user.email in {
+        "admin@demo.isp", settings.bootstrap_admin_email.strip().lower(),
+    }
     await workflow.emit(
         s, tenant_id=user.tenant_id, type_="USER_LOGIN_SUCCESS",
         entity_key="user", record_id=user.id, actor_user_id=user.id,

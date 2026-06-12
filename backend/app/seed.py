@@ -1,3 +1,4 @@
+import logging
 import os
 import uuid
 
@@ -5,7 +6,7 @@ from sqlalchemy import select, func
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy_utils import Ltree
 
-from .config import _set_the_tenant_id
+from .config import _set_the_tenant_id, settings
 from .db import OwnerSessionLocal as SessionLocal   # seeding runs privileged (bypasses RLS)
 from .models import (
     Tenant, OrgNode, User, EntityDef, FieldDef, StatusDef, WorkflowDef,
@@ -223,12 +224,16 @@ async def seed_if_empty() -> None:
         s.add(team)
         await s.flush()
 
-        admin = User(
-            tenant_id=tenant.id, primary_node_id=group.id,
-            email="admin@demo.isp", name="Demo Admin", password_hash=hash_password("admin123"),
-            department="Executive",   # SPEC §4.1 Department layer (M0 demo backfill)
-        )
-        s.add(admin)
+        # C5 — admin@demo.isp/admin123 is a guessable super-admin (perms=["*"]). NEVER seed it in
+        # production; on a fresh prod boot the real super-admin is created from env creds instead
+        # (see seed_bootstrap_admin_if_missing). Dev/test still get it — the test suite depends on it.
+        if settings.environment != "production":
+            admin = User(
+                tenant_id=tenant.id, primary_node_id=group.id,
+                email="admin@demo.isp", name="Demo Admin", password_hash=hash_password("admin123"),
+                department="Executive",   # SPEC §4.1 Department layer (M0 demo backfill)
+            )
+            s.add(admin)
 
         # Baseline parties — needed by the Accounts page holder-picker. Without these,
         # creating an Account from the UI is blocked (zero options in the dropdown).
@@ -594,15 +599,19 @@ async def seed_access_if_empty() -> None:
         if admin and group:
             s.add(Assignment(tenant_id=tenant.id, user_id=admin.id, role_id=super_admin.id, node_id=group.id))
 
-        agent_user = User(
-            tenant_id=tenant.id, primary_node_id=team.id if team else None,
-            email="agent@demo.isp", name="Demo Agent", password_hash=hash_password("agent123"),
-            department="Sales",   # SPEC §4.1 Department layer (M0 demo backfill)
-        )
-        s.add(agent_user)
-        await s.flush()
-        if team:
-            s.add(Assignment(tenant_id=tenant.id, user_id=agent_user.id, role_id=sales_agent.id, node_id=team.id))
+        # C5 — agent@demo.isp/agent123 is a known-credential account; gate it OUT of production. The
+        # roles + permission catalog above ARE config and seed in prod; only the credential user is
+        # withheld. (The admin Assignment above self-skips in prod — admin@demo.isp is None there.)
+        if settings.environment != "production":
+            agent_user = User(
+                tenant_id=tenant.id, primary_node_id=team.id if team else None,
+                email="agent@demo.isp", name="Demo Agent", password_hash=hash_password("agent123"),
+                department="Sales",   # SPEC §4.1 Department layer (M0 demo backfill)
+            )
+            s.add(agent_user)
+            await s.flush()
+            if team:
+                s.add(Assignment(tenant_id=tenant.id, user_id=agent_user.id, role_id=sales_agent.id, node_id=team.id))
         await s.commit()
 
 
@@ -750,6 +759,11 @@ async def seed_portal_if_empty() -> None:
     Demo portal creds: portal@demo.isp / portal123
     Tenant is resolved dynamically at login (no hardcoded UUID here).
     """
+    # C5 — this function's sole purpose is the demo portal login (portal@demo.isp/portal123). Never
+    # seed a known-credential customer login in production (the email is discoverable from the public
+    # portal login page). A clean early-return is correct here — there is nothing else to seed.
+    if settings.environment == "production":
+        return
     async with SessionLocal() as s:
         # Owner-session seeding is intentionally cross-tenant — bypass the tenant-filter audit.
         await s.connection(execution_options={"audit_tenant_filter": False})
@@ -776,6 +790,83 @@ async def seed_portal_if_empty() -> None:
             is_active=True,
         ))
         await s.commit()
+
+
+# C5 — known-weak values that must never be accepted as the production god-account password even if
+# they clear the 12-char floor (belt-and-suspenders over the length check; case-insensitive).
+_WEAK_BOOTSTRAP_PASSWORDS: frozenset[str] = frozenset({
+    "admin123", "password", "passw0rd", "changeme", "gaahex", "gaahexadmin",
+    "administrator", "123456789012", "qwertyuiop12", "commerce1234", "letmein12345",
+})
+
+
+def _bootstrap_password_is_weak(pw: str) -> bool:
+    """The production super-admin password must be 12+ chars and not a known-weak value."""
+    return len(pw) < 12 or pw.strip().lower() in _WEAK_BOOTSTRAP_PASSWORDS
+
+
+async def seed_bootstrap_admin_if_missing() -> None:
+    """Create the FIRST production super-admin from env credentials.
+
+    Replaces the demo ``admin@demo.isp``/``admin123`` seed, which is gated out of production by
+    ``seed_if_empty``. Identity = ``settings.bootstrap_admin_email`` (a public default, env-overridable);
+    password = the ``BOOTSTRAP_ADMIN_PASSWORD`` env — **never hardcoded**.
+
+    Posture (mirrors the JWT-secret boot check in main.py):
+
+    * **No-op outside production** — dev/test keep using the demo admin.
+    * **Password UNSET** → loud warning + skip. A fresh prod can still boot for setup, but has no admin
+      login until the env is provided.
+    * **Password WEAK** → refuse boot (``RuntimeError``). A weak god-account password would re-open the
+      exact hole this fix closes.
+    * **Idempotent** — skips if the email already exists.
+
+    The new admin logs in with ``must_change_password`` set (auth.py), forcing the env password to be
+    rotated to a human-held secret on first use.
+    """
+    if settings.environment != "production":
+        return
+    email = settings.bootstrap_admin_email.strip().lower()
+    pw = settings.bootstrap_admin_password
+    _log = logging.getLogger("app.seed")
+    if not pw:
+        _log.warning(
+            "PRODUCTION boot: BOOTSTRAP_ADMIN_PASSWORD is unset — NO super-admin was seeded. "
+            "Set it (12+ chars) and redeploy to create %s.", email,
+        )
+        return
+    if _bootstrap_password_is_weak(pw):
+        raise RuntimeError(
+            "BOOTSTRAP_ADMIN_PASSWORD is too weak for the production super-admin "
+            "(need 12+ chars and not a known-weak value) — refusing to boot."
+        )
+    async with SessionLocal() as s:
+        # Owner-session seeding is intentionally cross-tenant — bypass the tenant-filter audit listener.
+        await s.connection(execution_options={"audit_tenant_filter": False})
+        if (await s.execute(select(User).where(User.email == email))).scalar_one_or_none() is not None:
+            return  # idempotent — already provisioned
+        tenant = (await s.execute(select(Tenant))).scalars().first()
+        if not tenant:
+            return  # no tenant yet (seed_if_empty must run first); nothing to attach to
+        nodes = {n.code: n for n in (await s.execute(
+            select(OrgNode).where(OrgNode.tenant_id == tenant.id))).scalars().all()}
+        group = nodes.get("grp")
+        super_admin = (await s.execute(
+            select(RoleDef).where(RoleDef.tenant_id == tenant.id, RoleDef.key == "super_admin")
+        )).scalar_one_or_none()
+        admin = User(
+            tenant_id=tenant.id, primary_node_id=group.id if group else None,
+            email=email, name="GAAhex Administrator", password_hash=hash_password(pw),
+            department="Executive",
+        )
+        s.add(admin)
+        await s.flush()
+        if super_admin and group:
+            s.add(Assignment(tenant_id=tenant.id, user_id=admin.id, role_id=super_admin.id, node_id=group.id))
+        await s.commit()
+        _log.warning(
+            "PRODUCTION boot: seeded bootstrap super-admin %s — log in and rotate the password now.", email,
+        )
 
 
 # ── SM-5 — bootstrap helpers callable from both lifespan (main.py) and conftest ──

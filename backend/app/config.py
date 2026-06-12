@@ -27,6 +27,13 @@ class Settings(BaseSettings):
     rate_limit_per_min: int = 6000        # requests per principal-or-IP per fixed 1-minute window
     # S1: refuse to boot a prod deployment with the dev JWT secret (default-OFF; set REQUIRE_STRONG_SECRETS=true in prod)
     require_strong_secrets: bool = False
+    # C5: production bootstrap super-admin. The demo admin@demo.isp/admin123 god-account is gated OUT
+    # of production (app/seed.py); on a fresh prod boot the FIRST super-admin is created from these
+    # instead. The email is a public identity (safe to default); the PASSWORD is NEVER hardcoded — it
+    # MUST come from the BOOTSTRAP_ADMIN_PASSWORD env (strong, 12+ chars) or boot is refused. Unset =
+    # no admin seeded (loud warning). Rotate it on first login (auth.py force-change).
+    bootstrap_admin_email: str = "admin@gaahex.com"
+    bootstrap_admin_password: str = ""
     # S3: CORS allowed origins; comma-separated. Default "*" keeps dev/tests working.
     # In prod set CORS_ORIGINS=https://app.example.com (comma-separate multiple origins)
     cors_origins: str = "*"
