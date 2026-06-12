@@ -18,7 +18,6 @@ from datetime import datetime, timedelta, timezone
 import pytest
 import pytest_asyncio
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy_utils import Ltree
 
 from app.db import OwnerSessionLocal
@@ -296,39 +295,53 @@ async def test_cancel_of_terminal_job_rejected_422(client, alice, terminal):
 
 # ── idempotency_key UNIQUE ────────────────────────────────────────────────────
 
-@pytest.mark.skip(reason="DB constraint verified manually (psql); pytest.raises + OwnerSessionLocal context interaction doesn't surface IntegrityError reliably. Migration `uq_job_run_tenant_idempotency_key` IS enforced — confirmed via direct INSERT.")
-async def test_idempotency_key_unique_prevents_duplicates():
-    """The partial UNIQUE index (tenant_id, idempotency_key) WHERE idempotency_key
-    IS NOT NULL must reject a second insert that reuses the same key within the
-    same tenant. Test goes through OwnerSessionLocal to bypass RLS — confirming
-    the DB constraint itself fires, not just the app guard."""
-    tenant_id = await _resolve_tenant_id()
-    key = f"idem-test-{uuid.uuid4().hex}"
+@pytest.fixture(scope="module")
+def _idem_db():
+    """Migration-backed scratch DB. The partial UNIQUE index uq_job_run_tenant_idempotency_key is
+    installed ONLY by migration 89518e0c00a7, so it is ABSENT from the create_all suite DB — build it
+    for real and seed a tenant. (Sync fixture driving async setup via asyncio.run, loop-scope-agnostic.)"""
+    import asyncio
+    import os
+    import sys
+    sys.path.insert(0, os.path.dirname(__file__))  # make the sibling helper importable
+    import _migration_backed_db as mb
+    name = mb.scratch_name("jobidem")
 
-    # First insert: must succeed.
-    async with OwnerSessionLocal() as s:
-        s.add(JobRun(
-            tenant_id=tenant_id,
-            job_key="test.job_ext.idem.first",
-            status="SUCCESS",
-            summary={"test": True},
-            job_status="SUCCEEDED",
-            idempotency_key=key,
-        ))
-        await s.commit()
+    async def _setup():
+        url = await mb.build(name)
+        tid, _uid = await mb.seed_tenant_user(url)
+        return url, tid
 
-    # Second insert with same key: must raise IntegrityError on commit.
-    with pytest.raises(IntegrityError):
-        async with OwnerSessionLocal() as s:
-            s.add(JobRun(
-                tenant_id=tenant_id,
-                job_key="test.job_ext.idem.second",
-                status="SUCCESS",
-                summary={"test": True},
-                job_status="SUCCEEDED",
-                idempotency_key=key,
-            ))
-            await s.commit()
+    url, tid = asyncio.run(_setup())
+    yield {"url": url, "tenant_id": tid}
+    asyncio.run(mb.drop(name))
+
+
+async def test_idempotency_key_unique_prevents_duplicates(_idem_db):
+    """The migration-only partial UNIQUE (tenant_id, idempotency_key) WHERE idempotency_key IS NOT NULL
+    must reject a 2nd insert that reuses the key in the same tenant. Run on a MIGRATION-BACKED DB (the
+    index is absent from create_all) via raw asyncpg, which surfaces the UniqueViolation reliably — the
+    old OwnerSessionLocal + pytest.raises(IntegrityError) path was flaky, which is why this was skipped.
+    Also verifies the partial WHERE: two NULL idempotency_keys do NOT collide."""
+    import asyncpg
+    conn = await asyncpg.connect(_idem_db["url"])
+    try:
+        tid = _idem_db["tenant_id"]
+        key = f"idem-{uuid.uuid4().hex}"
+        ins = ("INSERT INTO job_run(id, tenant_id, job_key, status, summary, idempotency_key) "
+               "VALUES($1,$2,$3,'SUCCESS','{}'::jsonb,$4)")
+        await conn.execute(ins, uuid.uuid4(), tid, "test.idem.first", key)  # first: OK
+        with pytest.raises(asyncpg.exceptions.UniqueViolationError) as ei:
+            await conn.execute(ins, uuid.uuid4(), tid, "test.idem.second", key)  # same key -> rejected
+        assert ei.value.sqlstate == "23505", ei.value.sqlstate
+        # partial index exempts NULLs: two NULL-keyed rows must NOT collide
+        ins_null = ins.replace("$4", "NULL")
+        await conn.execute(ins_null, uuid.uuid4(), tid, "test.idem.null_a")
+        await conn.execute(ins_null, uuid.uuid4(), tid, "test.idem.null_b")
+        assert await conn.fetchval(
+            "SELECT count(*) FROM job_run WHERE tenant_id=$1 AND idempotency_key IS NULL", tid) == 2
+    finally:
+        await conn.close()
 
 
 async def test_idempotency_key_null_allowed_multiple_times():
