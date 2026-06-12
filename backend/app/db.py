@@ -1,3 +1,5 @@
+from collections.abc import AsyncGenerator
+
 from sqlalchemy import text, event
 from sqlalchemy.ext.asyncio import (
     create_async_engine,
@@ -38,7 +40,7 @@ owner_engine = create_async_engine(settings.owner_database_url or settings.datab
 OwnerSessionLocal = async_sessionmaker(owner_engine, class_=AsyncSession, expire_on_commit=False)
 
 
-async def get_owner_session() -> AsyncSession:
+async def get_owner_session() -> AsyncGenerator[AsyncSession, None]:
     """Yield a privileged session that BYPASSES RLS — only for the unavoidable pre-auth / no-tenant
     reads (auth lookups, org-tree). Never set the tenant GUC here; it must not carry tenant scope."""
     async with OwnerSessionLocal() as session:
@@ -66,7 +68,7 @@ async def set_tenant_guc(session: AsyncSession, tenant_id) -> None:
     )
 
 
-async def get_session() -> AsyncSession:
+async def get_session() -> AsyncGenerator[AsyncSession, None]:
     """FastAPI dependency that yields an async DB session, clearing the tenant GUC on teardown
     (pool-leak guard — failure mode #4 in the RLS plan). The reset is best-effort and never raises
     into the request."""
