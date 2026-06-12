@@ -186,13 +186,16 @@ async def test_cache_returns_from_cache_on_repeat(client, admin):
     # The per-row cache write is best-effort: kpi_engine does `s.commit()` and rolls back on failure
     # ("cache write failed ... rolled back"). Under `-n auto` (8 xdist workers sharing one dev Postgres)
     # that commit can lose a race, so a single warm call occasionally still misses. Each miss ALSO
-    # writes the cache, so poll a few times until a write sticks — this verifies caching works without
-    # flaking on dev-Postgres contention (serial runs + CI hit on the very first retry).
+    # writes the cache, so poll until a write sticks — with a short sleep BETWEEN tries so the retries
+    # spread across the contention window instead of all landing in one congested burst (verifies
+    # caching works without flaking on dev-Postgres contention; serial runs + CI hit on the first try).
+    import asyncio
     second = None
-    for _ in range(6):
+    for _ in range(10):
         second = (await client.get(f"/api/kpis/{key}/value", headers=admin)).json()
         if second["from_cache"] is True:
             break
+        await asyncio.sleep(0.15)
     assert second["from_cache"] is True, f"warm cache should hit within a few calls, got {second!r}"
     # Cache may serialize floats with fewer decimal places; compare with tolerance.
     import math

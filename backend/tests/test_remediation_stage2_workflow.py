@@ -56,16 +56,16 @@ async def test_dual_engine_overlap_emits_audit_when_present(caplog):
     """
     async with OwnerSessionLocal() as s:
         tenant = (await s.execute(select(Tenant))).scalars().first()
-        # Pick any entity for the legacy claim; we use 'lead' since the demo seed has one.
-        ent = (await s.execute(
-            select(EntityDef).where(EntityDef.tenant_id == tenant.id, EntityDef.key == "lead")
-        )).scalar_one_or_none()
-        if ent is None:
-            # If seed didn't create a lead entity, mint one solely for this test.
-            ent = EntityDef(tenant_id=tenant.id, key="lead", label="Lead",
-                            schema={}, owner_module="Pipeline")
-            s.add(ent)
-            await s.flush()
+        # Use a FRESH entity (no seeded lifecycle WorkflowDef) for the legacy claim. PERFECT-TARGET I5
+        # (uq_workflow_def_one_per_entity) forbids a 2nd lifecycle WorkflowDef per entity, and every
+        # SEEDED entity already carries one — so reusing 'lead' would collide on the I5 index. The
+        # overlap we exercise is legacy(entity_def_id) vs kernel(trigger_spec.entity_key), both pointing
+        # at this fresh entity, which is exactly the dual-engine shape the scan must detect.
+        probe_key = f"dualprobe_{uuid.uuid4().hex[:8]}"
+        ent = EntityDef(tenant_id=tenant.id, key=probe_key, label="Dual-Engine Probe",
+                        label_plural="Dual-Engine Probes", route_slug=probe_key, owner_module="Pipeline")
+        s.add(ent)
+        await s.flush()
 
         # Legacy claim: entity-lifecycle row with config.transitions naming OPEN → CLOSED.
         legacy = WorkflowDef(
@@ -77,13 +77,13 @@ async def test_dual_engine_overlap_emits_audit_when_present(caplog):
         )
         s.add(legacy)
 
-        # Kernel claim: SPEC §5 row with trigger_spec.entity_key='lead' + an advance_stage
+        # Kernel claim: SPEC §5 row with trigger_spec.entity_key=<probe> + an advance_stage
         # action targeting "CLOSED" with from_status="OPEN".
         kernel = WorkflowDef(
             tenant_id=tenant.id,
             key=f"stage2-kernel-{uuid.uuid4().hex[:8]}",
             label="Stage 2 kernel overlap probe",
-            trigger_spec={"type": "record_created", "entity_key": "lead",
+            trigger_spec={"type": "record_created", "entity_key": probe_key,
                           "from_status": "OPEN"},
             actions_spec=[{"type": "advance_stage", "to_stage_key": "CLOSED"}],
             owner_module="Pipeline",
@@ -103,10 +103,10 @@ async def test_dual_engine_overlap_emits_audit_when_present(caplog):
         # Sentinel + overlap tuple both surfaced.
         assert wfke._LEGACY_DUAL_ENGINE_DETECTED is True
         matched = [o for o in overlaps
-                   if o["entity_key"] == "lead"
+                   if o["entity_key"] == probe_key
                    and o["from_status"] == "OPEN"
                    and o["to_status"] == "CLOSED"]
-        assert matched, f"Expected lead/OPEN/CLOSED overlap; got: {overlaps}"
+        assert matched, f"Expected {probe_key}/OPEN/CLOSED overlap; got: {overlaps}"
 
         # Emit the audit Event by replaying the lifespan logic in-test (lifespan already ran).
         async with OwnerSessionLocal() as s:
@@ -173,7 +173,6 @@ async def test_transition_no_duplicate_side_effects(client, admin):
         before = (await s.execute(
             select(Event).where(Event.entity_key == "workitem", Event.record_id == uuid.UUID(wid))
         )).scalars().all()
-        before_count = len(before)
 
     # 2) Fire the start transition (TODO → IN_PROGRESS via the legacy `app.workflow` engine).
     start = await client.post(f"/api/workitems/{wid}/start", headers=admin)

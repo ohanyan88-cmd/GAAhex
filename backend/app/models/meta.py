@@ -2,7 +2,7 @@ from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
-from sqlalchemy import String, Boolean, Integer, ForeignKey, DateTime, func, UniqueConstraint
+from sqlalchemy import String, Boolean, Integer, ForeignKey, DateTime, func, UniqueConstraint, Index, text
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -124,9 +124,14 @@ class WorkflowDef(Base):
         UniqueConstraint("tenant_id", "key", name="uq_workflow_def_key"),
         # File 12 standard 61 — WFL-000001 reference number scoped per-tenant.
         UniqueConstraint("tenant_id", "reference_number", name="uq_workflow_def_reference_number"),
-        # PERFECT-TARGET I5 (determinism) — "one lifecycle WorkflowDef per entity" is the GOAL, but a
-        # DB constraint here is premature: the current seed/test flows create duplicate lifecycle WFs
-        # for some entities. Enforce I5 only AFTER deduping WF creation (CI caught this — I7 working).
+        # PERFECT-TARGET I5 (determinism) — exactly ONE lifecycle WorkflowDef per entity. PARTIAL on
+        # purpose: it constrains only entity-lifecycle rows (entity_def_id NOT NULL); the SPEC §5
+        # cross-entity automation rows (entity_def_id NULL, seeded by seed_workflows.py) are exempt.
+        # The existing uq_workflow_def_key only catches SAME-key dups; this catches a 2nd lifecycle WF
+        # under a DIFFERENT key for the same entity — the determinism hole CI caught when this was first
+        # attempted. Now safe: WF creation is idempotent + the migration dedups any legacy dups first.
+        Index("uq_workflow_def_one_per_entity", "entity_def_id", unique=True,
+              postgresql_where=text("entity_def_id IS NOT NULL")),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
