@@ -214,6 +214,9 @@ def test_prod_contract_passes_with_clean_config(monkeypatch):
     """The positive control: with real providers + an explicit origin list
     the contract is silent."""
     _enter_production(monkeypatch)
+    # The suite sets FEATURE_PAYMENTS_ENABLED=true (conftest); with the default dev provider the C2
+    # payment gate would (correctly) fire, so declare payments off for this positive control.
+    monkeypatch.setattr(settings, "feature_payments_enabled", False)
     _assert_production_deploy_contract()  # must not raise
 
 

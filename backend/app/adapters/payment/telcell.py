@@ -108,7 +108,10 @@ class TelcellGateway:
                     return {"provider_ref": "", "status": "FAILED", "ok": False}
                 ok = True
             else:
-                ok = True   # no sig header; accept + let settle_order be idempotent
+                # C1 — reject unsigned callbacks. The route settles directly on this status with no
+                # independent check_status, so an unsigned "SUCCESS" would forge a payment. Fail-closed.
+                logger.warning("telcell: unsigned callback rejected (no signature)")
+                return {"provider_ref": "", "status": "FAILED", "ok": False}
 
             # Parse JSON body (or form-encoded fallback).
             try:

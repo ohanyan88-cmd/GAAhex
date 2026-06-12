@@ -91,7 +91,10 @@ class IdramGateway:
             if checksum and payer:
                 # Official MD5 checksum.
                 raw_str = ":".join([self._merchant_id, self._secret_key, amount, bill_no, payer, status])
-                ok = hashlib.md5(raw_str.encode()).hexdigest().upper() == checksum
+                # MD5 is iDram's OFFICIAL callback-checksum algorithm (provider protocol — not our
+                # choice; iDram signs with MD5, SHA-256 is not an option). Defence-in-depth: idram is
+                # also gated by C1 (unsigned reject) + C2 (go-live deploy contract).
+                ok = hashlib.md5(raw_str.encode()).hexdigest().upper() == checksum  # nosec B324
             else:
                 sig = (
                     headers.get("X-Idram-Signature") or headers.get("x-idram-signature") or ""
@@ -100,7 +103,10 @@ class IdramGateway:
                     expected = hmac.new(self._secret_key.encode(), body, hashlib.sha256).hexdigest()
                     ok = hmac.compare_digest(expected, sig)
                 else:
-                    ok = True   # no sig — accept; settle_order is idempotent
+                    # C1 — an unsigned callback is NOT proof of payment. The callback route settles
+                    # directly on the returned status with no independent check_status poll, so a forged
+                    # "PAID" with neither a valid MD5 checksum nor an HMAC signature must be rejected.
+                    ok = False
 
             if not ok:
                 logger.warning("idram: checksum mismatch")

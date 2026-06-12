@@ -69,4 +69,56 @@ def test_production_with_separate_roles_passes(monkeypatch):
     monkeypatch.setattr(settings, "sms_gateway_provider", "twilio")
     monkeypatch.setattr(settings, "radius_backend_provider", "freeradius")
     monkeypatch.setattr(settings, "portal_auth_mode", "cookie")
+    # The suite sets FEATURE_PAYMENTS_ENABLED=true (conftest); with the default dev provider the C2
+    # payment gate would fire, so this role-check happy-path declares payments off to stay isolated.
+    monkeypatch.setattr(settings, "feature_payments_enabled", False)
+    _assert_production_deploy_contract()  # must not raise
+
+
+def _prod_base(monkeypatch):
+    """Production happy-path so a payment-gate test isolates the C2 check."""
+    monkeypatch.setattr(settings, "environment", "production")
+    monkeypatch.setattr(settings, "database_url", "postgresql+asyncpg://gaahex_app:y@h:5432/a")
+    monkeypatch.setattr(settings, "owner_database_url", "postgresql+asyncpg://gaahex:y@h:5432/a")
+    monkeypatch.setattr(settings, "cors_origins", "https://app.example.com")
+    monkeypatch.setattr(settings, "payment_gateway_provider", "stripe")
+    monkeypatch.setattr(settings, "email_gateway_provider", "sendgrid")
+    monkeypatch.setattr(settings, "sms_gateway_provider", "twilio")
+    monkeypatch.setattr(settings, "radius_backend_provider", "freeradius")
+    monkeypatch.setattr(settings, "portal_auth_mode", "cookie")
+
+
+def test_payments_enabled_with_dev_provider_raises(monkeypatch):
+    """C2 — FEATURE_PAYMENTS_ENABLED with the dev/mock legacy provider must refuse boot."""
+    _prod_base(monkeypatch)
+    monkeypatch.setattr(settings, "feature_payments_enabled", True)
+    monkeypatch.setattr(settings, "payment_provider", "dev")
+    with pytest.raises(RuntimeError, match="dev/mock gateway must never"):
+        _assert_production_deploy_contract()
+
+
+def test_payments_enabled_unconfirmed_provider_raises(monkeypatch):
+    """C2 — a real legacy provider WITHOUT the go-live affirmation must refuse boot."""
+    _prod_base(monkeypatch)
+    monkeypatch.setattr(settings, "feature_payments_enabled", True)
+    monkeypatch.setattr(settings, "payment_provider", "idram")
+    monkeypatch.setattr(settings, "payment_provider_go_live_confirmed", False)
+    with pytest.raises(RuntimeError, match="GO_LIVE_CONFIRMED"):
+        _assert_production_deploy_contract()
+
+
+def test_payments_enabled_confirmed_provider_passes(monkeypatch):
+    """C2 — a real provider WITH the explicit go-live affirmation boots."""
+    _prod_base(monkeypatch)
+    monkeypatch.setattr(settings, "feature_payments_enabled", True)
+    monkeypatch.setattr(settings, "payment_provider", "idram")
+    monkeypatch.setattr(settings, "payment_provider_go_live_confirmed", True)
+    _assert_production_deploy_contract()  # must not raise
+
+
+def test_payments_disabled_skips_provider_gate(monkeypatch):
+    """C2 — with payments OFF (default), the legacy provider is irrelevant; gate does not fire."""
+    _prod_base(monkeypatch)
+    monkeypatch.setattr(settings, "feature_payments_enabled", False)
+    monkeypatch.setattr(settings, "payment_provider", "dev")
     _assert_production_deploy_contract()  # must not raise

@@ -98,17 +98,20 @@ class TestIdramGateway:
         assert res["ok"] is False
         assert res["status"] == "FAILED"
 
-    def test_verify_callback_failed_status(self):
+    def test_verify_callback_unsigned_rejected(self):
+        # C1 (was test_verify_callback_failed_status, which asserted the INSECURE ok=True on the
+        # no-checksum/no-sig fallback) — neither a valid MD5 checksum nor an HMAC signature → reject,
+        # even a forged SUCCESS.
         gw   = self._gw()
         body = urllib.parse.urlencode({
             "EDP_PAYER_ACCOUNT": "user99",
-            "EDP_TRANS_STATUS":  "FAILED",
+            "EDP_TRANS_STATUS":  "SUCCESS",   # forged success must still be rejected
             "EDP_AMOUNT":        "5000",
             "EDP_BILL_NO":       "xyz",
-            "CHECKSUM":          "",    # empty = fallback path
+            "CHECKSUM":          "",    # empty = no checksum, no signature
         }).encode()
         res = gw.verify_callback(body, {})
-        assert res["ok"] is True
+        assert res["ok"] is False
         assert res["status"] == "FAILED"
 
     @pytest.mark.asyncio
@@ -150,12 +153,14 @@ class TestTelcellGateway:
         res  = gw.verify_callback(body, {"X-Telcell-Signature": "badsig"})
         assert res["ok"] is False
 
-    def test_verify_callback_no_sig_accepted(self):
+    def test_verify_callback_unsigned_rejected(self):
+        # C1 (was test_verify_callback_no_sig_accepted, which asserted the INSECURE ok=True) — the route
+        # settles directly on this result with no check_status, so a forged "SUCCESS" with NO signature
+        # must be rejected: ok=False.
         gw   = self._gw()
         body = json.dumps({"issuer_id": "order_1", "status": "SUCCESS"}).encode()
         res  = gw.verify_callback(body, {})
-        assert res["ok"] is True
-        assert res["status"] == "PAID"
+        assert res["ok"] is False
 
     @pytest.mark.asyncio
     async def test_check_status_returns_pending(self):
@@ -188,13 +193,15 @@ class TestArcaGateway:
         assert res["ok"] is False
         assert res["status"] == "FAILED"
 
-    def test_verify_callback_no_sig_accepted(self):
-        # ARCA response-query pattern — no sig header; caller does check_status.
+    def test_verify_callback_unsigned_rejected(self):
+        # C1 (was test_verify_callback_no_sig_accepted, ok=True) — the callback route settles directly
+        # without calling check_status, so an unsigned ARCA callback is rejected here; legitimate ARCA
+        # settlement flows through reconcile/check_status. A forged PAID (orderStatus=2) with no
+        # signature must be rejected: ok=False.
         gw   = self._gw()
-        body = json.dumps({"orderId": "arca_ref_42", "orderStatus": "0"}).encode()
+        body = json.dumps({"orderId": "arca_ref_42", "orderStatus": "2"}).encode()
         res  = gw.verify_callback(body, {})
-        assert res["ok"] is True
-        assert res["status"] == "FAILED"  # orderStatus=0 = not yet paid
+        assert res["ok"] is False
 
     def test_verify_callback_orderStatus_paid(self):
         gw   = self._gw()
@@ -268,12 +275,13 @@ class TestEasypayGateway:
         res  = gw.verify_callback(body, {"X-Easypay-Signature": "wrongsig"})
         assert res["ok"] is False
 
-    def test_verify_callback_no_sig(self):
+    def test_verify_callback_unsigned_rejected(self):
+        # C1 (was test_verify_callback_no_sig, ok=True) — unsigned callback rejected (fail-closed);
+        # a forged status must not be accepted.
         gw   = self._gw()
-        body = json.dumps({"order_id": "order_abc", "status": "FAILED"}).encode()
+        body = json.dumps({"order_id": "order_abc", "status": "SUCCESS"}).encode()
         res  = gw.verify_callback(body, {})
-        assert res["ok"] is True
-        assert res["status"] == "FAILED"
+        assert res["ok"] is False
 
     @pytest.mark.asyncio
     async def test_check_status_returns_pending(self):

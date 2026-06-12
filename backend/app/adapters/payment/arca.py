@@ -141,7 +141,11 @@ class ArcaGateway:
                     return {"provider_ref": "", "status": "FAILED", "ok": False}
                 ok = True
             else:
-                ok = True   # response-query pattern — no sig; caller verifies via check_status
+                # C1 — the callback route settles directly on cb_status without calling check_status,
+                # so an unsigned ARCA callback would forge a payment. Reject it here; legitimate ARCA
+                # settlement flows through the reconcile job, which calls the real check_status() above.
+                logger.warning("arca: unsigned callback rejected (no signature); settle via reconcile/check_status")
+                return {"provider_ref": "", "status": "FAILED", "ok": False}
 
             try:
                 parsed = json.loads(body.decode("utf-8", errors="replace"))

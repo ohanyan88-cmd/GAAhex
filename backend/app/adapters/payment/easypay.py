@@ -114,7 +114,10 @@ class EasypayGateway:
                     return {"provider_ref": "", "status": "FAILED", "ok": False}
                 ok = True
             else:
-                ok = True   # no sig; accept + let settle_order be idempotent
+                # C1 — reject unsigned callbacks. The route settles directly on this status with no
+                # independent check_status, so an unsigned "SUCCESS" would forge a payment. Fail-closed.
+                logger.warning("easypay: unsigned callback rejected (no signature)")
+                return {"provider_ref": "", "status": "FAILED", "ok": False}
 
             try:
                 parsed = json.loads(body.decode("utf-8", errors="replace"))

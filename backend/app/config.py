@@ -106,10 +106,11 @@ class Settings(BaseSettings):
     payment_provider: str = "dev"              # dev|idram|telcell|arca|easypay
     # C2 KILL-SWITCH — inbound payment callbacks/webhooks are DISABLED until go-live. Default OFF: every
     # inbound payment callback (/payment/callback/{provider} AND /api/webhooks/stripe) returns 503 before
-    # any verification or settle, so the unsigned-callback forgery surface is closed platform-wide while
-    # NO provider is genuinely live. Flip FEATURE_PAYMENTS_ENABLED=true ONLY after reviewing the active
-    # provider's signature verification (the per-vendor go-live checklist: idram/easypay/telcell/arca
-    # default ok=False + full-payload-bound signatures; easypay/telcell check_status is still a stub).
+    # any verification or settle. Defence-in-depth now sits behind it: the adapters REJECT unsigned
+    # callbacks (C1, ok=False on a missing signature) so a forged "PAID" can't settle even if enabled,
+    # and the production deploy contract REFUSES to boot with this flag true on a dev/mock or
+    # un-go-live-confirmed provider (C2). easypay/telcell check_status remain stubs (PENDING) — those
+    # providers settle only via a signed callback until real polling is wired.
     feature_payments_enabled: bool = False
     idram_merchant_id: str | None = None
     idram_secret_key: str | None = None
@@ -120,6 +121,11 @@ class Settings(BaseSettings):
     easypay_merchant_id: str | None = None
     easypay_secret_key: str | None = None
     payment_callback_base_url: str | None = None   # public base URL the provider POSTs callbacks to
+    # C2 — operator's explicit affirmation that the active legacy payment provider's callback-signature
+    # verification was reviewed against the live merchant (the per-vendor go-live checklist). The deploy
+    # contract REFUSES to boot in production with FEATURE_PAYMENTS_ENABLED unless this is true (and the
+    # provider is not dev/mock). Default False = fail-closed: payments cannot silently go live.
+    payment_provider_go_live_confirmed: bool = False
 
     # ─── M1-C: Payment gateway (Stripe / vault-card flow) ──────────────────
     # Independent of the legacy ``payment_provider`` setting above (which drives
@@ -417,6 +423,34 @@ def _assert_production_deploy_contract() -> None:
                 "(app.services.feature_gate.WAREHOUSE_IMPLEMENTED is False). "
                 "Flip the sentinel to True in the same commit that lands the real "
                 "module. See docs/M1A-DEPLOY-CONTRACT.md."
+            )
+
+    # C2 — legacy inbound-payment provider contract (checked LAST so the more fundamental checks above
+    # surface first). FEATURE_PAYMENTS_ENABLED arms the /payment/callback/{provider} route. In
+    # production that route must NOT run on the dev/mock provider (it would settle every order with no
+    # money moved), nor on a placeholder adapter (idram/telcell/arca/easypay) whose callback-signature
+    # formula has not been validated against the live merchant. The adapters now reject unsigned
+    # callbacks (C1), but a placeholder signing formula is still unproven — so
+    # PAYMENT_PROVIDER_GO_LIVE_CONFIRMED=true is the operator's explicit affirmation that the per-vendor
+    # signature verification was reviewed. This turns the go-live checklist from a code comment into an
+    # enforced boot gate (closes the audit C2 finding).
+    if settings.feature_payments_enabled:
+        prov = (settings.payment_provider or "").strip().lower()
+        if prov in ("dev", "mock", ""):
+            raise RuntimeError(
+                "Production deploy contract violation: FEATURE_PAYMENTS_ENABLED=true with "
+                f"PAYMENT_PROVIDER={settings.payment_provider!r} — the dev/mock gateway must never "
+                "settle real payments in production. Configure a real provider. "
+                "See docs/M1A-DEPLOY-CONTRACT.md."
+            )
+        if not settings.payment_provider_go_live_confirmed:
+            raise RuntimeError(
+                "Production deploy contract violation: FEATURE_PAYMENTS_ENABLED=true with "
+                f"PAYMENT_PROVIDER={prov!r}, but PAYMENT_PROVIDER_GO_LIVE_CONFIRMED is not set. The "
+                "callback adapters reject unsigned callbacks (C1), but each provider's signing formula "
+                "is a placeholder until validated against the live merchant — set "
+                "PAYMENT_PROVIDER_GO_LIVE_CONFIRMED=true ONLY after that review. "
+                "See docs/M1A-DEPLOY-CONTRACT.md."
             )
 
 

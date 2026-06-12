@@ -269,4 +269,7 @@ def test_production_contract_passes_when_all_features_off(monkeypatch):
     to pass."""
     _enter_production(monkeypatch)
     # All four features stay False (set by _enter_production).
+    # The suite sets FEATURE_PAYMENTS_ENABLED=true (conftest); with the default dev provider the C2
+    # payment gate would (correctly) fire, so declare payments off to keep this a feature-gate sanity.
+    monkeypatch.setattr(settings, "feature_payments_enabled", False)
     _assert_production_deploy_contract()  # must not raise

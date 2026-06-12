@@ -867,16 +867,13 @@ async def pareto(entity_key: str, group_field: str = "category", limit: int = 10
     # can't probe arbitrary entity volumes via Pareto without the entity-view perm.
     await _assert_view_permission(s, user, entity_key)
 
+    # group_field + entity_key are validated isalnum()+underscore above (≈L863) before interpolation;
+    # a PostgreSQL JSONB key path (data->>'<key>') cannot be a bind parameter, so interpolation is the
+    # only option and is safe given the character allowlist. tid/ek/lim ARE bound. Kept on one line so
+    # the `# nosec B608` annotation lands on the f-string line bandit reports.
+    _pareto_sql = sql_text(f"SELECT COALESCE(data->>'{group_field}','unknown') AS cat, COUNT(*) AS cnt FROM record WHERE tenant_id = :tid AND entity_key = :ek AND deletion_state NOT IN ('SOFT_DELETED','PURGED') GROUP BY COALESCE(data->>'{group_field}','unknown') ORDER BY cnt DESC LIMIT :lim")  # nosec B608
     rows = (await s.execute(
-        sql_text(f"""
-            SELECT COALESCE(data->>'{group_field}','unknown') AS cat, COUNT(*) AS cnt
-            FROM record
-            WHERE tenant_id = :tid AND entity_key = :ek
-              AND deletion_state NOT IN ('SOFT_DELETED','PURGED')
-            GROUP BY COALESCE(data->>'{group_field}','unknown')
-            ORDER BY cnt DESC
-            LIMIT :lim
-        """),
+        _pareto_sql,
         {"tid": str(user.tenant_id), "ek": entity_key, "lim": int(limit)}
     )).all()
     total = sum(int(r[1]) for r in rows)
