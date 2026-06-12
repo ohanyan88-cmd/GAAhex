@@ -504,7 +504,9 @@ async def assert_can_read_region(
     # 4. Otherwise → CrossRegionDenied (default-deny per SPEC §0.2 + §0.6)
     from .. import access  # local to avoid module-load circularity
     grants = await access.load_grants(s, user)
-    if any(p == "*" for r in grants for p in (r.get("permissions") or [])):
+    # load_grants returns Grant dataclasses (NOT dicts) — `.permissions` is a set; "*" is the wildcard
+    # marker (super_admin), same precedence as access._has_perm. (Was r.get("permissions") → AttributeError.)
+    if any("*" in g.permissions for g in grants):
         return
 
     # Walk user's assignments; check region_scope + per-node region projection
