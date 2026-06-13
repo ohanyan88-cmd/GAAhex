@@ -69,7 +69,7 @@
   background: var(--gx-success);
 }
 
-/* ---- Inline placeholder used by P1 only (deleted in P2/P3) ---- */
+/* ---- Inline empty-state placeholder (.studio-empty) ---- */
 .studio-empty {
   padding: 18px 14px;
   font-size: 12px;

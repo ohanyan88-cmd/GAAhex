@@ -1,5 +1,6 @@
 // OrderDetailModal — detail/edit drawer for a single order.
-// Extracted from OrdersView.tsx; no logic changes.
+// The sole order-detail UI (the standalone OrdersView was removed 2026-06-13 in
+// favour of the config-driven entity/orders view; this drawer is reused by LeadGatesPanel).
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useI18n } from '../../lib/i18n'

@@ -162,8 +162,7 @@ exist. (D19 reconciliation, this patch.)
 **Font stack lock (D18, 2026-06-04).** The canonical font stacks are
 `--gx-font-display` (Space Grotesk), `--gx-font-sans` (IBM Plex Sans),
 `--gx-font-mono` (IBM Plex Mono), `--gx-font-am` (Noto Sans Armenian). `system-ui`
-and `Inter` are FORBIDDEN in any font stack across the codebase (one exception:
-the typography decision record at `docs/branding/_research/06-typography-inter-vs-plex.md`).
+and `Inter` are FORBIDDEN in any font stack across the codebase.
 Component code MUST reference `var(--gx-font-*)`, never bare family names.
 
 **Backend color-string guard (D18, 2026-06-04).** Palette family names ("cobalt",

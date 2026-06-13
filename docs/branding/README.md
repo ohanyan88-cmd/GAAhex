@@ -103,23 +103,23 @@ What the frontend actually uses, and where the v3.0 source comes from:
 | `frontend/public/app-icons/icon-maskable-512.png` | `v3.0/04-pwa/pwa-512-maskable.png` |
 | `frontend/public/social/og-image.png` | `v3.0/05-social/og-default.png` |
 
-The pre-v3.0 versions of these files are archived under
-`frontend/public/_archive-pre-v3.0/` for emergency rollback only — they are NOT
-served and are NOT canonical.
+The pre-v3.0 versions of these files were kept under
+`frontend/public/_archive-pre-v3.0/` for emergency rollback; that redundant copy
+was removed 2026-06-13 (Gev) — the pre-v3.0 originals remain recoverable from git
+history (any commit before the v3.0 cutover) if a rollback is ever needed.
 
-## Historical trail (do not delete, do not promote)
+## Historical trail
 
-The root of `docs/branding/` holds **decision-trail and research files** that
-preceded the v3.0 certification:
+The pre-v3.0 decision-trail / research files that once lived at the root of
+`docs/branding/` — `AUDIT.md`, `PROPOSAL.md`, `LOGO_BRIEF.md`, the 2026-06-04
+sweep records, `gx-to-repo-mapping.md`, `_research/`, `logo-proposals/`, and the
+pre-D18 `_archive/` — were **removed 2026-06-13** to bring the folder to a clean
+final v1. They remain recoverable from git history if ever needed. `v3.0/` is the
+canonical brand; where any of those ever disagreed with it, v3.0 wins.
 
-- `AUDIT.md`, `LOGO_BRIEF.md`, `PROPOSAL.md` — the brief and audit that informed v3.0
-- `VOICE_GUIDE.md` — voice tone (orthogonal to visual brand)
-- `SWEEP_SPEC_2026-06-04.md`, `sweep-baseline-2026-06-04.txt`, `sweep-verification-2026-06-04.txt`, `voice-sweep-2026-06-04.md` — content-pass records
-- `gx-to-repo-mapping.md` — token-to-codebase mapping notes
-- `_research/` — industry research (Linear, Stripe, Mailchimp voice, Vercel Geist, etc.)
-- `logo-proposals/` — early proposal SVGs; v3.0 is the chosen direction
-
-These files exist for context. **Where they disagree with v3.0, v3.0 wins.**
+The one decision-trail file **retained** is **`VOICE_GUIDE.md`** — it is not
+scaffolding but the live voice/tone reference (including the Armenian register
+that governs the `hy` i18n bundle). It is slated to relocate to `docs/standards/`.
 
 ## Binding rules (every future contributor)
 

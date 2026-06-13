@@ -4,6 +4,10 @@ description: Use this skill to generate well-branded interfaces and assets for G
 user-invocable: true
 ---
 
+> ⚠️ Reference snapshot — the **canonical** tokens live in the runtime
+> `frontend/src/styles/gaahex-tokens.css` (D19 Path A). `colors_and_type.css` here mirrors them
+> (synced 2026-06-13) for standalone use; if they diverge, the runtime wins.
+
 Read the `README.md` file in this skill first — it covers GAAhex's product context, content voice,
 visual foundations (Cobalt & Gold), iconography, and a manifest of every file here.
 

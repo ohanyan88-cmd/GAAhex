@@ -1,5 +1,12 @@
 # Using Claude Code to apply the GAAhex Design System to `ohanyan88-cmd/GAAhex`
 
+> ⚠️ **STATUS 2026-06-13 — this reskin is DONE.** The `frontend/` app is already built
+> from this system. The **canonical** tokens are `frontend/src/styles/gaahex-tokens.css`
+> (runtime, D19 Path A) — newer than `colors_and_type.css` here. **Ignore Prompt 1's
+> "copy colors_and_type.css over gaahex-tokens.css"** (it would overwrite newer tokens).
+> Treat this whole guide as the historical migration record. Use the folder going forward
+> as a **reference + Agent Skill** for designing NEW on-brand screens.
+
 A start-to-finish workflow. You'll (A) get these design files into your repo, (B) open Claude Code,
 (C) run a sequence of copy-paste prompts that reskin the app module by module.
 

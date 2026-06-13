@@ -57,7 +57,7 @@ Swagger: http://127.0.0.1:8099/docs
 - **D18 Color Architecture is authoritative.** Cobalt = spine · Gold = signature · Azure (`#0EA5E9`) = interactive · Slate = neutrals · Semantic = status. One family, one role; **roles never overlap.**
 - **Trademark:** the canonical name is **GAAhex™**.
 - **No redesign, reinterpretation, or "improvement."** Logo geometry / spacing / typography / brand architecture are unchanged. Any new asset must derive from `docs/branding/v3.0/00-source/gaahex-master.*`.
-- **Runtime assets** in `frontend/public/` (`logo/`, `favicon/`, `app-icons/`, `social/`) are v3.0 derivatives as of 2026-06-06. Pre-v3.0 originals are at `frontend/public/_archive-pre-v3.0/` for emergency rollback only.
+- **Runtime assets** in `frontend/public/` (`logo/`, `favicon/`, `app-icons/`, `social/`) are v3.0 derivatives as of 2026-06-06. The pre-v3.0 originals (the old `_archive-pre-v3.0/` rollback copy) were removed 2026-06-13 (Gev) as redundant — they remain recoverable from git history (any commit before the v3.0 cutover) if an emergency rollback is ever needed.
 - **Runtime tokens** in `frontend/src/styles/gaahex-tokens.css` are governed by D19 Path A (sealed 2026-06-05). Brand-source tokens at `docs/branding/v3.0/11-figma/tokens/gaahex-tokens.css` are the reference; the runtime is the canonical at-deploy values.
 
 A change that would relax any brand rule is a sealed-baseline conversation, not a casual PR.

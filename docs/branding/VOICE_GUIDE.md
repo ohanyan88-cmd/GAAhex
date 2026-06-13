@@ -4,7 +4,7 @@
 > §6 (Armenian register) added by Լոջ, 2026-06-04.
 >
 > Foundations: Mailchimp Content Style Guide structure, but the register is
-> different — see `_research/03-mailchimp-voice.md` for the adaptations.
+> different — operator-grade, not marketing.
 > Honesty floor from `.md` is non-negotiable.
 
 ---

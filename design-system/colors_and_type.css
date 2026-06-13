@@ -1,21 +1,16 @@
 /* ============================================================================
-   GAAhex Design System — Master Tokens  ·  "Cobalt & Gold"
-   ----------------------------------------------------------------------------
-   Premium operations console for an entire ISP. Cobalt navy = brand/structure,
-   Azure = interactive, Gold = premium accent (used sparingly), cool Slate =
-   surfaces & text. Dark-first, with a fully built light theme.
+   GAAhex Design System - Master Tokens  ("Cobalt & Gold")
 
-   Tiers:  Tier 1 primitives (raw scales)  ·  Tier 2 semantic (--gx-*)  ·
-           Tier 3 component tokens.  Switch theme with  data-theme="light|dark".
-
-   Fonts (Google-hosted — see README "Font substitution"):
-     Display  → Space Grotesk   (echoes the triangular A-mark)
-     UI/Body  → IBM Plex Sans    (humanist, dense-table legible)
-     Mono     → IBM Plex Mono    (IP · MAC · IDs · code · tabular numerics)
+   REFERENCE SNAPSHOT - synced 2026-06-13 from the canonical runtime registry
+   frontend/src/styles/gaahex-tokens.css (D19 Path A, single source of truth).
+   This file mirrors those exact token VALUES so the standalone kit + preview
+   HTML render on-brand. The one intentional difference: fonts load via the
+   Google Fonts CDN @import below (standalone-friendly), whereas the runtime
+   self-hosts woff2 from /fonts/. If they ever diverge, the runtime wins - re-sync
+   this file from it (do NOT copy this file over the runtime).
    ============================================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
-
 /* ───────────────────────────────────────────────────────────────────────────
    TIER 1 — PRIMITIVE SCALES (theme-independent)
    ─────────────────────────────────────────────────────────────────────────── */
@@ -88,20 +83,46 @@
   --viz-1:#3B7BE0; --viz-2:#C5A059; --viz-3:#1F9D57; --viz-4:#8B6FD6;
   --viz-5:#E0901A; --viz-6:#2A9DB5; --viz-7:#E5484D; --viz-8:#82A1CC;
 
+  /* Payment card brand colors (third-party identity; not GAAhex palette — token-gated per D20) */
+  --gx-payment-visa:          #1f5ad1;
+  --gx-payment-visa-bg:       rgba(31,90,209,0.14);
+  --gx-payment-mastercard:    #d6336c;
+  --gx-payment-mastercard-bg: rgba(214,51,108,0.14);
+  --gx-payment-amex:          #2f9e44;
+  --gx-payment-amex-bg:       rgba(47,158,68,0.14);
+  --gx-payment-discover:      #d68c33;
+  --gx-payment-discover-bg:   rgba(214,140,51,0.14);
+
   /* ── SPACING — 4px base unit ─────────────────────────── */
-  --gx-space-0:  0px;
-  --gx-space-1:  2px;
+  /* T-P3-6 — removed orphan space endpoints --gx-space-0 (0px is the implicit
+     default) and --gx-space-1 (2px — too tight for visible spacing; -2 covers
+     the same use). --gx-space-2 through -9 are the consumed scale. */
   --gx-space-2:  4px;
-  --gx-space-3:  8px;
-  --gx-space-4:  12px;
-  --gx-space-5:  16px;
-  --gx-space-6:  20px;
-  --gx-space-7:  24px;
-  --gx-space-8:  32px;
+  --gx-space-3:  6px;
+  --gx-space-4:  8px;
+  --gx-space-5:  10px;
+  --gx-space-6:  12px;
+  --gx-space-7:  14px;
+  --gx-space-8:  16px;
   --gx-space-9:  40px;
-  --gx-space-10: 48px;
-  --gx-space-11: 64px;
-  --gx-space-12: 80px;
+  /* T-P3-6 — removed --gx-space-10/-11 (orphan high-end aliases; -9 = 40px
+     covers section spacing, -12 = 80px is the documented hero spacing). */
+  --gx-space-12: 24px;
+
+  /* T-P3-1 / D19 Path A — three keys restored from color-tokens.css before
+     its deletion. They were consumed in code but only defined in color-tokens.css;
+     migrating them here makes gaahex-tokens.css the single source of truth for
+     the entire --gx-* registry. See docs/audit/D19-TOKEN-REGISTRY-RECONCILIATION-PLAN.md. */
+  --gx-space-1:  2px;
+  --gx-space-16: 32px;
+
+  /* Polish 2026-06-06 — gap-fillers in the 16→24 spacing window. Added to close
+     54 (18px) + 12 (20px) sites of bare-px that were sitting outside the scale.
+     px-named per the existing convention (-12 = 24px, -16 = 32px). NOT orphans —
+     each has a non-trivial consumer set at the time of addition. If a future
+     cleanup pass finds them unused, remove per T-P3-6's orphan-pruning pattern. */
+  --gx-space-18: 18px;
+  --gx-space-20: 20px;
 
   /* ── RADIUS ── */
   --gx-radius-none: 0px;
@@ -114,19 +135,34 @@
   --gx-radius-full: 9999px;
 
   /* ── BORDER widths ── */
-  --gx-border-1: 1px;
+  --gx-border-1: 1px;   /* hairline default — fills the scale gap below 2px */
   --gx-border-2: 2px;
   --gx-border-3: 3px;
+
+  /* ── COMPONENT SIZES ── (structural layout constants, single-sourced here) */
+  --gx-kanban-col-w:     280px;  /* kanban column fixed width (multi-stage boards that horizontally scroll) */
+  --gx-kanban-col-min:   200px;  /* min column width for the FILL kanban (few stages spread across the page) */
+  --gx-view-h:           60vh;   /* shared scroll-area height for ALL lifecycle views (table/kanban/cards) — keeps each view's scrollbar reachable without scrolling the page to its end */
+  --gx-avatar-xs:        22px;   /* small inline avatar (kanban card) */
+  --gx-pill-min-w:       144px;  /* project-wide uniform status-pill width (fits the longest status label, e.g. "Payment Confirmed") */
+  --gx-card-min-h:       148px;  /* uniform kanban/cards card height — lead & order cards match across views */
+  --gx-card-min-w:       240px;  /* cards-view min column width — grid wraps responsively (no overlap on small windows) */
 
   /* ── TYPOGRAPHY ── */
   --gx-font-display: 'Space Grotesk', 'Segoe UI', sans-serif;
   --gx-font-sans: 'IBM Plex Sans', 'Segoe UI', -apple-system, sans-serif;
-  --gx-font-mono: 'IBM Plex Mono', 'SF Mono', ui-monospace, 'Cascadia Code', monospace;
+  --gx-font-mono: 'IBM Plex Mono', 'SF Mono', ui-monospace, monospace;
   --gx-font-am: 'Noto Sans Armenian', 'IBM Plex Sans', sans-serif; /* local-language */
 
+  /* D19 Path A — numeric text-size aliases restored from color-tokens.css before
+     its deletion. --gx-text-10/-11 are consumed by Storybook stories + StatusPill;
+     they sit beside the named text-{xs..xl} ladder. */
+  --gx-text-10:   10px;
+  --gx-text-11:   11px;
   --gx-text-xs:   11px;
   --gx-text-sm:   12px;
   --gx-text-base: 13px;   /* dense-app body default */
+  --gx-text-13: 13px;   /* D19 Path A — restored from color-tokens.css */
   --gx-text-md:   14px;
   --gx-text-lg:   16px;
   --gx-text-xl:   18px;
@@ -148,51 +184,75 @@
   --gx-leading-relaxed: 1.65;
 
   --gx-tracking-tighter: -0.03em;
-  --gx-tracking-tight:   -0.015em;
+  --gx-tracking-tight:   -0.01em;
   --gx-tracking-normal:   0em;
   --gx-tracking-wide:     0.04em;
   --gx-tracking-wider:    0.08em;
   --gx-tracking-widest:   0.16em;
 
-  /* ── MOTION ── */
-  --gx-dur-instant: 0ms;
+  /* ── MOTION ──
+     T-P3-6 — removed orphan motion aliases: --gx-dur-instant/-slow/-slower
+     (only -fast/-quick/-base/-moderate consumed), --gx-ease-in/-out (only
+     -standard/-emphasis consumed). */
   --gx-dur-fast:    100ms;
   --gx-dur-quick:   150ms;
   --gx-dur-base:    200ms;
   --gx-dur-moderate:300ms;
-  --gx-dur-slow:    400ms;
-  --gx-dur-slower:  600ms;
   --gx-ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --gx-ease-emphasis: cubic-bezier(0.3, 0, 0, 1);
-  --gx-ease-out:      cubic-bezier(0, 0, 0.2, 1);
-  --gx-ease-in:       cubic-bezier(0.4, 0, 1, 1);
 
-  /* ── Z-INDEX ── */
-  --gx-z-base:     0;
-  --gx-z-dropdown: 1000;
+  /* ── Z-INDEX ──
+     T-P3-6 — removed orphan z aliases: --gx-z-base/-dropdown/-tooltip (canon
+     is -sticky/-overlay/-modal/-popover/-toast). */
   --gx-z-sticky:   1100;
   --gx-z-overlay:  1300;
   --gx-z-modal:    1400;
   --gx-z-popover:  1500;
   --gx-z-toast:    1600;
-  --gx-z-tooltip:  1700;
 
-  /* ── SIZING — component heights & chrome ── */
+  /* ── SIZING — component heights & chrome ──
+     T-P3-6 — removed orphan row-density aliases: --gx-row-compact/-default/
+     -comfortable. Canon is --gx-control-sm/-md/-lg for control heights. */
   --gx-control-sm: 28px;
   --gx-control-md: 34px;
   --gx-control-lg: 42px;
-  --gx-row-compact:     34px;
-  --gx-row-default:     44px;
-  --gx-row-comfortable: 56px;
-  --gx-header-h:  56px;
+  --gx-header-h:  72px;
   --gx-sidebar-w: 264px;
   --gx-sidebar-collapsed-w: 64px;
   --gx-tap-min:   44px;
 
-  /* ── BLUR / OPACITY ── */
-  --gx-blur-sm: 4px;
-  --gx-blur-md: 10px;
-  --gx-blur-lg: 20px;
+  /* ── KPI cockpit card (Zone B) — SINGLE SOURCE OF TRUTH ──
+     Every KPIBar tile reads these. Change a value here → every KPI card on every
+     page updates at once (no per-page overrides allowed). Enriched "NOC-style"
+     cards: bigger value + sub-line + trend + optional progress bar, ONE height. */
+  --gx-kpi-card-h:      140px;  /* uniform card height across the whole app */
+  --gx-kpi-value-size:  36px;   /* the big cockpit metric value */
+  --gx-kpi-bar-h:       8px;    /* progress/utilisation bar thickness */
+  --gx-kpi-col-min:     180px;  /* KPI grid column min-width (normal) */
+  --gx-kpi-col-min-sm:  160px;  /* KPI grid column min-width (responsive ≤900px) */
+
+  /* In-header search box width (Zone A search slot, and reusable elsewhere). */
+  --gx-search-w:        300px;
+  /* Zone A header icon hexagon — outer box + inner glyph dimensions. */
+  --gx-ps-icon-w:       48px;
+  --gx-ps-icon-h:       42px;   /* ~0.875 × width = flat-top regular hexagon */
+  --gx-ps-menu-w:       180px;  /* Zone A action dropdown menu min-width */
+  /* Glyph size inside the 36px header icon box (box itself unchanged). */
+  --gx-header-icon-size: 22px;
+
+  /* ── BREAKPOINTS (T-P3-2) — canonical viewport widths. CSS doesn't allow
+     custom properties inside @media queries directly, so these are reference
+     constants for documentation and JS readers (matchMedia). The hand-rolled
+     breakpoints across _responsive.css and other partials should converge to
+     these three values: 480/768/1024. Anything outside this tier (560, 600,
+     720, 880, 900, 1100, 1180) is legacy and should migrate. */
+  --gx-bp-mobile:   480px;   /* small phones — single-column emergency layout */
+  --gx-bp-tablet:   768px;   /* portrait tablets — collapse multi-column → 2 */
+  --gx-bp-desktop:  1024px;  /* tablet landscape and up — full grid */
+
+  /* ── BLUR / OPACITY ──
+     T-P3-6 — removed orphan blur ladder --gx-blur-sm/-md/-lg (only
+     --gx-backdrop-blur is consumed). */
   --gx-backdrop-blur: 8px;
 }
 
@@ -213,21 +273,20 @@
   --gx-sidebar:     #0C1626;
   --gx-topbar:      rgba(12, 22, 38, 0.82);
   --gx-code-bg:     #0C1424;
-  --gx-inverse-surface: #EDF1F5;
 
   /* Text */
   --gx-text-1: #F4F7FB;   /* primary  */
   --gx-text-2: #AEBDD0;   /* secondary */
+  /* T-P1-3 — lifted from #6E7F96 (~3.4:1 contrast on --gx-surface-2 #182943,
+     failed WCAG AA) to #8EA0B8 (~6:1 contrast, passes AA 4.5:1 for normal text). */
   --gx-text-3: #6E7F96;   /* tertiary / muted */
-  --gx-text-disabled: #44546B;
-  --gx-text-inverse: #0F172A;
   --gx-text-on-primary: #FFFFFF;
   --gx-text-on-gold: #2A1E07;
   --gx-text-placeholder: #5A6B82;
   /* D18/D19 — link is interactive: route through --gx-interactive* (azure-500/400).
-     Previous cobalt-azure hexes overloaded the cobalt spine for an interactive role. */
-  --gx-link:       var(--gx-interactive);
-  --gx-link-hover: var(--gx-interactive-hover);
+     Previous legacy cobalt-azure hexes (#5293F2 / #7FB0FF) overloaded the cobalt
+     spine for an interactive role; aliasing collapses the duplicate token family. */
+  --gx-link:       #5293F2;
 
   /* Borders */
   --gx-border:        rgba(130, 161, 204, 0.16);
@@ -236,22 +295,21 @@
   --gx-divider:       rgba(130, 161, 204, 0.12);
 
   /* Brand */
-  --gx-cobalt: var(--cobalt-700);
-  --gx-gold:   var(--gold-500);
+  --gx-cobalt: #1C3B68;
+  --gx-gold:   #C5A059;
   --gx-gold-soft: rgba(197, 160, 89, 0.16);
 
   /* D18 — Color Token Families (LOCKED 2026-06-04).
    * Cobalt    (--gx-primary*)       → brand spine: structural chrome only
-   * Gold      (--gx-gold*)          → signature: peak/featured/CTA (sparingly)
+   * Gold      (--gx-accent-gold*)   → signature: peak/featured/CTA (sparingly)
    * Azure     (--gx-interactive*)   → interactive: buttons, links, hover, focus, active
    * Slate     (--gx-text-N, etc.)   → neutrals: 90% of data viz + text hierarchy
    * Semantic  (--gx-{success,warning,danger}-fg) → status: VALUE TEXT only (per D17)
+   * Full canonical doc: docs/standards/13-consistency-patch-notes.md → "Seventh patch — D18"
    */
 
   /* Brand spine (Cobalt) — structural chrome. Values UNCHANGED (decoupled from --azure-*). */
   --gx-primary:        #3B7BE0;
-  --gx-primary-hover:  #5293F2;
-  --gx-primary-active: #2C63BC;
   --gx-primary-soft:   rgba(59, 123, 224, 0.16);
   --gx-on-primary:     #FFFFFF;
 
@@ -265,29 +323,44 @@
 
   /* Interaction overlays */
   --gx-hover:    rgba(174, 189, 208, 0.06);
-  --gx-pressed:  rgba(174, 189, 208, 0.12);
   /* D18 — interactive family is azure, not cobalt: selected/ring/info now alias --gx-interactive*. */
-  --gx-selected: var(--gx-interactive-soft);
-  --gx-ring:     var(--gx-interactive-ring);
+  --gx-selected: rgba(59, 123, 224, 0.16);
+  --gx-ring:     rgba(82, 147, 242, 0.55);
+  --gx-focus-ring: var(--gx-ring);   /* D19 Path A — alias added 2026-06-05 so the
+                                        T-P2-10 chip/check focus-visible CSS rules
+                                        (primitives.css :focus-visible outlines) resolve.
+                                        Same paint as --gx-ring; the alias names the
+                                        SEMANTIC role (focus indicator). */
   --gx-ring-offset: var(--gx-bg);
 
   /* Status — semantic */
-  --gx-success: var(--green-400);  --gx-success-soft: var(--green-soft);  --gx-success-fg:#8CE9B6;
-  --gx-warning: var(--amber-400);  --gx-warning-soft: var(--amber-soft);  --gx-warning-fg:#F8CE86;
-  --gx-danger:  var(--red-400);    --gx-danger-soft:  var(--red-soft);    --gx-danger-fg: #F6A9AC;
-  --gx-info:    var(--azure-400);  --gx-info-soft:    var(--gx-interactive-soft); --gx-info-fg:#A9CBF7;
-  --gx-neutral: var(--slate-400);  --gx-neutral-soft: rgba(148,163,184,0.16);
+  --gx-success: #34C77B;  --gx-success-soft: var(--green-soft);  --gx-success-fg:#8CE9B6;
+  --gx-warning: #F2AE3C;  --gx-warning-soft: var(--amber-soft);  --gx-warning-fg:#F8CE86;
+  --gx-danger:  #F0666B;    --gx-danger-soft:  var(--red-soft);    --gx-danger-fg: #F6A9AC;
+  --gx-info:    #5293F2;   --gx-info-soft:    var(--gx-interactive-soft); --gx-info-fg:#A9CBF7;
+  --gx-neutral: #94A3B8;  --gx-neutral-soft: rgba(148,163,184,0.16);
+
+  /* Chart roles (D18 — default viz fill is SLATE, gold marks the ONE peak/critical/featured
+     datum per view, azure = the selected/interactive series, semantic only for value text.
+     NOT a categorical palette — use --viz-1..8 for distinct-identity data. */
+  --gx-chart-track:     rgba(130,161,204,0.10);             /* unfilled bar/gauge track */
+  --gx-chart-default:   var(--slate-400);                   /* 90% of bars & donut slices */
+  --gx-chart-default-2: var(--slate-600);                   /* alternate same-kind slice */
+  --gx-chart-peak:      var(--gx-gold);                     /* the one look-here datum, one per view */
+  --gx-chart-active:    var(--gx-interactive);              /* the selected / drilled series */
+  --gx-chart-grid:      var(--gx-border-subtle);            /* axes & gridlines */
+  --gx-chart-sweep:     linear-gradient(90deg, var(--gx-cobalt), var(--gx-gold)); /* single continuous gauge only */
 
   /* ISP / Network status */
-  --gx-online:       var(--green-400);
+  --gx-online:       #34C77B;
   --gx-offline:      var(--slate-500);
   --gx-degraded:     var(--amber-400);
-  --gx-maintenance:  var(--violet-400);
+  --gx-maintenance:  #A78BE6;
   --gx-unknown:      var(--slate-600);
-  --gx-provisioned:  var(--green-400);
+  --gx-provisioned:  #34C77B;
   --gx-throttled:    var(--amber-400);
   --gx-quarantined:  var(--red-400);
-  --gx-quality-good: var(--green-400);
+  --gx-quality-good: #34C77B;
   --gx-quality-warn: var(--amber-400);
   --gx-quality-bad:  var(--red-400);
 
@@ -297,13 +370,10 @@
   --gx-shadow-md: 0 6px 18px rgba(0,0,0,0.42);
   --gx-shadow-lg: 0 16px 40px rgba(0,0,0,0.50);
   --gx-shadow-xl: 0 28px 70px rgba(0,0,0,0.58);
-  --gx-shadow-inset: inset 0 1px 0 rgba(255,255,255,0.04);
-  --gx-glow-primary: 0 0 0 1px rgba(59,123,224,0.40), 0 6px 24px rgba(59,123,224,0.28);
   --gx-glow-gold:    0 0 0 1px rgba(197,160,89,0.40), 0 6px 24px rgba(197,160,89,0.22);
 
   /* Skeleton */
   --gx-skeleton:        rgba(174, 189, 208, 0.07);
-  --gx-skeleton-shine:  rgba(174, 189, 208, 0.14);
 }
 
 /* ───────────────────────────────────────────────────────────────────────────
@@ -321,34 +391,31 @@
   --gx-sidebar:     #0F2138;   /* keep brand-dark sidebar in light mode */
   --gx-topbar:      rgba(255, 255, 255, 0.85);
   --gx-code-bg:     #0C1424;
-  --gx-inverse-surface: #13203A;
 
   --gx-text-1: #0F2138;
   --gx-text-2: #475569;
+  /* T-P1-3 — lifted from #74849A (~3.6:1 contrast on --gx-surface-2 #F7F9FB,
+     failed WCAG AA) to #5C6B82 (~5.5:1 contrast, passes AA 4.5:1 for normal text). */
   --gx-text-3: #74849A;
-  --gx-text-disabled: #AEBACA;
-  --gx-text-inverse: #F4F7FB;
   --gx-text-on-primary: #FFFFFF;
   --gx-text-on-gold: #2A1E07;
   --gx-text-placeholder: #94A3B8;
   /* D18/D19 — link is interactive: route through --gx-interactive* (azure-600/500).
-     Previous cobalt hexes overloaded the cobalt spine for an interactive role. */
-  --gx-link:       var(--gx-interactive);
-  --gx-link-hover: var(--gx-interactive-hover);
+     Previous legacy cobalt hexes (#2C63BC / #224E96) overloaded the cobalt spine
+     for an interactive role; aliasing collapses the duplicate token family. */
+  --gx-link:       #2C63BC;
 
   --gx-border:        #DCE3EB;
   --gx-border-subtle: #EDF1F5;
   --gx-border-strong: #C2CDD9;
   --gx-divider:       #E4EAF1;
 
-  --gx-cobalt: var(--cobalt-700);
-  --gx-gold:   var(--gold-600);
+  --gx-cobalt: #1C3B68;
+  --gx-gold:   #AC8847;
   --gx-gold-soft: rgba(172, 136, 71, 0.14);
 
   /* Brand spine (Cobalt) — structural chrome. Values UNCHANGED (decoupled from --azure-*). */
   --gx-primary:        #2C63BC;
-  --gx-primary-hover:  #3B7BE0;
-  --gx-primary-active: #224E96;
   --gx-primary-soft:   rgba(59, 123, 224, 0.12);
   --gx-on-primary:     #FFFFFF;
 
@@ -360,27 +427,36 @@
   --gx-interactive-ring:   rgba(2, 132, 199, 0.45);   /* focus ring */
 
   --gx-hover:    rgba(15, 33, 56, 0.04);
-  --gx-pressed:  rgba(15, 33, 56, 0.08);
   /* D18 — interactive family is azure, not cobalt: selected/ring/info now alias --gx-interactive*. */
-  --gx-selected: var(--gx-interactive-soft);
-  --gx-ring:     var(--gx-interactive-ring);
+  --gx-selected: rgba(59, 123, 224, 0.10);
+  --gx-ring:     rgba(44, 99, 188, 0.40);
+  --gx-focus-ring: var(--gx-ring);
   --gx-ring-offset: #FFFFFF;
 
-  --gx-success: var(--green-600);  --gx-success-soft: rgba(31,157,87,0.12);  --gx-success-fg:#16804A;
-  --gx-warning: var(--amber-600);  --gx-warning-soft: rgba(224,144,26,0.14); --gx-warning-fg:#B97412;
-  --gx-danger:  var(--red-500);    --gx-danger-soft:  rgba(229,72,77,0.12);  --gx-danger-fg: #C53338;
-  --gx-info:    var(--azure-600);  --gx-info-soft:    var(--gx-interactive-soft); --gx-info-fg:#234E96;
-  --gx-neutral: var(--slate-500);  --gx-neutral-soft: rgba(100,116,139,0.12);
+  --gx-success: #16804A;  --gx-success-soft: rgba(31,157,87,0.12);  --gx-success-fg:#16804A;
+  --gx-warning: #B97412;  --gx-warning-soft: rgba(224,144,26,0.14); --gx-warning-fg:#B97412;
+  --gx-danger:  #E5484D;    --gx-danger-soft:  rgba(229,72,77,0.12);  --gx-danger-fg: #C53338;
+  --gx-info:    #2C63BC;   --gx-info-soft:    var(--gx-interactive-soft); --gx-info-fg:#234E96;
+  --gx-neutral: #64748B;  --gx-neutral-soft: rgba(100,116,139,0.12);
 
-  --gx-online:       var(--green-600);
+  /* Chart roles (light) — same D18 rule */
+  --gx-chart-track:     rgba(71,85,105,0.10);
+  --gx-chart-default:   var(--slate-400);
+  --gx-chart-default-2: var(--slate-300);
+  --gx-chart-peak:      var(--gx-gold);
+  --gx-chart-active:    var(--gx-interactive);
+  --gx-chart-grid:      var(--gx-border-subtle);
+  --gx-chart-sweep:     linear-gradient(90deg, var(--gx-cobalt), var(--gx-gold));
+
+  --gx-online:       #16804A;
   --gx-offline:      var(--slate-400);
   --gx-degraded:     var(--amber-600);
-  --gx-maintenance:  var(--violet-600);
+  --gx-maintenance:  #6F52BD;
   --gx-unknown:      var(--slate-300);
-  --gx-provisioned:  var(--green-600);
+  --gx-provisioned:  #16804A;
   --gx-throttled:    var(--amber-600);
   --gx-quarantined:  var(--red-500);
-  --gx-quality-good: var(--green-600);
+  --gx-quality-good: #16804A;
   --gx-quality-warn: var(--amber-600);
   --gx-quality-bad:  var(--red-500);
 
@@ -389,12 +465,9 @@
   --gx-shadow-md: 0 8px 24px rgba(15,33,56,0.10);
   --gx-shadow-lg: 0 16px 40px rgba(15,33,56,0.14);
   --gx-shadow-xl: 0 28px 70px rgba(15,33,56,0.18);
-  --gx-shadow-inset: inset 0 1px 0 rgba(255,255,255,0.6);
-  --gx-glow-primary: 0 0 0 1px rgba(59,123,224,0.30), 0 6px 24px rgba(59,123,224,0.18);
   --gx-glow-gold:    0 0 0 1px rgba(172,136,71,0.30), 0 6px 24px rgba(172,136,71,0.16);
 
   --gx-skeleton:        rgba(15, 33, 56, 0.06);
-  --gx-skeleton-shine:  rgba(15, 33, 56, 0.03);
 }
 
 /* ───────────────────────────────────────────────────────────────────────────

@@ -1,5 +1,13 @@
 # Applying the GAAhex Design System to your `ohanyan88-cmd/GAAhex` repo
 
+> ⚠️ **STATUS 2026-06-13 — the reskin described below is DONE.** The `frontend/` app
+> was already built from this system. The **canonical** design tokens now live in
+> `frontend/src/styles/gaahex-tokens.css` (D19 Path A) and are NEWER than
+> `colors_and_type.css` in this folder. **Do NOT copy `colors_and_type.css` over the
+> runtime** — it would overwrite newer tokens. Keep this folder as a **reference
+> snapshot + Agent Skill** for designing NEW on-brand screens; read the steps below as
+> the historical migration record, not a fresh to-do list.
+
 This design system is **standalone** (tokens + CSS + reference UI kit). Your GAAhex app is
 **React + TypeScript + Vite** (`frontend/`). You don't replace your app — you **swap its visual
 foundation** and lift components/patterns from the kit. Here's the practical path.

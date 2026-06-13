@@ -3,6 +3,11 @@
 > A premium, dense, config-first design language for **GAAhex** — the platform that aims to be
 > *the only place of work for an entire ISP*. Every department, every role, one system.
 
+> ⚠️ **Reference snapshot (2026-06-13).** This kit is the design **reference + Agent Skill**.
+> The live, **canonical** tokens are `frontend/src/styles/gaahex-tokens.css` (runtime, D19 Path A) —
+> always defer to those for production values. `colors_and_type.css` here is synced to mirror them
+> (CDN fonts for standalone use). Don't copy this kit *over* the runtime; if they diverge, the runtime wins.
+
 This design system is a **fresh visual language** proposed for GAAhex. It deliberately replaces the
 prior "glass / generic-blue" tokens and centers the real brand identity — **cobalt navy + gold**,
 with the triangular pyramid mark — into a coherent, accessible, dark-first system that scales across

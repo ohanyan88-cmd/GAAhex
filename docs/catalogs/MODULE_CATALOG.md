@@ -24,6 +24,16 @@
 - **NORMALIZE** — All Domain column values use the 12 canonical domains per `02_DOMAIN` §7.1 (CRM / OSS / BSS / Network / Inventory / Workforce / Billing / Portal / Studio / Automation / Reporting / Administration) or one of the shorthand codes documented at §0.1 below. No mid-doc terminology drift.
 - **Architectural decisions altered:** zero. Every assignment derived from existing canonical sources.
 
+**LAW-GV1 amendment (2026-06-13, authorized by Gev):**
+
+- Removed frontend-view rows for modules deleted in the 2026-06-13 left-nav/page cleanup:
+  `ProvisioningView`, `ProductsView`, `ResourcePoolsView`, `NetworkTopologyView`, `OrdersView`,
+  `AnalyticsView`, `PageShellDemoView`, and `OrgView` (old 13-layout org view → replaced by
+  `OrgPage.tsx`). The now-empty `### B.3.5 BSS` subsection was removed.
+- Flagged (NOT yet removed — pre-existing, predates this cleanup): rows whose files are absent —
+  `SchedulingView`, `OutboundView`, `ReportBuilderView`, `MasterLayoutDemoView`, `GlobalSearchView`.
+  Pending a separate decision.
+
 ---
 
 ## 0. Conventions
@@ -536,12 +546,8 @@ These directories implement Workspace Core (per `01` §9.4: Workspace Core owns 
 |---|---|---|---|
 | `views/ServicesView.tsx` | Service | OSS | P |
 | `views/SubscriptionsView.tsx` | Service | OSS | P |
-| `views/ProvisioningView.tsx` | Service | OSS | P |
-| `views/ProductsView.tsx` | Product | (cross) | P |
 | `views/TariffPlansView.tsx` | Product | (cross) | P |
-| `views/ResourcePoolsView.tsx` | Resource | Network | P |
 | `views/CoverageView.tsx` | Location | Network | P |
-| `views/NetworkTopologyView.tsx` | Relationship | Network | P |
 | `views/HelpdeskView.tsx` | Case | OSS | P |
 
 ### B.3.4 Network
@@ -550,12 +556,6 @@ These directories implement Workspace Core (per `01` §9.4: Workspace Core owns 
 |---|---|---|---|
 | `views/NetworkInventoryView.tsx` | Resource | Network | P |
 | `views/NocDashboardView.tsx` | Observability | Network | P |
-
-### B.3.5 BSS
-
-| Path | Primary Core | Domain | Status |
-|---|---|---|---|
-| `views/OrdersView.tsx` | Financial | BSS | P |
 
 ### B.3.6 Workforce
 
@@ -567,7 +567,6 @@ These directories implement Workspace Core (per `01` §9.4: Workspace Core owns 
 | `views/TeamWorkspaceView.tsx` | Organization | Workforce | P |
 | `views/CalendarView.tsx` | Scheduling | Workforce | P |
 | `views/SchedulingView.tsx` | Scheduling | Workforce | P |
-| `views/OrgView.tsx` | Organization | Workforce | S |
 
 ### B.3.7 Billing
 
@@ -594,7 +593,6 @@ These directories implement Workspace Core (per `01` §9.4: Workspace Core owns 
 | Path | Primary Core | Domain | Status |
 |---|---|---|---|
 | `views/DashboardView.tsx` | Analytics | Reporting | P |
-| `views/AnalyticsView.tsx` | Analytics | Reporting | P |
 | `views/ReportsView.tsx` | Reporting | Reporting | P |
 | `views/ReportBuilderView.tsx` | Reporting | Reporting | P |
 
@@ -619,7 +617,6 @@ These directories implement Workspace Core (per `01` §9.4: Workspace Core owns 
 | `views/ComingSoonView.tsx` | Workspace | (n/a) | P |
 | `views/EntityView.tsx` | Data | (cross) | S |
 | `views/MasterLayoutDemoView.tsx` | Workspace | (n/a) | P |
-| `views/PageShellDemoView.tsx` | Workspace | (n/a) | P |
 
 ## B.4 Studio domain (Configuration + Metadata + Workspace authoring)
 

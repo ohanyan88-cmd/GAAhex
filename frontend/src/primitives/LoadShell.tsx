@@ -1,7 +1,7 @@
 // T-P2-3 — <LoadShell> primitive.
 //
-// Tabbed registry views (NetworkInventoryView, ResourcePoolsView, parts of
-// HelpdeskView, etc.) all gate their body on the same 5-state union:
+// Tabbed registry views (NetworkInventoryView, HelpdeskView, parts of
+// WorkItemsView, etc.) all gate their body on the same 5-state union:
 //   loading | denied | unavailable | error | empty | ok
 // and re-render the same Skeleton / PermissionDenied / EmptyState / ErrorBanner
 // for each non-ok state. NetworkInventoryView had a local LoadShell that handled

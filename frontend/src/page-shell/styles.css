@@ -573,43 +573,4 @@
 .ps-status-chip[data-variant="info"]    { background: var(--gx-info-soft);    color: var(--gx-info-fg); }
 .ps-status-chip-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 
-/* ─── PageShellDemoView — tab strip (validation page only) ───────────────── */
-
-.ps-demo-root {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  background: var(--gx-bg);
-  min-height: 0;
-}
-.ps-demo-tabs {
-  display: flex;
-  gap: 2px;
-  padding: var(--gx-space-3) var(--gx-space-5);
-  background: var(--gx-bg-subtle);
-  border-bottom: 1px solid var(--gx-border);
-  overflow-x: auto;
-  flex-shrink: 0;
-}
-.ps-demo-tab {
-  height: 28px;
-  padding: 0 12px;
-  border-radius: var(--gx-radius-md);
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--gx-text-2);
-  font-size: var(--gx-text-sm);
-  font-weight: var(--gx-weight-medium);
-  font-family: var(--gx-font-sans);
-  cursor: pointer;
-  text-transform: capitalize;
-  white-space: nowrap;
-}
-.ps-demo-tab:hover { color: var(--gx-text-1); background: var(--gx-hover); }
-.ps-demo-tab[aria-pressed="true"] {
-  background: var(--gx-surface);
-  color: var(--gx-text-1);
-  border-color: var(--gx-border-strong);
-}
-.ps-demo-stage { flex: 1; min-height: 0; display: flex; }
-.ps-demo-stage > * { flex: 1; min-height: 0; min-width: 0; }
+/* (PageShellDemoView tab-strip styles removed 2026-06-13 — the demo view was deleted.) */

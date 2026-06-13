@@ -1,7 +1,7 @@
 // KPIBar — Zone B.
 //
 // 3–5 compact KPI tiles. Reuses the existing KPITile primitive so the visual
-// language is identical to what already ships in ProductsView and dashboards.
+// language is identical to what already ships in the dashboards and registry views.
 // Hidden by PageShell when:
 //   - kpis prop is missing or empty
 //   - type === 'PLACEHOLDER'

@@ -10,8 +10,8 @@ export type Lang = 'en' | 'hy' | 'ru'
 
 // Best-effort local fallback bundle (chrome + new screens). The backend dict, when present,
 // overrides these. EN keys aren't bundled — t()'s inline English default covers them.
-// NOTE: `ru` has no bundled strings yet — every Russian key falls back to the English text passed
-// to t(key, fallback). TODO: add a real RU translation catalog (chrome + screens).
+// NOTE: `ru` has a partial bundle below; any key not present falls back to the English text passed
+// to t(key, fallback). A fuller RU catalog (all chrome + screens) is still pending.
 const BUNDLED: Record<Lang, Record<string, string>> = {
   en: {},
   ru: {

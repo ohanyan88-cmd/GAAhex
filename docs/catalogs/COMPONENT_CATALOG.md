@@ -14,7 +14,7 @@
 - **CREATE** — Original authorship as `docs/COMPONENT-INVENTORY.md` (root-level); relocated 2026-06-06 (commit `4d267f6`) to `docs/catalogs/` per Documentation Categorization Audit. Content predates the formal Catalog Layer.
 - **REVIEW** — Cross-checked against `06_UI_EXPERIENCE_ARCHITECTURE.md`, Standard 09 (Design System Standards), Standard 10 (UI Structure / PageShell), and `UI_PRIMITIVES_STANDARD.md`. The component enumeration is consistent with the locked architecture; no removed components, no missing canonical primitives.
 - **AUDIT** — Per-item build-status markers (✅ built / 🟡 partial / ⬜ not started) reflect a 2026-05/06 snapshot. **Per-item code-vs-status accuracy verification is deferred** as a future LAW-GV1 ratchet (would require deep `frontend/src/` inspection beyond catalog-formatting scope). Catalog structure verified intact.
-- **NORMALIZE** — Canonical catalog header added. Stale cross-references updated: `BRAND.md` (deprecated 2026-06-04, archived at `branding/_archive/pre-D18/BRAND_pre-D18.md`) → Standard 09 (`docs/standards/09-design-system-standards.md`) + Brand v3.0 (`docs/branding/v3.0/`). The `frontend/COMPONENTS.md` reference preserved as-is (implementation-level pointer).
+- **NORMALIZE** — Canonical catalog header added. Stale cross-references updated: `BRAND.md` (deprecated 2026-06-04; the pre-D18 archive copy was removed 2026-06-13) → Standard 09 (`docs/standards/09-design-system-standards.md`) + Brand v3.0 (`docs/branding/v3.0/`). The `frontend/COMPONENTS.md` reference preserved as-is (implementation-level pointer).
 - **Architectural decisions altered:** zero. Build-status snapshot preserved verbatim.
 
 ---

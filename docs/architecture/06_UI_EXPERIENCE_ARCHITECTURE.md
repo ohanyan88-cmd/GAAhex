@@ -100,7 +100,7 @@ Color families (Cobalt, Gold, Azure, Slate, Semantic) have non-overlapping roles
 
 ### P9 — Brand v3.0 is sealed.
 
-Logo geometry, spacing, typography, and color assignment are unchangeable. No reinterpretation, no improvement, no redesign. Runtime brand assets (`frontend/public/logo/`, `frontend/public/favicon/`, `frontend/public/app-icons/`, `frontend/public/social/`) are v3.0 derivatives as of 2026-06-06. Pre-v3.0 originals are archived at `frontend/public/_archive-pre-v3.0/` for emergency rollback only. Any brand change requires consultation with the canonical brand authority at `docs/branding/v3.0/`.
+Logo geometry, spacing, typography, and color assignment are unchangeable. No reinterpretation, no improvement, no redesign. Runtime brand assets (`frontend/public/logo/`, `frontend/public/favicon/`, `frontend/public/app-icons/`, `frontend/public/social/`) are v3.0 derivatives as of 2026-06-06. Pre-v3.0 originals (the old `_archive-pre-v3.0/` copy) were removed 2026-06-13 as redundant — recoverable from git history if rollback is ever needed. Any brand change requires consultation with the canonical brand authority at `docs/branding/v3.0/`.
 
 ### P10 — The UI is the presentation layer, not the authority.
 
@@ -526,7 +526,7 @@ Object-specific tabs come after these. A page that skips or reorders a canonical
 Every PR that introduces a new visual asset (logo, icon, color, typography, spacing) must reference:
 1. The locked brand standard at `docs/branding/v3.0/`
 2. The canonical token registry (`frontend/src/styles/gaahex-tokens.css`)
-3. The brand manifest (`frontend/public/`) or brand archive (`_archive-pre-v3.0/`)
+3. The brand manifest (`frontend/public/`)
 
 PRs that redesign, reinterpret, or change brand assets are blocked until approved by the brand authority (see `docs/branding/v3.0/README.md`).
 
@@ -552,7 +552,7 @@ The canonical brand inventory is:
 - PWA icons: `docs/branding/v3.0/04-pwa/`
 - Social preview: `docs/branding/v3.0/05-social/`
 - Runtime assets: `frontend/public/logo/`, `frontend/public/favicon/`, `frontend/public/app-icons/`, `frontend/public/social/` (v3.0 derivatives as of 2026-06-06)
-- Pre-v3.0 archive: `frontend/public/_archive-pre-v3.0/` (rollback only)
+- Pre-v3.0 rollback: git history (the `_archive-pre-v3.0/` copy was removed 2026-06-13 as redundant)
 
 Any change to runtime brand assets requires reconciliation with the source at `docs/branding/v3.0/`.
 
