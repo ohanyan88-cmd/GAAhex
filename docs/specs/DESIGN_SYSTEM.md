@@ -50,14 +50,14 @@ for long daily use by ISP operators. Never playful, never casual. Clean and prec
 ## 1. Brand Identity & Logo
 
 ### Identity Statement
-GAAhex is named after the family that built it: **G**ev +  +  — Gev, , and  (, and ). The hex tile *is* the "G"; the wordmark reads **"AAhex"** with the two A's in gold. It is a family's name on a system — not "GAA business initials" and not an "-ex" suffix for excellence/exchange. Treat the family origin as the soul of the brand, not marketing copy. Family-built is the tone: serious, precise, made by people who run the thing — never corporate suffix-coining.
+GAAhex is built by the people who run the thing — operator-built, not corporate suffix-coining. The hex tile *is* the "G"; the wordmark reads **"AAhex"** with the two A's in gold. The tone is serious, precise, made by people who run an ISP — never an "-ex"-for-excellence suffix, never marketing copy.
 Visual personality: structured, disciplined, modern without being trendy.
 The product must feel like a serious professional tool — not a SaaS demo.
 
 ### Color Rationale
 - **Deep Cobalt** (`#1C3B68`): structural authority, the "backbone" — used for navigation,
   headers, structural elements. Cobalt signals trust and precision (aviation, finance, telecom).
-- **Matte Gold** (`#C5A059`): the family-name accent — spent sparingly on the one brand moment that matters (hover affordance, focus, active selection, a single primary CTA). Per D17, gold is **not** used to color KPI values or mark "the important number." Gold = the family signature, never decoration.
+- **Matte Gold** (`#C5A059`): the brand accent — spent sparingly on the one brand moment that matters (hover affordance, focus, active selection, a single primary CTA). Per D17, gold is **not** used to color KPI values or mark "the important number." Gold = the brand signature, never decoration.
 - **Obsidian / Charcoal**: the dark canvas is not black — it has warmth to reduce eye strain
   during 8-hour ISP operator shifts.
 

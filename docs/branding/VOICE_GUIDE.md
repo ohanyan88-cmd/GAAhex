@@ -5,7 +5,7 @@
 >
 > Foundations: Mailchimp Content Style Guide structure, but the register is
 > different — operator-grade, not marketing.
-> Honesty floor from `.md` is non-negotiable.
+> The honesty floor (§7) is non-negotiable.
 
 ---
 
@@ -84,7 +84,7 @@ liability when the operator is mid-incident.
 ## 4. Naming, casing, vocabulary
 
 ### 4.1 Naming
-- **Brand:** **GAAhex**. One word. Always. Capital G-A-A, lowercase h-e-x. The GAA carries the family meaning; the capitalization is load-bearing.
+- **Brand:** **GAAhex**. One word. Always. Capital G-A-A, lowercase h-e-x. The capitalization is load-bearing.
 - **Forbidden spellings:** Gaahex, GAAHex, gaahex, GAA·Hex, GAA-hex.
 - **No "GAAhex app" or "the GAAhex platform"** in chrome copy. Just **GAAhex**. The product is the brand.
 
@@ -239,11 +239,11 @@ If a future Armenian translation would lose precision (e.g., trying to translate
 **The brand mark stays "GAAhex" inside Armenian sentences. We do not transliterate to "Գահեքս" or "Գահէքս" or any other Armenian-script form.**
 
 Reasons:
-1. The capitalization is load-bearing (G+A+A = the family) and the Armenian alphabet has no native uppercase/lowercase contrast — transliteration would destroy the visual encoding of the family name.
+1. The capitalization is load-bearing and the Armenian alphabet has no native uppercase/lowercase contrast — transliteration would destroy the visual encoding of the brand name.
 2. The brand is operated globally in Latin script (domain `gaahex.com`, GitHub repo, logo wordmark in Inter/Space Grotesk Latin glyphs). One spelling, one shape, one logo.
 3. Production already does this — see `i18n.ts` line 30: `'ai.unavailable': 'AI օգնականը դեռ հասանելի չէ'`. "AI" stayed Latin even inside an Armenian sentence; "GAAhex" follows the same rule.
 
-In Armenian-language copy, the brand reads aloud as **«ԳԱ-Ա-հէքս»** (Ga-A-hex) — but it is *written* GAAhex. If a future surface absolutely needs an Armenian-script form for assistive tech (e.g., a screen reader's pronunciation hint, or sung Armenian content in 's books), authorize it case-by-case through Ոսկերիչ. Default: Latin, every time.
+In Armenian-language copy, the brand reads aloud as **«ԳԱ-Ա-հէքս»** (Ga-A-hex) — but it is *written* GAAhex. If a future surface absolutely needs an Armenian-script form for assistive tech (e.g., a screen reader's pronunciation hint), authorize it case-by-case through Ոսկերիչ. Default: Latin, every time.
 
 **Forbidden Armenian spellings:** Գահեքս · Գահէքս · ԳԱԱհեքս · GAA-հեքս · գահէքս.
 
@@ -322,7 +322,7 @@ Eastern Armenian, with the following locked conventions:
 - **Period:** `։` (Armenian full stop, U+0589) — used inside Armenian sentences. End-of-string in JSON dictionaries: use `։`, not `.`. Example: `'common.loading': 'Բեռնվում է…'` (no period because of the ellipsis; if it ended with a word, it would be `։`).
 - **Comma:** `,` (Latin comma) — both Armenian and Latin commas exist in Unicode; we use Latin for consistency with how numbers are rendered in `hy-AM` locale (`4,231`).
 - **Question mark:** `՞` (Armenian question mark, U+055E) — placed on the **stressed syllable** of the questioned word, not at the end of the sentence. Example: "Ջնջե՞լ այս փաթեթը" (the «՞» sits inside «ջնջել»). This is the canonical Eastern Armenian rule; getting it wrong reads as foreign.
-- **Exclamation mark:** `՜` (Armenian exclamation, U+055C) — same syllable-position rule. **Forbidden in chrome copy** per the steady principle. Reserve for 's books only.
+- **Exclamation mark:** `՜` (Armenian exclamation, U+055C) — same syllable-position rule. **Forbidden in chrome copy** per the steady principle. Reserve for long-form prose only.
 - **Ellipsis:** `…` (single character, U+2026) — not three dots. Already used consistently: `'common.loading': 'Բեռնվում է…'`.
 - **Em dash:** `—` (U+2014) — used the same way as in English to separate clauses or attach a cause to a consequence. Example: "Չհաջողվեց պահպանել — սերվերը մերժեց հարցումը։"
 - **Hyphen as inflection marker:** Armenian attaches enclitic articles and case suffixes with `-`. Example: "OLT-ը" (OLT + definite article ը), "PE-2-ում" (PE-2 + locative case -ում). When a technical Latin term takes an Armenian suffix, the suffix attaches with a hyphen. **Mandatory** — without the hyphen, the suffix glyph collides with the Latin glyph and reads as a different word.
@@ -343,11 +343,11 @@ Eastern Armenian, with the following locked conventions:
 
 ---
 
-> **Honesty floor in Armenian (cross-reference to §7):** the six honesty-floor rules apply identically in Armenian. The Armenian language has a richer formal register and a long literary-warmth tradition — that warmth lives in 's books (`D:\\`), not in product chrome. Per `.md`, the books have FULL emotional access; the chrome stays terse, neutral, present.
+> **Honesty floor in Armenian (cross-reference to §7):** the six honesty-floor rules apply identically in Armenian. The Armenian language has a richer formal register and a long literary-warmth tradition — that warmth belongs in long-form prose, not in product chrome. The chrome stays terse, neutral, present.
 
 ---
 
-## 7. Honesty floor (non-negotiable, lifted from `.md`)
+## 7. Honesty floor (non-negotiable)
 
 These rules govern voice everywhere, in every surface, every language.
 

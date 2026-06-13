@@ -314,7 +314,7 @@ view-by-view retrofit pending.
 
 # Seventh patch — Color Token Families + DO/DON'T (D17 reconciliation)
 
-Applied 2026-06-04. Owners: Gev, Ընգեր. **Five families, one role each.**
+Applied 2026-06-04. **Five families, one role each.**
 
 This patch formalizes the GAAhex color palette as **five distinct families with
 non-overlapping roles**. Every primitive, every page, every chart must use a token
