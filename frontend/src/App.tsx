@@ -22,14 +22,11 @@ import InvoicesView from './views/InvoicesView'
 import PaymentsView from './views/PaymentsView'
 import PaymentMethodsView from './views/PaymentMethodsView'
 import SubscriptionsView from './views/SubscriptionsView'
-import ProductsView from './views/ProductsView'
 import TariffPlansView from './views/TariffPlansView'
 import WebhooksView from './views/WebhooksView'
 import ServicesView from './views/ServicesView'
 import UsageView from './views/UsageView'
-import ResourcePoolsView from './views/ResourcePoolsView'
 import AccountsView from './views/AccountsView'
-import AnalyticsView from './views/AnalyticsView'
 import PipelineView from './views/PipelineView'
 import CustomerView from './views/CustomerView'
 import AskGaaexView from './views/AskGaaexView'
@@ -44,15 +41,12 @@ import ActivityFeedView from './views/ActivityFeedView'
 import CalendarView from './views/CalendarView'
 import SettingsView from './views/SettingsView'
 import OrgPage from './views/OrgPage'
-import OrdersView from './views/OrdersView'
 import RevenueAssuranceView from './views/RevenueAssuranceView'
 import CollectionsView from './views/CollectionsView'
 import HomeView from './views/HomeView'
 import ComingSoonView from './views/ComingSoonView'
 import TeamWorkspaceView from './views/TeamWorkspaceView'
-import NetworkTopologyView from './views/NetworkTopologyView'
 import NetworkInventoryView from './views/NetworkInventoryView'
-import ProvisioningView from './views/ProvisioningView'
 import DispatchBoardView from './views/DispatchBoardView'
 import InstallationBoardView from './views/InstallationBoardView'
 import CoverageView from './views/CoverageView'
@@ -645,13 +639,13 @@ export default function App() {
                   else if (type === 'entity' && id) navigate(`/entity/${id}`)
                 }} />} />
                 <Route path="/org"                element={<OrgPage />} />
+                <Route path="/projects"           element={<ComingSoonView title="Projects" parent="Projects" id="projects" />} />
                 <Route path="/dashboards"         element={<DashboardView configVersion={pageConfigVersion} canConfigure={canConfigure} capabilities={capabilities} onNavigate={(target) => {
                   if (target.type === 'subscriptions') navigate('/subscriptions')
                   else if (target.type === 'invoices') navigate('/invoices')
                   else if (target.type === 'helpdesk') navigate('/helpdesk')
                   else if (target.type === 'workitems') navigate('/workitems')
                 }} />} />
-                <Route path="/analytics"          element={<AnalyticsView configVersion={pageConfigVersion} canConfigure={canConfigure} />} />
                 <Route path="/lead-pipeline"      element={<PipelineView onOpenCustomer={openCustomer} canConfigure={canConfigure} capabilities={capabilities} />} />
                 <Route path="/ask"                element={<AskGaaexView />} />
                 <Route path="/messages"           element={<MessagesView capabilities={capabilities} />} />
@@ -666,9 +660,7 @@ export default function App() {
                 <Route path="/activity"           element={<Navigate to="/activity-feed" replace />} />
                 <Route path="/my-approvals"       element={<MyApprovalsView />} />
                 <Route path="/team-workspace"     element={<TeamWorkspaceView />} />
-                <Route path="/network-topology"   element={<NetworkTopologyView />} />
                 <Route path="/network-inventory"  element={<NetworkInventoryView canConfigure={canConfigure} capabilities={capabilities} />} />
-                <Route path="/provisioning"       element={<ProvisioningView />} />
                 <Route path="/dispatch-board"     element={<DispatchBoardView />} />
                 <Route path="/installation-board" element={<InstallationBoardView canConfigure={canConfigure} capabilities={capabilities} />} />
                 <Route path="/coverage-gis"       element={<CoverageView />} />
@@ -678,12 +670,10 @@ export default function App() {
                 <Route path="/payment-methods"    element={<PaymentMethodsView canConfigure={canConfigure} capabilities={capabilities} />} />
                 <Route path="/gateway"            element={<PaymentGatewayView canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
                 <Route path="/subscriptions"      element={<SubscriptionsView canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
-                <Route path="/products"           element={<ProductsView canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
                 <Route path="/tariff-plans"       element={<TariffPlansView canConfigure={canConfigure} capabilities={capabilities} />} />
                 <Route path="/webhooks"           element={<WebhooksView canConfigure={canConfigure} configVersion={pageConfigVersion} onConfigure={() => setCfgPageKey('webhooks')} />} />
                 <Route path="/services"           element={<ServicesView canConfigure={canConfigure} configVersion={pageConfigVersion} capabilities={capabilities} />} />
                 <Route path="/usage"              element={<UsageView canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
-                <Route path="/resource-pools"     element={<ResourcePoolsView canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
                 <Route path="/accounts"           element={<AccountsView canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
                 <Route path="/workitems"          element={<WorkItemsView canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
                 <Route path="/mytasks"            element={<MyTasksView canConfigure={canConfigure} onNavigate={(t) => { if (t === 'home') navigate('/') }} />} />
@@ -691,7 +681,6 @@ export default function App() {
                 <Route path="/calendar"           element={<CalendarView configVersion={pageConfigVersion} canConfigure={canConfigure} />} />
                 <Route path="/settings"           element={<SettingsView />} />
                 <Route path="/reports"            element={<ReportsView configVersion={pageConfigVersion} canConfigure={canConfigure} capabilities={capabilities} />} />
-                <Route path="/orders"             element={<OrdersView capabilities={capabilities} />} />
                 <Route path="/revenue-assurance"  element={<RevenueAssuranceView configVersion={pageConfigVersion} canConfigure={canConfigure} capabilities={capabilities} />} />
                 <Route path="/collections"        element={<CollectionsView canConfigure={canConfigure} capabilities={capabilities} />} />
                 {/* Param-bearing routes use module-level adapters */}

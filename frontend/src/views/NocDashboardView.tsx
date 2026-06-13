@@ -27,6 +27,7 @@ import { ServerIcon } from '../components/icons'
 import { can, type Capabilities } from '../lib/capabilities'
 import { OBJ } from '../lib/permissions-constants'
 import { useFetch } from '../hooks/useFetch'
+import { NETWORK_SITES } from '../lib/pagination'
 
 // ═══════════════════════════════════════════════════════════════════════
 // 1. SAMPLE DATA — used by every widget during PHASE 1A design preview.
@@ -1057,6 +1058,55 @@ const WTechnicianFleet: React.FC<WidgetCtx> = ({ openDrawer }) => {
   )
 }
 
+// Network Topology — sites / POPs list (folded in from the old standalone
+// NetworkTopologyView 2026-06-13: Gev wanted topology to live inside the NMS).
+// Real data from /api/sites (entity records, entity_key='site').
+interface SiteRecord { id: string; status: string | null; data: Record<string, unknown> }
+
+const siteKindPill = (k: string) =>
+  k === 'datacenter' ? 'nms-pill-green' :
+  k === 'tower'      ? 'nms-pill-amber' :
+  k === 'POP'        ? 'nms-pill-cyan'  : ''
+
+const siteStatusPill = (s: string | null) =>
+  s === 'LIVE' ? 'nms-pill-green' : s === 'DECOMMISSIONED' ? 'nms-pill-red' : 'nms-pill-cyan'
+
+const WNetworkTopology: React.FC<WidgetCtx> = () => {
+  const { t } = useI18n()
+  const { data, loading } = useFetch<SiteRecord[] | { records?: SiteRecord[] }>(`/api/sites?limit=${NETWORK_SITES}`)
+  const sites = Array.isArray(data) ? data : (data?.records ?? [])
+  const live = sites.filter(s => s.status === 'LIVE').length
+  const planned = sites.filter(s => s.status === 'PLANNED').length
+  return (
+    <NMSCard title={t('noc.widget.networkTopology', 'Network Topology · Sites & POPs')} status={sites.length ? 'live' : 'partial'}>
+      {loading ? (
+        <div className="nms-hier-empty">{t('noc.topology.loading', 'Loading sites…')}</div>
+      ) : sites.length === 0 ? (
+        <div className="nms-hier-empty">{t('noc.topology.empty', 'No sites yet — add sites / POPs in Studio → Data.')}</div>
+      ) : (
+        <>
+          <div className="nms-list">
+            {sites.map(s => {
+              const d = s.data ?? {}
+              const kind = String(d.kind ?? '—')
+              return (
+                <div key={s.id} className="nms-list-row nms-list-row--density">
+                  <span className="nms-list-label">{String(d.name ?? '—')}</span>
+                  <span className={'nms-pill nms-pill-sm ' + siteKindPill(kind)}>{kind}</span>
+                  <span className={'nms-pill nms-pill-sm ' + siteStatusPill(s.status)}>{s.status ?? '—'}</span>
+                </div>
+              )
+            })}
+          </div>
+          <div className="nms-peak-note">
+            {sites.length} {t('noc.topology.nodes', 'nodes')} · {live} {t('noc.topology.live', 'live')} · {planned} {t('noc.topology.planned', 'planned')}
+          </div>
+        </>
+      )}
+    </NMSCard>
+  )
+}
+
 // ═══════════════════════════════════════════════════════════════════════
 // 10. REGISTRY
 // ═══════════════════════════════════════════════════════════════════════
@@ -1084,6 +1134,7 @@ const WIDGETS: WidgetDef[] = [
   { id: 'hierarchy',       title: 'Hierarchy Explorer',       module: 6, slot: 'wide',   dataStatus: 'live',    Component: WHierarchyExplorer },
   // Module 5 — Geo
   { id: 'outage-map',      title: 'Regional Outage Map',      module: 5, slot: 'wide',   dataStatus: 'partial', Component: WRegionalOutageMap },
+  { id: 'network-topology',title: 'Network Topology',         module: 5, slot: 'medium', dataStatus: 'live',    Component: WNetworkTopology },
   { id: 'tech-fleet',      title: 'Technician Fleet',         module: 5, slot: 'small',  dataStatus: 'pending', Component: WTechnicianFleet },
 ]
 

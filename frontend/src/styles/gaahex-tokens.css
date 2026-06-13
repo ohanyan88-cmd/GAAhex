@@ -234,6 +234,7 @@
   --gx-radius-full: 9999px;
 
   /* ── BORDER widths ── */
+  --gx-border-1: 1px;   /* hairline default — fills the scale gap below 2px */
   --gx-border-2: 2px;
   --gx-border-3: 3px;
 

@@ -10,8 +10,7 @@ export const WIDGET_APPROVALS =  50  // mandatory-approvals (PENDING only — mu
 /** Board and operational views — need enough items to fill all columns without a next-page
  *  cursor, but are bounded by the team's daily workload, not the whole dataset. */
 export const DISPATCH_BOARD    = 200  // DispatchBoardView workitem columns
-export const NETWORK_SITES     = 200  // NetworkTopologyView site nodes
-export const PENDING_SERVICES  = 200  // ProvisioningView — PENDING services only
+export const NETWORK_SITES     = 200  // NMS "Network Topology" widget — site/POP nodes
 export const COVERAGE_CHECKS   = 200  // CoverageView checks
 export const CUSTOMER_TICKETS  = 200  // CustomerView SLA ticket band (client-filtered)
 

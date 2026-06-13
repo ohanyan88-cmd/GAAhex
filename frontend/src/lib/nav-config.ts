@@ -1,9 +1,9 @@
 import type { ComponentType } from 'react'
 import {
-  HomeIcon, ChartIcon, UsersIcon, ArchiveIcon, InboxIcon, ReceiptIcon,
+  HomeIcon, ChartIcon, UsersIcon, InboxIcon, ReceiptIcon,
   ServerIcon, TruckIcon, PackageIcon, BriefcaseIcon,
   SparkleIcon, MessageIcon, LayersIcon, ShieldIcon,
-  GearIcon, ActivityIcon, BuildingIcon, CalendarIcon,
+  GearIcon, ActivityIcon, BuildingIcon,
   EditIcon, BookmarkIcon, MailIcon, RowsIcon,
   CreditCardIcon, ArrowRightIcon, CheckIcon,
 } from '../components/icons'
@@ -56,48 +56,44 @@ const s = (id: string, label: string, icon: NavSectionDef['icon'], items: NavIte
 // ─────────────────────────────────────────────────────────────────────────────
 export const NAV_SECTIONS: NavSectionDef[] = [
 
-  s('workspace', 'Home', HomeIcon, [], { standalone: true, viewType: 'home' }),
+  // HOME — LOCKED 2026-06-13 (Gev). Left nav holds only Workspace + Ask Me.
+  //   • Mail · Messenger · Calendar live in the GLOBAL TOP BAR (not the left nav).
+  //   • My Requests · My Documents · My Benefits · Knowledge Base are MERGED into the
+  //     Workspace page as the "Me" section (all four were the same `profile` view).
+  s('home', 'Home', HomeIcon, [
+    i('home-workspace',  'Workspace',      HomeIcon,      'home'),
+    i('home-ask',        'Ask Me',         SparkleIcon,   'ask'),
+  ], { defaultOpen: true }),
 
 
+  // CRM — LOCKED 2026-06-13 (Gev). Order is the source of truth: Pipeline · Leads ·
+  // Orders · Customers. Do not reorder, rename, add, or remove items.
   s('crm', 'CRM', UsersIcon, [
+    i('crm-pipeline',       'Pipeline',       ArrowRightIcon, 'lead-pipeline'),
     i('crm-leads',          'Leads',          InboxIcon,      'entity', { slug: 'leads' }),
     i('crm-orders',         'Orders',         ReceiptIcon,    'entity', { slug: 'orders' }),
-    i('crm-pipeline',       'Pipeline',       ArrowRightIcon, 'lead-pipeline'),
     i('crm-customers',      'Customers',      UsersIcon,      'entity', { slug: 'customers' }),
-    i('crm-customer-tasks', 'Customer Tasks', CheckIcon,      'customer-tasks'),
-    i('crm-campaigns',      'Campaigns',      MailIcon,       'entity', { slug: 'campaigns' }),
   ]),
 
   s('billing_revenue', 'Billing & Revenue', ReceiptIcon, [
-    i('br-product-catalog',     'Product Catalog',     PackageIcon,    'products'),
     i('br-tariff-plans',        'Tariff Plans',        BookmarkIcon,   'tariff-plans'),
-    i('br-orders-validation',   'Orders & Validation', ArchiveIcon,    'orders'),
-    i('br-billing-accounts',    'Billing Accounts',    BuildingIcon,   'accounts'),
     i('br-invoices',            'Invoices',            ReceiptIcon,    'invoices'),
     i('br-payments',            'Payments',            CreditCardIcon, 'payments'),
-    i('br-payment-methods',     'Payment Methods',     CreditCardIcon, 'payment-methods'),
     i('br-collections',         'Collections',         InboxIcon,      'collections'),
-    i('br-revenue-assurance',   'Revenue Assurance',   ShieldIcon,     'revenue-assurance'),
   ]),
 
   s('tech_noc', 'Tech & NOC', ServerIcon, [
     i('noc-dashboard',           'NMS',                       ServerIcon,   'noc-dashboard'),
-    i('noc-service-qualification','Service Qualification',   CheckIcon,    'coverage-gis'),
     i('noc-installation-board',  'Installation Board',       TruckIcon,    'installation-board'),
     i('noc-support-tickets',     'Support Tickets',          InboxIcon,    'helpdesk'),
-    i('noc-support-dispatch',    'Support Dispatch Board',   ActivityIcon, 'dispatch-board'),
-    i('noc-provisioning',        'Provisioning',             GearIcon,     'provisioning'),
-    i('noc-incidents',           'Incidents & Outages',      ShieldIcon,   'entity', { slug: 'incidents' }),
-    i('noc-infra-projects',      'Infrastructure Projects',  LayersIcon,   'coming-soon', { id: 'infrastructure-projects', title: 'Infrastructure Projects', parent: 'Tech & NOC' }),
+    i('noc-support-dispatch',    'Dispatch Board',           ActivityIcon, 'dispatch-board'),
     i('noc-inventory',           'Network & Stock Inventory',PackageIcon,  'network-inventory'),
-    i('noc-topology',            'Network Topology',         ServerIcon,   'network-topology'),
   ]),
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Operations — top-level group. Houses the org/structure pages (surfaced here
-  // 2026-06-12 per Gev): the LIVE Org Structure page (OrgView at /org — OrgNode
-  // tree, 13 layouts, full CRUD) plus the Organisation stubs (chart / departments
-  // / legal entities), and the platform-level Warehouse module (built later).
+  // Operations — top-level group. Houses the Organisation page (/org → OrgPage:
+  // editable department chart + Branches + Departments tabs) and the platform-level
+  // Warehouse module (built later). (Old 13-layout OrgView removed 2026-06-13.)
   // ─────────────────────────────────────────────────────────────────────────
   s('operations', 'Operations', ActivityIcon, [
     // ONE Organisation page (/org → OrgPage): Hierarchy (role/position) · Branches (geo) ·
@@ -106,16 +102,21 @@ export const NAV_SECTIONS: NavSectionDef[] = [
     i('ops-warehouse',    'Warehouse',    PackageIcon,  'coming-soon', { id: 'warehouse', title: 'Warehouse', parent: 'Operations' }),
   ], { defaultOpen: true }),
 
+  // PROJECTS — the ONLY addition to the locked left nav (Gev 2026-06-13). Standalone
+  // top-level link. Projects = project-type WorkItems (campaigns, infra builds, initiatives).
+  // Tasks (My Tasks · Work Items) live INSIDE Workspace, NOT here. Placeholder until built.
+  s('projects', 'Projects', LayersIcon, [], { standalone: true, viewType: 'projects' }),
+
   s('analytics_ai', 'Analytics & AI', ChartIcon, [
-    i('aa-dashboards', 'Operational Dashboards', ChartIcon,    'dashboards'),
-    i('aa-reports-ai', 'Reports & AI Insights',  SparkleIcon,  'reports'),
+    i('aa-dashboards',        'Operational Dashboards', ChartIcon,   'dashboards'),
+    i('aa-reports-ai',        'Reports & AI Insights',  SparkleIcon, 'reports'),
   ]),
 
   s('enterprise', 'Enterprise', BriefcaseIcon, [
     i('ent-finance',          'Back-Office Finance',     ChartIcon,   'entity', { slug: 'expenses' }),
     i('ent-hr',               'Human Resources',         UsersIcon,   'entity', { slug: 'employees' }),
     i('ent-procurement',      'Procurement & Vendors',   PackageIcon, 'entity', { slug: 'purchase-orders' }),
-    i('ent-legal-audit',      'Legal & Security Audit',  ShieldIcon,  'entity', { slug: 'contracts' }),
+    i('ent-legal',            'Legal & Contracts',       ShieldIcon,  'entity', { slug: 'contracts' }),
   ]),
   // (Organisation sub-menu moved to Operations 2026-06-12 — see the Operations group above.)
 
@@ -139,8 +140,11 @@ export const NAV_SECTIONS: NavSectionDef[] = [
       s('studio', 'Studio', SparkleIcon, [
         // Communication config (Gev IA directive 2026-06-10) — Mail accounts + messaging Channels
         // (SMS/Telegram/WhatsApp credentials) are configured HERE in Studio, not in the user nav.
-        i('std-mail-config', 'Mail Accounts', MailIcon,    'mail'),
-        i('std-channels',    'Channels',      MessageIcon, 'channels'),
+        i('std-mail-config',     'Mail Accounts',   MailIcon,       'mail'),
+        i('std-channels',        'Channels',        MessageIcon,    'channels'),
+        i('std-payment-methods', 'Payment Methods', CreditCardIcon, 'payment-methods'),
+        i('std-payment-gateway', 'Payment Gateway', CreditCardIcon, 'gateway'),
+        i('std-revenue-assurance','Revenue Assurance', ShieldIcon, 'revenue-assurance'),
         i('std-experience',     'Experience',     SparkleIcon, 'studio'),
         i('std-data',           'Data',           LayersIcon,  'studio'),
         i('std-logic',          'Logic',          EditIcon,    'studio'),

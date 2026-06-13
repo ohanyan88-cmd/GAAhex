@@ -43,6 +43,17 @@ const STUB_PREVIEWS: Record<string, { description?: string; previewLabel?: strin
       'Audit trail across every quantity change',
     ],
   },
+  'projects': {
+    description: 'Project workspace — large bodies of work run to completion: marketing campaigns, infrastructure rollouts, internal initiatives. A project is a project-type WorkItem; small work stays as Tasks inside Workspace.',
+    previewLabel: 'Module scope',
+    previewItems: [
+      'Project records with phases, milestones + budget',
+      'Campaigns as a project type (audience, channels, ROAS)',
+      'Owner + team allocation per project',
+      'Child tasks / work-items rolled up to the project',
+      'Per-project timeline + audit history',
+    ],
+  },
   'infrastructure-projects': {
     description: 'Project workspace for infrastructure rollouts — fiber routes, new POPs, pole installations, distribution upgrades. Linked to the OLT inventory and field-dispatch board.',
     previewLabel: 'Module scope',

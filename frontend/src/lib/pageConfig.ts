@@ -100,17 +100,6 @@ export const PAGE_SPECS: Record<string, PageSpec> = {
       { key: 'status', label: 'Status' },
     ],
   },
-  products: {
-    pageKey: 'products',
-    defaultTitle: 'Products',
-    defaultColumns: [
-      { key: 'name', label: 'Name' },
-      { key: 'key', label: 'Key' },
-      { key: 'amount', label: 'Amount' },
-      { key: 'cycle', label: 'Cycle' },
-      { key: 'active', label: 'Active' },
-    ],
-  },
   usage: {
     pageKey: 'usage',
     defaultTitle: 'Usage',
@@ -134,25 +123,10 @@ export const PAGE_SPECS: Record<string, PageSpec> = {
       { key: 'active', label: 'Active' },
     ],
   },
-  'resource-pools': {
-    pageKey: 'resource-pools',
-    defaultTitle: 'Resource Pools',
-    defaultColumns: [
-      { key: 'name', label: 'Name' },
-      { key: 'kind', label: 'Kind' },
-      { key: 'spec', label: 'Spec' },
-      { key: 'allocations', label: 'Allocations' },
-    ],
-  },
   // Title-only pages: widgets/charts/tree/detail — no column config.
   dashboards: {
     pageKey: 'dashboards',
     defaultTitle: 'Dashboard',
-    defaultColumns: [],
-  },
-  analytics: {
-    pageKey: 'analytics',
-    defaultTitle: 'Analytics',
     defaultColumns: [],
   },
   org: {

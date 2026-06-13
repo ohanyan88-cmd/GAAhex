@@ -361,6 +361,17 @@ const BUNDLED: Record<Lang, Record<string, string>> = {
     'profile.reason': 'Причина / детали',
     'profile.positionPhoto': 'Позиционировать фото',
     'profile.dragToReposition': 'Перетащите для изменения положения',
+    // org page (Organisation: Hierarchy / Branches / Departments)
+    'org.title': 'Организация',
+    'org.subtitle': 'Люди и структура — единый источник для иерархии, филиалов и отделов',
+    'org.crumbOps': 'Операции',
+    'org.head': 'Руководитель', 'org.addHead': '+ добавить',
+    'org.deptPlaceholder': 'Отдел', 'org.nameAria': 'Название отдела', 'org.headAria': 'Руководитель отдела',
+    'org.actions': 'Действия', 'org.addSub': 'Добавить подразделение',
+    'org.lock': 'Заблокировать', 'org.unlock': 'Разблокировать', 'org.lockedAria': 'Заблокировано',
+    'org.moveUp': 'Вверх', 'org.moveDown': 'Вниз', 'org.dragRewire': 'Перетащите для пересвязки',
+    'org.zoomIn': 'Увеличить', 'org.zoomOut': 'Уменьшить', 'org.zoomTo': 'Масштаб:',
+    'org.layoutH': 'Горизонтальная компоновка', 'org.layoutV': 'Вертикальная компоновка',
   },
   hy: {
     'nav.workspace': 'Աշխատանք', 'nav.org': 'Կազմ. ծառ', 'nav.dashboards': 'Վահանակներ',
@@ -566,6 +577,17 @@ const BUNDLED: Record<Lang, Record<string, string>> = {
     'search.noPinned': 'Ամ. որոնումներ չկան։',
     'search.unavailable': 'Որոնումը դեռ հասանելի չէ',
     'search.highlight': 'Ընդ.',
+    // org page (Organisation: Hierarchy / Branches / Departments)
+    'org.title': 'Կազմակերպություն',
+    'org.subtitle': 'Մարդիկ և կառուցվածք — հիերարխիայի, մասնաճյուղերի ու բաժինների միասնական աղբյուր',
+    'org.crumbOps': 'Գործառնություններ',
+    'org.head': 'Ղեկավար', 'org.addHead': '+ ավելացնել',
+    'org.deptPlaceholder': 'Բաժին', 'org.nameAria': 'Բաժնի անուն', 'org.headAria': 'Բաժնի ղեկավար',
+    'org.actions': 'Գործողություններ', 'org.addSub': 'Ավելացնել ստորաբաժանում',
+    'org.lock': 'Կողպել', 'org.unlock': 'Բացել', 'org.lockedAria': 'Կողպված',
+    'org.moveUp': 'Վեր', 'org.moveDown': 'Վար', 'org.dragRewire': 'Քաշիր՝ վերակապելու',
+    'org.zoomIn': 'Մեծացնել', 'org.zoomOut': 'Փոքրացնել', 'org.zoomTo': 'Սանդղակ՝',
+    'org.layoutH': 'Հորիզոնական դասավորություն', 'org.layoutV': 'Ուղղահայաց դասավորություն',
   },
 }
 
