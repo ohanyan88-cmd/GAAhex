@@ -13,3 +13,8 @@ export { DetailTab, DetailTabList } from './DetailTab'
 export { StudioDrawer } from './StudioDrawer'  // DR-1
 export { Pagination } from './Pagination'  // T-P2-2
 export { LoadShell, type LoadState } from './LoadShell'  // T-P2-3
+// Phase 2 — gx- component set (gx- = CSS/token prefix; PascalCase names per §3)
+export { Table, type Column, type TableProps, type TableStatus } from './Table'
+export { Chip, type ChipTone } from './Chip'
+export { SearchBox } from './SearchBox'
+export { DefinitionList, type DefinitionItem } from './DefinitionList'

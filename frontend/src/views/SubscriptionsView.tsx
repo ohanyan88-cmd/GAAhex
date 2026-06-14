@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import { bget, bpost, loadCustomers, loadCustomerOptions, loadProducts, type Subscription, type Product } from '../lib/billing'
 import { money, toMinor } from '../lib/money'
 import { toast } from '../components/Toast'
-import { EmptyState, ErrorBanner } from '../components/States'
+import { EmptyState, ErrorBanner, SkeletonRows } from '../components/States'
 import { humanizeStatus } from '../lib/humanize'
 import {
   ReceiptIcon, PauseIcon, PlayIcon, CloseIcon,
@@ -18,7 +18,6 @@ import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
 import { Button, Pagination, StatusPill} from '../primitives'
 import ErrorBoundary from '../components/ErrorBoundary'
-import LoadingState from '../components/LoadingState'
 import { getStatusTone, type PillVariant } from '../lib/status-constants'
 
 type Draft = { customer_id: string; product_id: string; plan_name: string; amount: string; cycle: string }
@@ -259,7 +258,7 @@ export default function SubscriptionsView({ canConfigure = false, configVersion 
 
         {error && <ErrorBanner message={error} onRetry={load} />}
         <ErrorBoundary onReset={load}>
-        {list === null && !error && <LoadingState kind="rows" label="Loading subscriptions…" />}
+        {list === null && !error && <SkeletonRows label="Loading subscriptions…" />}
         {unavailable && (
           <EmptyState icon={<ReceiptIcon size={40} />} title="Billing isn't available yet" message="Subscriptions will appear here once the billing service is enabled." />
         )}

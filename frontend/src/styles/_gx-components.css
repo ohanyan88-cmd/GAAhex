@@ -1,0 +1,59 @@
+/* gx- design-system components (Phase 2). The `gx-` prefix is the CSS/token
+   convention (the React components keep their PascalCase names per standard §3).
+   Tokens only — no raw hex/px. */
+
+/* ── Table (standard §4/§5) ─────────────────────────────────────────────── */
+.gx-table { width: 100%; border-collapse: collapse; font-size: var(--gx-text-base); }
+.gx-table-cap {
+  text-align: left; color: var(--gx-text-3); font-size: var(--gx-text-sm);
+  padding-bottom: var(--gx-space-4);
+}
+.gx-th {
+  text-align: left; font-size: var(--gx-text-10); font-weight: var(--gx-weight-bold);
+  letter-spacing: var(--gx-tracking-wide); text-transform: uppercase; color: var(--gx-text-3);
+  padding: var(--gx-space-4) var(--gx-space-6);
+  border-bottom: var(--gx-border-1) solid var(--gx-border);
+  white-space: nowrap;
+}
+.gx-td {
+  padding: var(--gx-space-5) var(--gx-space-6);
+  border-bottom: var(--gx-border-1) solid var(--gx-border-subtle);
+  color: var(--gx-text-1); vertical-align: middle;
+}
+.gx-th[data-align="right"], .gx-td[data-align="right"] { text-align: right; font-variant-numeric: tabular-nums; }
+.gx-th[data-align="center"], .gx-td[data-align="center"] { text-align: center; }
+.gx-tr-click { cursor: pointer; transition: background var(--gx-dur-fast); }
+.gx-tr-click:hover { background: var(--gx-hover); }
+.gx-tr-click:focus-visible { outline: var(--gx-border-2) solid var(--gx-focus-ring); outline-offset: calc(-1 * var(--gx-border-2)); }
+
+/* ── Chip — status-only, UPPERCASE, semantic tokens (standard §2/§4) ─────── */
+.gx-chip {
+  display: inline-flex; align-items: center; gap: var(--gx-space-2);
+  padding: var(--gx-space-1) var(--gx-space-4); border-radius: var(--gx-radius-sm);
+  font-size: var(--gx-text-10); font-weight: var(--gx-weight-bold);
+  letter-spacing: var(--gx-tracking-wide); text-transform: uppercase;
+  border: var(--gx-border-1) solid transparent; white-space: nowrap;
+}
+.gx-chip-neutral { background: var(--gx-neutral-soft); color: var(--gx-text-2); }
+.gx-chip-success { background: var(--gx-success-soft); color: var(--gx-success-fg); }
+.gx-chip-warning { background: var(--gx-warning-soft); color: var(--gx-warning-fg); }
+.gx-chip-danger  { background: var(--gx-danger-soft);  color: var(--gx-danger-fg); }
+.gx-chip-info    { background: var(--gx-info-soft);    color: var(--gx-info-fg); }
+
+/* ── SearchBox (presentational; scoped behaviour = Phase 5) ─────────────── */
+.gx-searchbox { width: 100%; }
+
+/* ── DefinitionList — a few key-value pairs (standard §5) ───────────────── */
+.gx-dl { display: grid; gap: var(--gx-space-5) var(--gx-space-8); margin: 0; }
+.gx-dl[data-cols="1"] { grid-template-columns: 1fr; }
+.gx-dl[data-cols="2"] { grid-template-columns: 1fr 1fr; }
+.gx-dl[data-cols="3"] { grid-template-columns: 1fr 1fr 1fr; }
+.gx-dl-item { display: flex; flex-direction: column; gap: var(--gx-space-1); min-width: 0; }
+.gx-dl-k {
+  margin: 0; font-size: var(--gx-text-10); font-weight: var(--gx-weight-bold);
+  letter-spacing: var(--gx-tracking-wide); text-transform: uppercase; color: var(--gx-text-3);
+}
+.gx-dl-v { margin: 0; font-size: var(--gx-text-md); color: var(--gx-text-1); min-width: 0; }
+@media (max-width: 768px) {
+  .gx-dl[data-cols="2"], .gx-dl[data-cols="3"] { grid-template-columns: 1fr; }
+}

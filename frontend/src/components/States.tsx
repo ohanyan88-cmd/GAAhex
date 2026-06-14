@@ -7,12 +7,10 @@ import { t } from '../lib/i18n'
 // Reusable feedback / state screens (Tier 6). Themed, SVG icons, dual-theme.
 
 export function LoadingState({ message }: { message?: string } = {}) {
+  // Routed through the canonical .ps-empty surface (the legacy `.state` CSS was never defined).
   return (
-    <div className="state" role="status" aria-live="polite" aria-label={t('common.loading', 'Loading…')}>
-      <div className="state-icon">
-        <SpinnerIcon size={36} />
-      </div>
-      <div className="state-title">{message ?? t('common.loading', 'Loading…')}</div>
+    <div role="status" aria-live="polite" aria-busy="true" aria-label={t('common.loading', 'Loading…')}>
+      <PageShellEmptyState icon={<SpinnerIcon size={36} />} title={message ?? t('common.loading', 'Loading…')} />
     </div>
   )
 }
@@ -22,12 +20,12 @@ export function LoadingState({ message }: { message?: string } = {}) {
 // prefers-reduced-motion (the animation collapses to near-0 via the global rule
 // in styles.css). Prefer this over LoadingState on second-tier loads (inside a
 // view that already has a heading) so the page layout is stable.
-export function SkeletonRows({ rows = 5 }: { rows?: number }) {
+export function SkeletonRows({ rows = 5, label }: { rows?: number; label?: string }) {
   return (
     <div
       role="status"
       aria-live="polite"
-      aria-label={t('common.loading', 'Loading…')}
+      aria-label={label ?? t('common.loading', 'Loading…')}
       aria-busy="true"
     >
       {Array.from({ length: rows }, (_, i) => (
@@ -61,12 +59,18 @@ export function EmptyState({ icon, title, message, action }: {
   )
 }
 
-export function PermissionDenied({ message }: { message?: string }) {
+export function PermissionDenied({ message, what, onBack }: { message?: string; what?: string; onBack?: () => void }) {
   return (
     <EmptyState
       icon={<LockIcon size={40} />}
-      title="Access denied"
-      message={message ?? "You don't have permission to view this."}
+      title={t('noaccess.title', "You don't have access to this")}
+      message={
+        message ??
+        (what
+          ? t('noaccess.msgSpecific', `You don't have permission to view ${what}.`).replace('{what}', what)
+          : t('noaccess.msg', "You don't have permission to view this resource. Contact your administrator if you need access."))
+      }
+      action={onBack ? <Button variant="primary" size="md" onClick={onBack}>{t('noaccess.back', 'Back to dashboard')}</Button> : undefined}
     />
   )
 }

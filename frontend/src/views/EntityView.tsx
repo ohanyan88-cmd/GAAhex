@@ -16,7 +16,6 @@ import { EmptyState, PermissionDenied, NotFound, LoadingState, ErrorBanner } fro
 import ActivityTimeline from '../components/ActivityTimeline'
 import { useI18n } from '../lib/i18n'
 import { contractFileName } from '../lib/contract'
-import NoAccess from '../components/NoAccess'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 import { Button, StatusPill } from '../primitives'
 import { PageShell } from '../page-shell'
@@ -346,7 +345,7 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
   const canEdit   = can(capabilities, entityKey, 'edit')
   const canDelete = can(capabilities, entityKey, 'delete')
   if (!canView) {
-    return <NoAccess what={def.label_plural} onBack={onBack} />
+    return <PermissionDenied what={def.label_plural} onBack={onBack} />
   }
   const readOnly = !canCreate && !canEdit && !canDelete
 

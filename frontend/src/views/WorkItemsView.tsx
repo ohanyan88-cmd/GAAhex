@@ -7,14 +7,13 @@ import {
 import { listUsers, type User } from '../lib/users'
 import { loadCustomers } from '../lib/billing'
 import { resolveUserDisplay } from '../components/UserPicker'
-import { EmptyState, ErrorBanner } from '../components/States'
+import { EmptyState, ErrorBanner, SkeletonRows } from '../components/States'
 import { InboxIcon, RowsIcon, SearchIcon } from '../components/icons'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
 import { Button, Pagination } from '../primitives'
 import WorkItemsTable, { makeStatusChangeHandler } from '../components/WorkItemsTable'
 import ErrorBoundary from '../components/ErrorBoundary'
-import LoadingState from '../components/LoadingState'
 import { PageShell } from '../page-shell'
 import type { KPISpec } from '../page-shell'
 import { useI18n } from '../lib/i18n'
@@ -203,7 +202,7 @@ export default function WorkItemsView({
 
       {error && <ErrorBanner message={error} onRetry={loadData} />}
       <ErrorBoundary onReset={loadData}>
-        {items === null && !error && <LoadingState kind="rows" label={t('workitems.loading', 'Loading work items…')} />}
+        {items === null && !error && <SkeletonRows label={t('workitems.loading', 'Loading work items…')} />}
         {items && items.length === 0 && !error && (
           <EmptyState
             icon={<InboxIcon size={40} />}

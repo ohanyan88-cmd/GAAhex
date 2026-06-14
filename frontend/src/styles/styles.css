@@ -43,4 +43,5 @@
 @import "./_login.css";           /* .login-wrap split-screen */
 @import "./_section-polish.css";  /* .view-inner.section-page + .act-feed + .tl-dot.ev-* */
 @import "./_helpdesk.css";        /* .section-page .hd-* */
+@import "./_gx-components.css";   /* Phase 2 — gx-Table / gx-Chip / gx-SearchBox / gx-DefinitionList */
 @import "./_responsive.css";      /* Centralized responsive layer (LAST in cascade) */

@@ -5,7 +5,9 @@
 // Shape returned by E21:
 //   { entity_key: { view: bool, create: bool, edit: bool, delete: bool } }
 // e.g. { "lead": { view: true, create: false, edit: false, delete: false } }
-// A missing entity key also means full-access (default-open).
+// can() is DEFAULT-DENY (standard §4): a missing entity key or verb is denied.
+// FULL_ACCESS carries a '*' wildcard that allows everything (superadmin / the caps
+// endpoint not yet live) so graceful degradation survives without opening keys.
 
 import { BASE } from './config'
 
@@ -22,8 +24,9 @@ export type EntityCaps = {
 /** Full capabilities map keyed by entity_key (e.g. "lead", "customer"). */
 export type Capabilities = Record<string, EntityCaps>
 
-/** Sentinel: no restrictions at all (endpoint not available or user is superadmin). */
-export const FULL_ACCESS: Capabilities = {}
+/** Sentinel: no restrictions at all (endpoint not available or user is superadmin).
+ *  Carries the '*' wildcard so the DEFAULT-DENY `can()` still allows everything. */
+export const FULL_ACCESS: Capabilities = { '*': { view: true, create: true, edit: true, delete: true } }
 
 /**
  * Fetch capabilities once after login.
@@ -46,13 +49,15 @@ export async function fetchCapabilities(token: string): Promise<Capabilities> {
 }
 
 /**
- * Check whether the user can perform `verb` on `entityKey`.
- * Full-access (FULL_ACCESS or missing key) always returns true.
+ * Check whether the user can perform `verb` on `entityKey`. DEFAULT-DENY (standard §4):
+ * an unknown entity or an ungranted verb returns FALSE — actions are hidden unless
+ * explicitly allowed. The only allow-all path is the `'*'` wildcard carried by
+ * FULL_ACCESS (superadmin / caps endpoint not yet live), preserving graceful
+ * degradation without opening every individual key.
  */
 export function can(caps: Capabilities, entityKey: string, verb: Verb): boolean {
+  if (caps['*']?.[verb] === true) return true   // allow-all sentinel (FULL_ACCESS)
   const entity = caps[entityKey]
-  if (!entity) return true           // no restriction defined → full-access
-  const flag = entity[verb]
-  if (flag === undefined) return true // verb not mentioned → full-access
-  return flag
+  if (!entity) return false                       // unknown entity → deny
+  return entity[verb] === true                    // verb must be explicitly granted
 }

@@ -66,6 +66,32 @@ export function humanizeStatus(s: string | null | undefined): string {
     .replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/** True if a value looks like a raw system identifier (UUID or long hex) — the kind
+ *  of string the UI must NEVER show as a primary reference (standard §6). */
+export function looksLikeRawId(v: unknown): boolean {
+  if (typeof v !== 'string') return false
+  return UUID_RE.test(v) || /^[0-9a-f]{24,}$/i.test(v)
+}
+
+const REF_FIELDS = ['reference_number', 'reference', 'ref', 'number', 'display_name', 'name', 'title', 'subject', 'label', 'full_name']
+
+/** Best human-facing reference for a record — a friendly sequential number and/or a
+ *  meaningful label, NEVER a raw UUID (standard §6). Falls back to a short `#xxxxxx`
+ *  derived from the id only when nothing human exists. */
+export function humanRef(record: Record<string, unknown> | null | undefined): string {
+  if (!record) return ''
+  for (const f of REF_FIELDS) {
+    const v = record[f]
+    if (typeof v === 'string' && v.trim() && !looksLikeRawId(v)) return v
+    if (typeof v === 'number') return String(v)
+  }
+  const id = record['id']
+  if (typeof id === 'string' && id) return `#${id.replace(/-/g, '').slice(0, 6)}`
+  return ''
+}
+
 const ACTION_VERBS: Record<string, string> = {
   create: 'created',
   created: 'created',
