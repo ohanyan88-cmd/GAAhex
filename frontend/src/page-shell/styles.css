@@ -23,10 +23,25 @@
   width: 100%;
   min-height: 0;
   min-width: 0;
-  background: var(--gx-bg);
+  /* GAAhex hexagon brand field — a FEW big, faint hexagon outlines (echoes the IndexBrandBeast hive),
+     NOT a dense tile. The page-shell is the app's main OPAQUE surface (it covers the <body> backdrop),
+     so the field lives HERE to be seen; .ps-header / .ps-kpis are transparent and reveal it.
+     center/cover/no-repeat → the SVG paints once, scaled to the content area. */
+  background: var(--gx-hex-field) center center / cover no-repeat, var(--gx-bg);
   color: var(--gx-text-1);
   font-family: var(--gx-font-sans);
 }
+
+/* Per-page-type hex brand field — a different brand-colour mix + arrangement on each page kind
+   (Gev 2026-06-14). workspace + placeholder use the default token (hex-field-dark.svg). */
+.ps[data-page-type="registry"]      { --gx-hex-field: url('/brand/hex-registry.svg'); }
+.ps[data-page-type="pipeline"]      { --gx-hex-field: url('/brand/hex-pipeline.svg'); }
+.ps[data-page-type="operations"]    { --gx-hex-field: url('/brand/hex-operations.svg'); }
+.ps[data-page-type="analytics"]     { --gx-hex-field: url('/brand/hex-analytics.svg'); }
+.ps[data-page-type="communication"] { --gx-hex-field: url('/brand/hex-communication.svg'); }
+.ps[data-page-type="configuration"] { --gx-hex-field: url('/brand/hex-configuration.svg'); }
+/* Light theme: one cool cobalt variant for every page kind (must follow the per-type rules to win). */
+[data-theme="light"] .ps { --gx-hex-field: url('/brand/hex-field-light.svg'); }
 
 .ps-header   { grid-area: header; }
 .ps-kpis     { grid-area: kpis; }
@@ -58,7 +73,7 @@
      room top + bottom (Gev 2026-06-07). */
   padding: var(--gx-space-12) var(--gx-space-12) var(--gx-space-12);
   border-bottom: 1px solid var(--gx-divider);
-  background: var(--gx-bg);
+  background: transparent;   /* reveal the .ps honeycomb field (was var(--gx-bg)) */
 }
 
 /* breadcrumb + page-subtitle styles removed — the header no longer renders them (Gev 2026-06-08). */
@@ -197,7 +212,7 @@
   /* Horizontal padding locked at var(--gx-space-12) per the PageShell
      spacing law. Extra top padding gives the KPI cards breathing room below the header. */
   padding: var(--gx-space-8) var(--gx-space-12) var(--gx-space-5);
-  background: var(--gx-bg);
+  background: transparent;   /* reveal the .ps honeycomb field (was var(--gx-bg)) */
 }
 /* Separation line UNDER the KPI cards, mirroring the header's bottom divider ABOVE them —
    but only when no ActionBar follows (the ActionBar already carries its own top divider, so
@@ -215,6 +230,8 @@
 /* Hover accent — thin gold border + soft shadow (info-only cards, no lift). */
 .ps-kpis .kpi-tile:hover { border-color: var(--gx-gold); box-shadow: var(--gx-shadow-md); }
 .ps-kpis .kpi-tile-value { font-size: var(--gx-kpi-value-size); }
+/* Placeholder slot — keeps every page's KPI strip at a consistent 4-card structure (Gev 2026-06-14). */
+.ps-kpi-ph { height: var(--gx-kpi-card-h); border: 1px solid var(--gx-border-subtle); border-radius: var(--gx-radius-lg); background: color-mix(in srgb, var(--gx-surface) 22%, transparent); }
 
 /* If the page only has 3-5 tiles we don't want them stretched to absurd
    widths on ultra-wide monitors — cap at 5 columns. */

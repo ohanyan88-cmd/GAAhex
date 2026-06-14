@@ -14,10 +14,12 @@ interface KPIBarProps {
 
 export function KPIBar({ kpis }: KPIBarProps) {
   if (!kpis || kpis.length === 0) return null
-  // Clamp to 5 — beyond 5 the row becomes visually overcrowded.
-  const visible = kpis.slice(0, 5)
+  // Standard 10 (Gev 2026-06-14): EVERY page's KPI strip is exactly 4 cards. Cap at 4; pad short
+  // pages with placeholder slots so the structure is identical app-wide.
+  const visible = kpis.slice(0, 4)
+  const pad = Math.max(0, 4 - visible.length)
   return (
-    <div className="ps-kpis" data-count={String(visible.length)}>
+    <div className="ps-kpis" data-count="4">
       {visible.map((k, i) => (
         <KPITile
           key={`${k.label}-${i}`}
@@ -40,6 +42,9 @@ export function KPIBar({ kpis }: KPIBarProps) {
           tooltip={k.tooltip}
           size="sm"
         />
+      ))}
+      {Array.from({ length: pad }).map((_, i) => (
+        <div key={`ph-${i}`} className="ps-kpi-ph" aria-hidden="true" />
       ))}
     </div>
   )

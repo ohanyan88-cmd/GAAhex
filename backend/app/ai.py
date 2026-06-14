@@ -139,7 +139,7 @@ async def complete(prompt: str, *, system: str | None = None) -> str:
 # ============================================================================================
 
 _SOURCE_SCORE = {"Referral": 25, "Website": 25, "Ad": 12, "Cold Call": 5}
-_STATUS_DELTA = {"validated_lead": 10, "assigned": 20, "deal": 25, "contract_signed": 30, "lost": -20}
+_STATUS_DELTA = {"VALIDATED_LEAD": 10, "ASSIGNED": 20, "DEAL": 25, "CONTRACT_SIGNED": 30, "LOST": -20}
 
 
 def score_lead(record_fields: dict) -> dict:
@@ -160,7 +160,7 @@ def score_lead(record_fields: dict) -> dict:
     if source in _SOURCE_SCORE:
         d = _SOURCE_SCORE[source]; score += d; reasons.append(f"source '{source}' (+{d})")
 
-    status = (f.get("status") or "").strip().lower()
+    status = (f.get("status") or "").strip().upper()   # SST status keys are UPPER_SNAKE (B1b, no exception)
     if status in _STATUS_DELTA:
         d = _STATUS_DELTA[status]; score += d
         reasons.append(f"status {status} ({'+' if d > 0 else ''}{d})")

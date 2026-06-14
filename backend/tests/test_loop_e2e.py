@@ -50,10 +50,10 @@ async def _drive_order_to_completed(client, admin, customer_id, product_id, unit
                    "unit_amount": unit_amount}],
     })).json()
     oid = order["id"]
-    assert (await client.post(f"/api/orders/{oid}/transition", headers=admin, json={"to": "order_validated"})).json()["status"] == "order_validated"
+    assert (await client.post(f"/api/orders/{oid}/transition", headers=admin, json={"to": "ORDER_VALIDATED"})).json()["status"] == "ORDER_VALIDATED"
     await _pass_control_gate(oid)                                               # control gate (SST #7→#8)
     completed = None
-    for expected in ["scheduling", "config", "installation", "connection_test", "payment_confirmed", "activation"]:
+    for expected in ["SCHEDULING", "CONFIG", "INSTALLATION", "CONNECTION_TEST", "PAYMENT_CONFIRMED", "ACTIVATION"]:
         completed = (await client.post(f"/api/orders/{oid}/transition", headers=admin, json={"to": expected})).json()
         assert completed["status"] == expected, completed
     return completed
@@ -90,7 +90,7 @@ async def test_full_isp_loop_e2e(client, admin):
         order_id = convert.json()["order_id"]
         assert order_id, "convert did not return order_id"
         lead_after = (await client.get(f"/api/leads/{lead_id}", headers=admin)).json()
-        assert lead_after["status"] == "order_created"
+        assert lead_after["status"] == "ORDER_CREATED"
         assert lead_after["converted_order_id"] == order_id
         # Idempotent: converting again yields the same order, not a second one.
         again = await client.post(f"/api/leads/{lead_id}/convert", headers=admin, json={})

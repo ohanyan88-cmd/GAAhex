@@ -51,6 +51,16 @@ import DispatchBoardView from './views/DispatchBoardView'
 import InstallationBoardView from './views/InstallationBoardView'
 import CoverageView from './views/CoverageView'
 import NocDashboardView from './views/NocDashboardView'
+import ProtoHome from './views/proto/ProtoHome'
+import CommandDeckProto from './views/proto/CommandDeckProto'
+import MomentumProto from './views/proto/MomentumProto'
+import EditorialProto from './views/proto/EditorialProto'
+import AuroraGlassProto from './views/proto/AuroraGlassProto'
+import NeonGridProto from './views/proto/NeonGridProto'
+import BrutalistProto from './views/proto/BrutalistProto'
+import IndexShell from './views/proto/IndexShell'
+import IndexBrandBeast from './views/proto/IndexBrandBeast'
+import IndexPage from './views/proto/IndexPage'
 import { NAV_SECTIONS, type NavItemDef, type NavSectionDef } from './lib/nav-config'
 import { loadDynamicNav } from './lib/nav-loader'
 import { useI18n, initI18n } from './lib/i18n'
@@ -691,6 +701,18 @@ export default function App() {
                 <Route path="/studio"             element={<StudioRouteAdapter />} />
                 <Route path="/coming-soon/:id"    element={<ComingSoonRouteAdapter />} />
                 <Route path="/module/:id"         element={<ModuleRouteAdapter />} />
+                {/* Page-structure vibe prototypes (Gev 2026-06-13) — open /proto to compare. */}
+                <Route path="/proto"              element={<ProtoHome />} />
+                <Route path="/proto/index"        element={<IndexShell theme="aurora" />} />
+                <Route path="/proto/index-brand"  element={<IndexShell theme="brand" />} />
+                <Route path="/proto/index-brand-x" element={<IndexBrandBeast />} />
+                <Route path="/proto/index-live"   element={<IndexPage slug="customers" />} />
+                <Route path="/proto/deck"         element={<CommandDeckProto />} />
+                <Route path="/proto/momentum"     element={<MomentumProto />} />
+                <Route path="/proto/editorial"    element={<EditorialProto />} />
+                <Route path="/proto/aurora"       element={<AuroraGlassProto />} />
+                <Route path="/proto/neon"         element={<NeonGridProto />} />
+                <Route path="/proto/brutalist"    element={<BrutalistProto />} />
                 <Route path="*"                   element={<Navigate to="/" replace />} />
               </Routes>
             </ErrorBoundary>

@@ -1,0 +1,40 @@
+# OPS-5 — Production TLS overlay. Terminates HTTPS in front of the backend with Caddy (automatic
+# Let's Encrypt issuance + renewal). Additive overlay — it does NOT affect the dev `docker compose up`.
+#
+# Deploy:
+#   export ENVIRONMENT=production
+#   export GAAHEX_DOMAIN=app.yourisp.am           # a real public hostname pointing at this host
+#   export DATABASE_URL=... OWNER_DATABASE_URL=... # distinct gaahex_app / gaahex roles (RLS contract)
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Ports 80 + 443 must be reachable from the internet for the ACME challenge. Caddy persists the issued
+# certs in the `caddy_data` volume — back it up / never delete it (ACME issuance is rate-limited).
+#
+# NOTE: the base compose publishes backend :8099 on the host for dev convenience. In production, firewall
+# that port (or drop the `ports:` mapping) so the app is reachable ONLY through the TLS terminator.
+services:
+  caddy:
+    image: caddy:2
+    container_name: gaahex-caddy
+    depends_on:
+      - backend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"        # HTTP/3 (QUIC)
+    environment:
+      GAAHEX_DOMAIN: ${GAAHEX_DOMAIN:?set GAAHEX_DOMAIN to your public hostname (e.g. app.yourisp.am)}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data       # issued certs/keys — durable, back this up
+      - caddy_config:/config
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:2019/config/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  caddy_data:
+  caddy_config:

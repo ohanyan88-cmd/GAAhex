@@ -47,7 +47,7 @@ async def _ensure(s, *, tenant_id, node_id, email, role_id) -> uuid.UUID:
 @pytest_asyncio.fixture(scope="module", autouse=True)
 async def _setup_sla_users():
     async with OwnerSessionLocal() as s:
-        tenant = (await s.execute(select(Tenant))).scalars().first()
+        tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         root = (await s.execute(select(OrgNode).where(OrgNode.tenant_id == tenant.id).order_by(OrgNode.path).limit(1))).scalar_one_or_none()
         if root is None:
             root = OrgNode(tenant_id=tenant.id, type="Group", name="Root", code="grp", path=Ltree("grp"))

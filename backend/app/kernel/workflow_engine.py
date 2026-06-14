@@ -455,7 +455,7 @@ async def _action_advance_stage(
     """Record a stage advancement on the instance audit trail.
 
     Action shape:
-        {"type": "advance_stage", "to_stage_key": "scheduling"}
+        {"type": "advance_stage", "to_stage_key": "SCHEDULING"}
 
     This is the workflow-level mutation: the engine logs the advance via `emit(workflow.advanced)`.
     Actual record-status mutation belongs to the entity router (which owns the write lock per SPEC

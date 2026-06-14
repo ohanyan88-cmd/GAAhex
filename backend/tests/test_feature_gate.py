@@ -37,6 +37,14 @@ def _enter_production(monkeypatch):
     monkeypatch.setattr(settings, "radius_backend_provider", "freeradius")
     # Stage 2 product-decision contract: portal must use cookie/both in prod.
     monkeypatch.setattr(settings, "portal_auth_mode", "cookie")
+    # E1/E2 gates: legacy comms off the dev/no-op channel + abuse guard on.
+    monkeypatch.setattr(settings, "email_provider", "smtp")
+    monkeypatch.setattr(settings, "sms_provider", "twilio")
+    monkeypatch.setattr(settings, "smtp_host", "smtp.example.com")       # E1b: real SMTP gateway constructs
+    monkeypatch.setattr(settings, "twilio_account_sid", "ACxxxxxxxxxxxx")  # E1b: real Twilio gateway constructs
+    monkeypatch.setattr(settings, "twilio_auth_token", "tok_xxxxxxxxxxxx")
+    monkeypatch.setattr(settings, "twilio_from", "+37410000000")
+    monkeypatch.setattr(settings, "rate_limit_enabled", True)
     # All four feature flags default to False — tests flip individually.
     monkeypatch.setattr(settings, "feature_radius_required", False)
     monkeypatch.setattr(settings, "feature_olt_provisioning_required", False)

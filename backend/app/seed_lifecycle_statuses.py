@@ -8,9 +8,9 @@ so pruning them is safe.
 
 This seeder makes each entity_def's status set EXACTLY its iron-rule slice (+ its exit state):
 
-    LEAD  : lead, validated_lead, assigned, deal, contract_signed, order_created   (+ lost)
-    ORDER : order_validated, scheduling, config, installation, connection_test,
-            payment_confirmed, activation                                          (+ cancelled)
+    LEAD  : LEAD, VALIDATED_LEAD, ASSIGNED, DEAL, CONTRACT_SIGNED, ORDER_CREATED   (+ LOST)
+    ORDER : ORDER_VALIDATED, SCHEDULING, CONFIG, INSTALLATION, CONNECTION_TEST,
+            PAYMENT_CONFIRMED, ACTIVATION                                          (+ CANCELLED)
 
 Idempotent: inserts missing (on_conflict_do_nothing), deletes any StatusDef whose key is not in the
 keep-set. "Delete no mercy" (Gev 2026-06-12).
@@ -27,64 +27,123 @@ from .db import OwnerSessionLocal as SessionLocal  # privileged: seeding bypasse
 from .models.tenant import Tenant
 from .models.meta import EntityDef, StatusDef, WorkflowDef
 from .models import Record
+from .models.order import Order
 
 _log = logging.getLogger("gaahex.seed_lifecycle_statuses")
 
 # Keep-set per entity: (key, label, order, is_initial). Anything NOT here is legacy → deleted.
 KEEP: dict[str, list[tuple[str, str, int, bool]]] = {
     "lead": [
-        ("lead",            "Lead",            1, True),
-        ("validated_lead",  "Validated Lead",  2, False),
-        ("assigned",        "Assigned",        3, False),
-        ("deal",            "Deal",            4, False),
-        ("contract_signed", "Contract Signed", 5, False),
-        ("order_created",   "Order Created",   6, False),  # sales done → converts to ORDER
-        ("lost",            "Lost",            20, False),  # sales off-ramp (exit)
+        ("LEAD",            "Lead",            1, True),
+        ("VALIDATED_LEAD",  "Validated Lead",  2, False),
+        ("ASSIGNED",        "Assigned",        3, False),
+        ("DEAL",            "Deal",            4, False),
+        ("CONTRACT_SIGNED", "Contract Signed", 5, False),
+        ("ORDER_CREATED",   "Order Created",   6, False),  # sales done → converts to ORDER
+        ("LOST",            "Lost",            20, False),  # sales off-ramp (exit)
     ],
     "order": [
-        ("order_validated",   "Order Validated",   7, True),  # order's first stage
-        ("scheduling",        "Scheduling",        8, False),
-        ("config",            "Config",            9, False),
-        ("installation",      "Installation",      10, False),
-        ("connection_test",   "Connection Test",   11, False),
-        ("payment_confirmed", "Payment Confirmed", 12, False),
-        ("activation",        "Activation",        13, False),  # converts to CUSTOMER + care task
-        ("cancelled",         "Cancelled",         20, False),  # order off-ramp (exit)
+        ("ORDER_CREATED",     "Order Created",     6, True),   # SST #6 — true initial (orders.py ORDER_INITIAL)
+        ("ORDER_VALIDATED",   "Order Validated",   7, False),  # after manual submit / converted-path start
+        ("SCHEDULING",        "Scheduling",        8, False),
+        ("CONFIG",            "Config",            9, False),
+        ("INSTALLATION",      "Installation",      10, False),
+        ("CONNECTION_TEST",   "Connection Test",   11, False),
+        ("PAYMENT_CONFIRMED", "Payment Confirmed", 12, False),
+        ("ACTIVATION",        "Activation",        13, False),  # converts to CUSTOMER + care task
+        ("CANCELLED",         "Cancelled",         20, False),  # order off-ramp (exit)
     ],
-    # Customer = active base (NOT a pipeline). "monitoring" was never a stage (iron rule) → renamed to
-    # "active". suspended/terminated are the off-ramps.
+    # Customer = active base (NOT a pipeline). "monitoring" was never a stage (iron rule) → ACTIVE.
+    # suspended/terminated are the off-ramps. SPEC §7 canonical casing: UPPER_SNAKE (Gev 2026-06-14).
     "customer": [
-        ("active",     "Active",     1, True),
-        ("suspended",  "Suspended",  2, False),
-        ("terminated", "Terminated", 3, False),
+        ("ACTIVE",     "Active",     1, True),
+        ("SUSPENDED",  "Suspended",  2, False),
+        ("TERMINATED", "Terminated", 3, False),
     ],
 }
 
 # Record-status renames to apply before pruning legacy StatusDefs (so no record is orphaned).
+# Includes the legacy lowercase → UPPER_SNAKE collapse for the customer base (Gev 2026-06-14, no exception).
 _RECORD_STATUS_RENAMES: dict[str, dict[str, str]] = {
-    "customer": {"monitoring": "active"},   # iron rule: the active-base status is ACTIVE, not "monitoring"
+    "customer": {
+        "monitoring": "ACTIVE",   # iron rule: the active-base status is ACTIVE, not "monitoring"
+        "active": "ACTIVE", "suspended": "SUSPENDED", "terminated": "TERMINATED",
+    },
+    # B1b (Gev 2026-06-14, no exception): lead lowercase → UPPER_SNAKE (matches lifecycle.ts). Leads
+    # are generic Records (entity_key='lead'), so this Record rename migrates them.
+    "lead": {
+        "lead": "LEAD", "validated_lead": "VALIDATED_LEAD", "assigned": "ASSIGNED",
+        "deal": "DEAL", "contract_signed": "CONTRACT_SIGNED", "order_created": "ORDER_CREATED",
+        "lost": "LOST",
+    },
+}
+
+# Order is a FIRST-CLASS table (order.status), NOT a Record row — its existing dev/prod rows are
+# migrated directly against the Order model (see seed_lifecycle_statuses_if_missing).
+_ORDER_STATUS_RENAMES: dict[str, str] = {
+    "order_created": "ORDER_CREATED", "order_validated": "ORDER_VALIDATED", "scheduling": "SCHEDULING",
+    "config": "CONFIG", "installation": "INSTALLATION", "connection_test": "CONNECTION_TEST",
+    "payment_confirmed": "PAYMENT_CONFIRMED", "activation": "ACTIVATION", "cancelled": "CANCELLED",
 }
 
 # Order WorkflowDef transitions (iron rule, order slice 7→13 + cancel exits). The dev DB carries a
 # legacy graph (NEW→FULFILLING→COMPLETED); we overwrite it so the config-driven advance reads the
 # correct chain. order_created→order_validated stays for the manual draft-submit path.
 _ORDER_TRANSITIONS = [
-    {"from": "order_created",     "to": "order_validated",   "guard": None},   # submit (manual draft)
-    {"from": "order_validated",   "to": "scheduling",        "guard": "control_gate:stage8"},  # Stage-8 gate
+    # order_created is the order's TRUE initial status (orders.py ORDER_INITIAL; manual draft). The
+    # converted path (convert.py) starts at order_validated; the manual path submits
+    # order_created→order_validated. Both are real order statuses — order_created MUST be in the
+    # KEEP set below or the normalizer prunes it and the drift guard / registry disagree.
+    {"from": "ORDER_CREATED",     "to": "ORDER_VALIDATED",   "guard": None},   # submit (manual draft)
+    {"from": "ORDER_VALIDATED",   "to": "SCHEDULING",        "guard": "control_gate:stage8"},  # Stage-8 gate
 
-    {"from": "scheduling",        "to": "config",            "guard": None},
-    {"from": "config",            "to": "installation",      "guard": None},
-    {"from": "installation",      "to": "connection_test",   "guard": None},
-    {"from": "connection_test",   "to": "payment_confirmed", "guard": None},
+    {"from": "SCHEDULING",        "to": "CONFIG",            "guard": None},
+    {"from": "CONFIG",            "to": "INSTALLATION",      "guard": None},
+    {"from": "INSTALLATION",      "to": "CONNECTION_TEST",   "guard": None},
+    {"from": "CONNECTION_TEST",   "to": "PAYMENT_CONFIRMED", "guard": None},
     # ACTIVATION choreography is config-declared (PERFECT-TARGET I3): reaching `activation` publishes
     # `order.activated`; the CRM/Care/Billing subscribers (kernel/events.py) create+activate the
     # customer, file the welcome check-call task, and provision subscriptions — fired atomically by
     # workflow.complete_transition, NOT by router code.
-    {"from": "payment_confirmed", "to": "activation",        "guard": None, "publish": "order.activated"},
-    {"from": "order_validated",   "to": "cancelled",         "guard": None},   # off-ramps
-    {"from": "scheduling",        "to": "cancelled",         "guard": None},
-    {"from": "config",            "to": "cancelled",         "guard": None},
+    {"from": "PAYMENT_CONFIRMED", "to": "ACTIVATION",        "guard": None, "publish": "order.activated"},
+    {"from": "ORDER_VALIDATED",   "to": "CANCELLED",         "guard": None},   # off-ramps
+    {"from": "SCHEDULING",        "to": "CANCELLED",         "guard": None},
+    {"from": "CONFIG",            "to": "CANCELLED",         "guard": None},
 ]
+
+# Customer WorkflowDef transitions — the active base (NOT a pipeline). The dev DB carries a STALE
+# legacy graph (PROSPECT→ACTIVE / ACTIVE→CHURNED) whose endpoints don't even exist in the customer
+# StatusDef set {ACTIVE, SUSPENDED, TERMINATED} → the customer state machine was DEAD (no transition
+# could ever fire). We overwrite it to the correct UPPER_SNAKE graph that matches the StatusDefs +
+# seed.py (Gev 2026-06-14, single source of truth, no exception). Mirrors the order normalization below.
+_CUSTOMER_TRANSITIONS = [
+    {"from": "ACTIVE",    "to": "SUSPENDED",  "guard": None},   # suspend
+    {"from": "SUSPENDED", "to": "ACTIVE",     "guard": None},   # reactivate
+    {"from": "ACTIVE",    "to": "TERMINATED", "guard": None},   # terminate (from active)
+    {"from": "SUSPENDED", "to": "TERMINATED", "guard": None},   # terminate (from suspended)
+]
+
+# Lead WorkflowDef transitions — the iron-rule SST sales slice (MUST match seed.py build_crm_entities
+# exactly). The dev DB carries a STALE legacy graph (NEW→CONTACTED→QUALIFIED→CONVERTED) whose endpoints
+# aren't lead StatusDef keys → lead advance would read the wrong chain. Force-normalize like order/customer.
+_LEAD_TRANSITIONS = [
+    {"from": "LEAD",            "to": "VALIDATED_LEAD",  "guard": "phone != None and phone != ''"},
+    {"from": "VALIDATED_LEAD",  "to": "ASSIGNED",        "guard": None},
+    {"from": "ASSIGNED",        "to": "DEAL",            "guard": None},
+    {"from": "DEAL",            "to": "CONTRACT_SIGNED", "guard": None},
+    {"from": "CONTRACT_SIGNED", "to": "ORDER_CREATED",   "guard": None},  # sales done → convert to ORDER
+    {"from": "VALIDATED_LEAD",  "to": "LOST",            "guard": None},
+    {"from": "ASSIGNED",        "to": "LOST",            "guard": None},
+    {"from": "DEAL",            "to": "LOST",            "guard": None},
+]
+
+# Entities whose WorkflowDef transitions this seeder owns + force-normalizes every boot (overwrites
+# stale/legacy graphs). The config-driven advance reads these as the single source of truth.
+_ENTITY_TRANSITIONS = {
+    "order":    _ORDER_TRANSITIONS,
+    "customer": _CUSTOMER_TRANSITIONS,
+    "lead":     _LEAD_TRANSITIONS,
+}
 
 
 async def seed_lifecycle_statuses_if_missing() -> dict:
@@ -120,6 +179,14 @@ async def seed_lifecycle_statuses_if_missing() -> dict:
                             Record.tenant_id == t.id, Record.entity_key == ent_key, Record.status == old
                         ).values(status=new)
                     )
+                # order is a first-class table (order.status), not a Record — migrate its rows directly.
+                if ent_key == "order":
+                    for old, new in _ORDER_STATUS_RENAMES.items():
+                        await s.execute(
+                            update(Order).where(
+                                Order.tenant_id == t.id, Order.status == old
+                            ).values(status=new)
+                        )
                 # 1) insert any missing SST/exit statuses
                 for key, label, order, is_initial in statuses:
                     res = await s.execute(
@@ -137,23 +204,26 @@ async def seed_lifecycle_statuses_if_missing() -> dict:
                     )
                 )
                 deleted += res.rowcount or 0
-                # 3) ORDER WorkflowDef transitions → iron-rule chain (the dev DB graph is legacy
-                #    NEW→FULFILLING→COMPLETED). This is what the config-driven advance reads.
-                if ent_key == "order":
+                # 3) WorkflowDef transitions → canonical chain. The dev DB carries legacy graphs
+                #    (order: NEW→FULFILLING→COMPLETED · customer: stale PROSPECT/CHURNED that don't
+                #    match the StatusDefs). This is the single source the config-driven advance reads.
+                canonical = _ENTITY_TRANSITIONS.get(ent_key)
+                if canonical is not None:
                     wf = (await s.execute(
                         select(WorkflowDef).where(WorkflowDef.entity_def_id == ent.id)
                     )).scalars().first()
                     if wf is None:
-                        # No order WorkflowDef in this env (e.g. minimal test seed) — create it so the
-                        # config-driven transition path (incl. the activation `publish` choreography) is
-                        # available. One WorkflowDef per entity (I5).
-                        s.add(WorkflowDef(tenant_id=t.id, entity_def_id=ent.id, key="order_lifecycle",
-                                          label="Order Lifecycle", config={"transitions": _ORDER_TRANSITIONS}))
+                        # No WorkflowDef in this env (e.g. minimal test seed) — create it so the
+                        # config-driven transition path (incl. the order activation `publish`
+                        # choreography) is available. One WorkflowDef per entity (I5).
+                        s.add(WorkflowDef(tenant_id=t.id, entity_def_id=ent.id, key=f"{ent_key}_lifecycle",
+                                          label=f"{ent_key.capitalize()} Lifecycle",
+                                          config={"transitions": canonical}))
                         wf_fixed += 1
                     else:
                         cfg = dict(wf.config or {})
-                        if cfg.get("transitions") != _ORDER_TRANSITIONS:
-                            cfg["transitions"] = _ORDER_TRANSITIONS
+                        if cfg.get("transitions") != canonical:
+                            cfg["transitions"] = canonical
                             wf.config = cfg
                             wf_fixed += 1
         await s.commit()

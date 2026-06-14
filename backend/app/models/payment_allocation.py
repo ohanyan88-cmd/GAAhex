@@ -5,10 +5,13 @@ Payments). This table is the explicit M:N join with an amount and timestamp on e
 "how much of payment X went to invoice Y" is queryable in O(1) and the SUM aggregations that
 drive `outstanding_for_invoice` and the auto-PAID transition are cheap.
 
-Money is stored as Decimal Numeric(14, 2) — the same precision as `Account.current_balance`
-in A.2. The integer-luma convention in models/billing.py is preserved on the Invoice.total
-and Payment.amount columns; this table sits *between* them so it speaks Decimal for the
-billing-ledger math, then the recompute hook coerces back as needed.
+Money is in **luma** (integer minor units, 1 ֏ = 100 luma) — the SAME unit-of-account as
+Invoice.total and Payment.amount (models/billing.py). It is stored in a `Numeric(14, 2)`
+column (matching `Account.current_balance` precision in A.2) but the values ARE luma: an
+allocation of 100 ֏ is `10000`, stored as `10000.00`. NOT major units — the over-allocation
+guard, `invoice_balance_components`, and every test compare it luma-to-luma against
+Payment.amount. (FIN-1, 2026-06-14: the DB trigger used to wrongly divide payment.amount by
+100 here, assuming major units — fixed in migration `fin1allocluma`.)
 
 Immutability: like Invoice / Payment, allocations are state changes — there is no DELETE path
 in the application. Voiding an allocation would be a future state column; for A.3 we treat

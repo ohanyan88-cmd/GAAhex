@@ -28,7 +28,7 @@ async def test_record_timeline_chronological_with_summaries(client, admin):
     lead = (await client.post("/api/leads", headers=admin, json={"name": "Timeline", "phone": "+37491"})).json()
     lid = lead["id"]
     await client.patch(f"/api/leads/{lid}", headers=admin, json={"email": "t@x.io"})
-    await client.post(f"/api/leads/{lid}/transition", headers=admin, json={"to": "validated_lead"})
+    await client.post(f"/api/leads/{lid}/transition", headers=admin, json={"to": "VALIDATED_LEAD"})
     await client.post(f"/api/records/leads/{lid}/comments", headers=admin, json={"body": "hi"})
 
     items = await _feed(client, admin, f"?entity=leads&record={lid}")
@@ -36,7 +36,7 @@ async def test_record_timeline_chronological_with_summaries(client, admin):
     summaries = {it["type"]: it["summary"] for it in items}
     assert summaries["CREATE"] == "created this lead"
     assert summaries["UPDATE"] == "updated email"
-    assert summaries["TRANSITION"] == "moved lead → validated_lead"
+    assert summaries["TRANSITION"] == "moved LEAD → VALIDATED_LEAD"
     assert summaries["COMMENT"] == "commented"
     assert all(it["actor_name"] == "Demo Admin" for it in items)
     ats = [it["at"] for it in items]

@@ -69,6 +69,13 @@ def test_production_with_separate_roles_passes(monkeypatch):
     monkeypatch.setattr(settings, "sms_gateway_provider", "twilio")
     monkeypatch.setattr(settings, "radius_backend_provider", "freeradius")
     monkeypatch.setattr(settings, "portal_auth_mode", "cookie")
+    monkeypatch.setattr(settings, "email_provider", "smtp")    # E1: legacy comms not on dev/no-op
+    monkeypatch.setattr(settings, "sms_provider", "twilio")    # E1
+    monkeypatch.setattr(settings, "smtp_host", "smtp.example.com")       # E1b: real SMTP gateway constructs
+    monkeypatch.setattr(settings, "twilio_account_sid", "ACxxxxxxxxxxxx")  # E1b: real Twilio gateway constructs
+    monkeypatch.setattr(settings, "twilio_auth_token", "tok_xxxxxxxxxxxx")
+    monkeypatch.setattr(settings, "twilio_from", "+37410000000")
+    monkeypatch.setattr(settings, "rate_limit_enabled", True)  # E2: abuse guard on in prod
     # The suite sets FEATURE_PAYMENTS_ENABLED=true (conftest); with the default dev provider the C2
     # payment gate would fire, so this role-check happy-path declares payments off to stay isolated.
     monkeypatch.setattr(settings, "feature_payments_enabled", False)
@@ -86,6 +93,13 @@ def _prod_base(monkeypatch):
     monkeypatch.setattr(settings, "sms_gateway_provider", "twilio")
     monkeypatch.setattr(settings, "radius_backend_provider", "freeradius")
     monkeypatch.setattr(settings, "portal_auth_mode", "cookie")
+    monkeypatch.setattr(settings, "email_provider", "smtp")    # E1: legacy comms not on dev/no-op
+    monkeypatch.setattr(settings, "sms_provider", "twilio")    # E1
+    monkeypatch.setattr(settings, "smtp_host", "smtp.example.com")       # E1b: real SMTP gateway constructs
+    monkeypatch.setattr(settings, "twilio_account_sid", "ACxxxxxxxxxxxx")  # E1b: real Twilio gateway constructs
+    monkeypatch.setattr(settings, "twilio_auth_token", "tok_xxxxxxxxxxxx")
+    monkeypatch.setattr(settings, "twilio_from", "+37410000000")
+    monkeypatch.setattr(settings, "rate_limit_enabled", True)  # E2: abuse guard on in prod
 
 
 def test_payments_enabled_with_dev_provider_raises(monkeypatch):
@@ -122,3 +136,42 @@ def test_payments_disabled_skips_provider_gate(monkeypatch):
     monkeypatch.setattr(settings, "feature_payments_enabled", False)
     monkeypatch.setattr(settings, "payment_provider", "dev")
     _assert_production_deploy_contract()  # must not raise
+
+
+def test_legacy_comms_dev_provider_raises(monkeypatch):
+    """E1 (SEC-1/2) — legacy EMAIL_PROVIDER/SMS_PROVIDER on the dev no-op channel must refuse
+    boot in production (they silently DROP outbound email/SMS)."""
+    _prod_base(monkeypatch)
+    monkeypatch.setattr(settings, "feature_payments_enabled", False)
+    monkeypatch.setattr(settings, "email_provider", "dev")   # _prod_base set it to smtp; trip E1
+    with pytest.raises(RuntimeError, match="EMAIL_PROVIDER"):
+        _assert_production_deploy_contract()
+
+
+def test_email_smtp_without_host_raises(monkeypatch):
+    """E1b — EMAIL_PROVIDER=smtp passes the E1 name-check but with no SMTP_HOST the real adapter never
+    registers (channels.py falls back to the dev no-op), silently dropping email. Must refuse boot."""
+    _prod_base(monkeypatch)
+    monkeypatch.setattr(settings, "feature_payments_enabled", False)
+    monkeypatch.setattr(settings, "smtp_host", None)   # _prod_base set it; clear → real SMTP can't construct
+    with pytest.raises(RuntimeError, match="SMTP_HOST"):
+        _assert_production_deploy_contract()
+
+
+def test_sms_twilio_without_credentials_raises(monkeypatch):
+    """E1b — SMS_PROVIDER=twilio with missing credentials would silently fall back to the dev no-op
+    (dropping OTP/dunning SMS). Must refuse boot."""
+    _prod_base(monkeypatch)
+    monkeypatch.setattr(settings, "feature_payments_enabled", False)
+    monkeypatch.setattr(settings, "twilio_account_sid", None)   # real Twilio adapter can't construct
+    with pytest.raises(RuntimeError, match="TWILIO_ACCOUNT_SID"):
+        _assert_production_deploy_contract()
+
+
+def test_rate_limit_disabled_in_production_raises(monkeypatch):
+    """E2 (SEC-3) — RATE_LIMIT_ENABLED=false must refuse boot in production (no abuse guard)."""
+    _prod_base(monkeypatch)
+    monkeypatch.setattr(settings, "feature_payments_enabled", False)
+    monkeypatch.setattr(settings, "rate_limit_enabled", False)   # _prod_base set True; trip E2
+    with pytest.raises(RuntimeError, match="RATE_LIMIT_ENABLED"):
+        _assert_production_deploy_contract()

@@ -32,7 +32,7 @@ async def billing_setup(client: AsyncClient, admin):
     cid_b = rb.json()["id"]
 
     async with OwnerSessionLocal() as s:
-        tenant = (await s.execute(select(Tenant))).scalars().first()
+        tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         tid = tenant.id
 
         for email, pw, cid in [
@@ -141,7 +141,7 @@ async def test_receipt_own_payment(client: AsyncClient, billing_setup):
     """Create a payment for A, then fetch the receipt — must work."""
     d = billing_setup
     async with OwnerSessionLocal() as s:
-        tenant = (await s.execute(select(Tenant))).scalars().first()
+        tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         import uuid as _uuid
         pay = Payment(
             tenant_id=tenant.id,
@@ -163,7 +163,7 @@ async def test_receipt_other_payment_denied(client: AsyncClient, billing_setup):
     """Customer A cannot get customer B's payment receipt."""
     d = billing_setup
     async with OwnerSessionLocal() as s:
-        tenant = (await s.execute(select(Tenant))).scalars().first()
+        tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         import uuid as _uuid
         pay = Payment(
             tenant_id=tenant.id,

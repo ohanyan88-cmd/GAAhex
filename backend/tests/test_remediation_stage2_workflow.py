@@ -55,7 +55,7 @@ async def test_dual_engine_overlap_emits_audit_when_present(caplog):
     lifespan emit pattern.
     """
     async with OwnerSessionLocal() as s:
-        tenant = (await s.execute(select(Tenant))).scalars().first()
+        tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         # Use a FRESH entity (no seeded lifecycle WorkflowDef) for the legacy claim. PERFECT-TARGET I5
         # (uq_workflow_def_one_per_entity) forbids a 2nd lifecycle WorkflowDef per entity, and every
         # SEEDED entity already carries one — so reusing 'lead' would collide on the I5 index. The

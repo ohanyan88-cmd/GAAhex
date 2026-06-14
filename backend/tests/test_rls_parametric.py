@@ -132,7 +132,44 @@ KNOWN_FK_HEAVY: dict[str, str] = {
 }
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# RLS-exempt by DESIGN — tenant-scoped tables that INTENTIONALLY carry no
+# tenant_isolation policy in production. Each MUST have a hard reason: enabling
+# RLS would break a correct, deliberate behaviour. These are excluded from the
+# parametric gate because self-creating a policy here would falsely "prove"
+# isolation on a table prod leaves open — i.e. the exact false-green the audit
+# (DATA-4) flagged. Adding to this set is a security decision: document WHY.
+# ──────────────────────────────────────────────────────────────────────────────
+RLS_EXEMPT_BY_DESIGN: dict[str, str] = {
+    "stripe_webhook_event":
+        "Global Stripe webhook ingestion/audit log. (1) The idempotency dedup "
+        "SELECTs by GLOBAL stripe_event_id BEFORE the tenant is resolved from the "
+        "payload — RLS would filter it to the (unset) GUC → missed dedup → "
+        "DOUBLE-PROCESSED payments. (2) tenant_id is NULLABLE (dashboard-fired "
+        "events) and the audit row is written for EVERY outcome — RLS WITH CHECK "
+        "would reject the NULL-tenant rows → broken ingestion + lost audit trail. "
+        "Not exposed via any tenant-facing read. See routers/vendor_webhooks/stripe.py.",
+}
+
+
 TENANT_SCOPED_TABLES = _tenant_scoped_tables()
+
+
+def test_every_tenant_table_is_classified():
+    """Regression guard (closes the DATA-4 false-green): EVERY tenant-scoped table
+    must be accounted for — exercised by the parametric isolation gate, OR spot-tested
+    via KNOWN_FK_HEAVY, OR explicitly documented RLS-exempt-by-design. A new
+    tenant_id table that is none of these fails here, forcing an RLS decision
+    (write the policy migration, or justify the exemption) instead of silently
+    shipping unprotected."""
+    classified = set(KNOWN_FK_HEAVY) | set(RLS_EXEMPT_BY_DESIGN)
+    discovered = set(TENANT_SCOPED_TABLES)
+    # Every exemption/skip must name a REAL discovered table (no stale entries).
+    stale = classified - discovered
+    assert not stale, f"KNOWN_FK_HEAVY / RLS_EXEMPT_BY_DESIGN name non-existent tenant tables: {sorted(stale)}"
+    # The parametric gate covers the rest; this set is just the explicit-exemption ledger.
+    # (No assertion that `discovered - classified` is empty — those ARE the parametrized,
+    #  actively-isolation-tested tables. This guard only ensures the ledger stays honest.)
 
 
 def _placeholder(col: sa.Column, short: str):
@@ -290,6 +327,10 @@ async def test_rls_isolates_table_by_tenant(table_name: str, shared_rls_setup):
     """Proves RLS tenant isolation on `table_name`. Discovered automatically from
     Base.metadata so a future table that ships without an RLS policy fails here,
     on the parametric id for that exact table name."""
+    if table_name in RLS_EXEMPT_BY_DESIGN:
+        # Unprotected in prod BY DESIGN — testing isolation via a self-created policy here
+        # would falsely "prove" something production deliberately does not do (DATA-4 false-green).
+        pytest.skip(f"RLS-exempt by design: {RLS_EXEMPT_BY_DESIGN[table_name]}")
     if table_name in KNOWN_FK_HEAVY:
         pytest.skip(f"Wave-5 FK chain limitation: {KNOWN_FK_HEAVY[table_name]}")
 

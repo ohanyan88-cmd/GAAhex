@@ -16,3 +16,6 @@ uuid-utils>=0.9                # Standard 8 (ID): UUIDv7 generator. App-side bec
 reportlab>=4.5,<5              # server-side Unicode PDF (Armenian/Russian/Latin via DejaVu) — contract generation
 aiosmtplib>=3.0                # Mail module: async SMTP send (per-tenant SmtpEmailGateway)
 aioimaplib>=1.1                # Mail module: async IMAP inbound sync worker (Phase B)
+twilio>=9.0                    # M1-C SMS gateway (TwilioSmsGateway) — without it the factory silently falls back to mock (audit OPS-4)
+sendgrid>=6.11                 # M1-C email gateway (SendGridEmailGateway) — without it the factory silently falls back to mock (audit OPS-4)
+pyrad>=2.4                     # M1-C.4 RADIUS (FreeRadiusBackend) — required to construct the real backend (audit OPS-1)

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <!-- Light theme: a few big cobalt hexagon outlines — thicker strokes + a soft cobalt glow. -->
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="6" result="b"/>
+      <feFlood flood-color="#2A5187" flood-opacity="0.6" result="c"/>
+      <feComposite in="c" in2="b" operator="in" result="g"/>
+      <feMerge>
+        <feMergeNode in="g"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <g fill="none" stroke-width="3.5" filter="url(#glow)">
+    <polygon points="1500,-330 1837.7,-135 1837.7,255 1500,450 1162.3,255 1162.3,-135" stroke="#2A5187" stroke-opacity="0.20"/>
+    <polygon points="150,620 461.8,800 461.8,1160 150,1340 -161.8,1160 -161.8,800" stroke="#1C3B68" stroke-opacity="0.17"/>
+    <polygon points="1170,435 1312.9,517.5 1312.9,682.5 1170,765 1027.1,682.5 1027.1,517.5" stroke="#2A5187" stroke-opacity="0.18"/>
+    <polygon points="380,130 483.9,190 483.9,310 380,370 276.1,310 276.1,190" stroke="#1C3B68" stroke-opacity="0.15"/>
+    <polygon points="840,350 917.9,395 917.9,485 840,530 762.1,485 762.1,395" stroke="#2A5187" stroke-opacity="0.11"/>
+  </g>
+</svg>

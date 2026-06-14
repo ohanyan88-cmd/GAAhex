@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
 from ..models import Event, Record, User
-from ..access import load_grants, can
+from ..access import load_grants, can, _has_perm
 from .auth import current_user
 from .records import _entity, _node_path, _node_paths   # reuse the engine's scope helpers for parity
 
@@ -25,6 +25,9 @@ router = APIRouter(prefix="/api/activity", tags=["activity"])
 
 DEFAULT_LIMIT = 30
 MAX_SCAN = 500          # bound the pre-scope scan for the global feed
+# System/admin events that aren't "work activity" — dropped from the global feed (they otherwise
+# dominate the recent-scan window and starve out the business activity).
+_FEED_EXCLUDE = ("user", "tenant")
 
 
 def _summary(ev: Event) -> str:
@@ -122,7 +125,10 @@ async def activity(
     # would let this be an exact, indexed query — see report).
     scan = min(max(limit * 5, limit), MAX_SCAN)
     recent = (await s.execute(
-        select(Event).where(Event.tenant_id == user.tenant_id)
+        select(Event).where(
+            Event.tenant_id == user.tenant_id,
+            Event.entity_key.notin_(_FEED_EXCLUDE),   # drop user/tenant system noise from the work feed
+        )
         .order_by(Event.created_at.desc()).limit(scan)
     )).scalars().all()
 
@@ -144,13 +150,19 @@ async def activity(
         if not ev.entity_key or not ev.record_id:
             continue
         rid = str(ev.record_id)
-        if rid not in owners:
-            # record no longer exists (e.g. a delete) → its owner node can't be verified → skip,
-            # rather than risk leaking out-of-scope activity (fail closed).
-            continue
-        record_path = paths.get(str(owners[rid])) if owners[rid] else None
-        if not can(grants, ev.entity_key, "view", record_path):
-            continue
+        if rid in owners:
+            # Generic Record — scope by its owner node (per-record granularity).
+            record_path = paths.get(str(owners[rid])) if owners[rid] else None
+            if not can(grants, ev.entity_key, "view", record_path):
+                continue
+        else:
+            # First-class entity (order/invoice/ticket/quote/…) — its row lives in its OWN table, not
+            # the generic `record` table, so there's no owner-node to scope by here. Surface it only to
+            # roles holding a TENANT-scoped view grant on that entity (admin/exec/managers); scoped
+            # roles stay fail-closed (no cross-scope leak). Without this, orders/invoices/tickets never
+            # appear in the global activity feed at all.
+            if not any(g.scope == "tenant" and _has_perm(g.permissions, ev.entity_key, "view") for g in grants):
+                continue
         feed.append(ev)
 
     names = await _actor_names(s, user.tenant_id, feed)

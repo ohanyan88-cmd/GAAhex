@@ -1,5 +1,10 @@
 services:
   db:
+    # OPS-5 — pgdata safety: pin the engine so the persistent volume is never auto-migrated across a
+    # Postgres MAJOR bump (which would refuse to start on, or corrupt, an older pgdata dir). The `16-3.4`
+    # tag locks PG major=16 + PostGIS 3.4 (minor patches within 16 share pgdata layout, so they are safe).
+    # For fully reproducible prod deploys, pin to an immutable digest instead, e.g.:
+    #   image: postgis/postgis:16-3.4@sha256:<digest>     # `docker buildx imagetools inspect` to get it
     image: postgis/postgis:16-3.4
     container_name: gaahex-db
     environment:
@@ -43,10 +48,30 @@ services:
       # The production deploy contract requires the app to connect as the
       # NOBYPASSRLS role 'gaahex_app' so RLS policies are enforced. The owner
       # role 'gaahex' (BYPASSRLS) is used for migrations and backups only.
-      DATABASE_URL: postgresql+asyncpg://gaahex_app:gaahex_app@db:5432/gaahex
-      OWNER_DATABASE_URL: postgresql+asyncpg://gaahex:gaahex@db:5432/gaahex
-      REDIS_URL: redis://redis:6379/0
-      ENVIRONMENT: development  # ⚠️ override to production via .env in real deploy
+      #
+      # All five are ${VAR:-default} so the SAME compose is dev-by-default yet
+      # truthfully prod-overridable. Override source is the SHELL or a top-level
+      # .env beside this file — NOT backend/.env: a compose `environment:` value
+      # always wins over `env_file:`, so anything set here is unreachable from
+      # backend/.env. (That precedence was the footgun: ENVIRONMENT used to be
+      # hard-pinned to `development`, so a "production" backend/.env was silently
+      # ignored and the app booted PERMISSIVE in prod. App default is
+      # `production` — fail-closed — so unset ⇒ strict, never the reverse.)
+      #
+      # Real deploy:  export ENVIRONMENT=production  (+ prod DATABASE_URL /
+      # OWNER_DATABASE_URL with DISTINCT roles, REDIS_URL) → the fail-closed
+      # _assert_production_deploy_contract() engages at boot.
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://gaahex_app:gaahex_app@db:5432/gaahex}
+      OWNER_DATABASE_URL: ${OWNER_DATABASE_URL:-postgresql+asyncpg://gaahex:gaahex@db:5432/gaahex}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+    volumes:
+      # OPS-5 — persist locally-stored attachments. The default storage backend is local disk at
+      # STORAGE_LOCAL_PATH=/app/uploads (config.py). Without this named volume, every uploaded
+      # contract / document / attachment lives only in the container's ephemeral layer and is LOST
+      # on `docker compose up --build` / container recreate. (For multi-node prod, switch
+      # STORAGE_BACKEND=minio|s3 and this mount becomes unnecessary — see PRE-LAUNCH-CHECKLIST §1.)
+      - gaahex_uploads:/app/uploads
     ports:
       - "8099:8099"
     restart: unless-stopped
@@ -59,3 +84,4 @@ services:
 
 volumes:
   gaahex_pgdata:
+  gaahex_uploads:    # OPS-5 — durable store for local-disk attachments (/app/uploads)

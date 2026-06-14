@@ -170,6 +170,9 @@ async def add_payment(inv_id: uuid.UUID, payload: dict, user: User = Depends(cur
     # both refunded amounts (F3 protection) AND applied credit notes. The two prior code
     # paths used different formulas — allocation service deducted both, legacy add_payment
     # only deducted refunds. Now both routes through one source of truth.
+    # FIN-2: lock the invoice row first so concurrent payments against the same invoice
+    # serialize their balance read + flip (consistent with the Stripe + allocation paths).
+    await s.execute(select(Invoice.id).where(Invoice.id == inv.id).with_for_update())
     outstanding = await outstanding_for_invoice(s, inv.id)
     if outstanding <= 0:
         inv.status = "PAID"

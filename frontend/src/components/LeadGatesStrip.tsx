@@ -19,13 +19,13 @@ export interface GateSpec {
 }
 
 // Single source for the gate → entity + statuses mapping — shared with EntityView so the strip
-// count and the gate window's filtered list always agree. Order statuses are the SST fulfillment
-// stages; lead/customer statuses use their current sets until those entities are SST-aligned too.
+// count and the gate window's filtered list always agree. All statuses are UPPER_SNAKE — every
+// canonical entity (lead/order/customer) is SST-aligned with no exception (B1b 2026-06-14).
 export const GATES: GateSpec[] = [
-  { key: 'commercial',   name: 'Commercial Gate',    scope: 'Lead · contract · pricing · approvals',      entity: 'lead',     statuses: ['lead', 'validated_lead', 'assigned', 'deal', 'contract_signed'] },
-  { key: 'technical',    name: 'Technical Gate',     scope: 'Validation · config · install · connection', entity: 'order',    statuses: ['order_validated', 'scheduling', 'config', 'installation', 'connection_test'] },
-  { key: 'billing',      name: 'Billing Gate',       scope: 'First payment · activation',                 entity: 'order',    statuses: ['payment_confirmed', 'activation'] },
-  { key: 'customercare', name: 'Customer Care Gate', scope: 'Monitoring · care · SLA · satisfaction',      entity: 'customer', statuses: ['monitoring', 'suspended'] },
+  { key: 'commercial',   name: 'Commercial Gate',    scope: 'Lead · contract · pricing · approvals',      entity: 'lead',     statuses: ['LEAD', 'VALIDATED_LEAD', 'ASSIGNED', 'DEAL', 'CONTRACT_SIGNED'] },
+  { key: 'technical',    name: 'Technical Gate',     scope: 'Validation · config · install · connection', entity: 'order',    statuses: ['ORDER_VALIDATED', 'SCHEDULING', 'CONFIG', 'INSTALLATION', 'CONNECTION_TEST'] },
+  { key: 'billing',      name: 'Billing Gate',       scope: 'First payment · activation',                 entity: 'order',    statuses: ['PAYMENT_CONFIRMED', 'ACTIVATION'] },
+  { key: 'customercare', name: 'Customer Care Gate', scope: 'Monitoring · care · SLA · satisfaction',      entity: 'customer', statuses: ['ACTIVE', 'SUSPENDED'] },
 ]
 
 const ENTITY_LABEL: Record<GateSpec['entity'], [string, string]> = {

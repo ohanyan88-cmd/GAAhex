@@ -60,10 +60,10 @@ SPEC_WORKFLOWS: list[dict] = [
         # implemented in kernel.workflow_engine; their handlers are dispatch-registered.
         "actions_spec": [
             {"type": "audit_only", "event_type": "w1.lead_received",
-             "data": {"stage": "lead", "note": "W1 entered at Stage 1 (Lead)"}},
-            {"type": "advance_stage", "to_stage_key": "validated_lead"},
+             "data": {"stage": "LEAD", "note": "W1 entered at Stage 1 (Lead)"}},
+            {"type": "advance_stage", "to_stage_key": "VALIDATED_LEAD"},
             {"type": "audit_only", "event_type": "w1.stage7_order_created",
-             "data": {"stage": "order_created"}},
+             "data": {"stage": "ORDER_CREATED"}},
             # SPEC §3 Stage 8 — the single mandatory gate between Sales and Fulfillment.
             # The handler delegates to app.kernel.control_gate.assert_can_advance_to_scheduling.
             # When the engine is invoked without an order_id / control_pass in context the gate
@@ -72,7 +72,7 @@ SPEC_WORKFLOWS: list[dict] = [
             {"type": "control_gate",
              "order_id_from_context": "order_id",
              "control_pass_from_context": "control_pass"},
-            {"type": "advance_stage", "to_stage_key": "scheduling"},
+            {"type": "advance_stage", "to_stage_key": "SCHEDULING"},
             {"type": "send_notification", "def_key": "customer.activated"},
         ],
         # SPEC §5.1 SLA budget (placeholder: 5 business days @ 8h = 144000s). Async monitor lands later.

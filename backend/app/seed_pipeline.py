@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import logging
 
-from sqlalchemy import select
+from sqlalchemy import select, update, func
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from .db import OwnerSessionLocal as SessionLocal  # privileged: seeding bypasses RLS
@@ -51,45 +51,45 @@ _log = logging.getLogger("gaahex.seed_pipeline")
 # Tuple shape: (sequence, stage_key, stage_name, owner_module, exit_gate,
 #               kpi_key | None, kpi_name | None, is_control_gate)
 CANONICAL_PIPELINE: list[tuple[int, str, str, str, str, str | None, str | None, bool]] = [
-    (1,  "lead",                  "Lead",                  "Sales",
+    (1,  "LEAD",                  "Lead",                  "Sales",
         "Mandatory fields complete",
         "lead_capture_rate",         "Lead Capture Rate",            False),
-    (2,  "validated_lead",         "Validated Lead",        "Sales",
+    (2,  "VALIDATED_LEAD",         "Validated Lead",        "Sales",
         "Coverage=YES, Reachable, Intent≥threshold",
         "validation_rate",           "Validation Rate",              False),
-    (3,  "assigned",               "Assigned",              "Sales",
+    (3,  "ASSIGNED",               "Assigned",              "Sales",
         "Agent acceptance ≤ SLA",
         "assignment_sla_compliance", "Assignment SLA Compliance",    False),
-    (4,  "deal",                   "Deal",                  "Sales",
+    (4,  "DEAL",                   "Deal",                  "Sales",
         "Offer accepted (digital)",
         "deal_conversion",           "Deal Conversion",              False),
-    (5,  "contract_signed",        "Contract Signed",       "Sales",
+    (5,  "CONTRACT_SIGNED",        "Contract Signed",       "Sales",
         "Signed contract validated",
         "contract_close_rate",       "Contract Close Rate",          False),
-    (6,  "order_created",          "Order Created",         "Back Office",
+    (6,  "ORDER_CREATED",          "Order Created",         "Back Office",
         "Order record with valid tariff + product",
         "order_creation_accuracy",   "Order Creation Accuracy",      False),
     # --- STAGE 7: THE CONTROL GATE (independent validator) -----------------------------------
-    (7,  "order_validated",        "Order Validated",       "Validation",
+    (7,  "ORDER_VALIDATED",        "Order Validated",       "Validation",
         "KYC + Credit/Risk + Fraud + Tariff/Product match = ALL PASS",
         "control_pass_rate",         "Control Pass Rate",            True),
     # -----------------------------------------------------------------------------------------
-    (8,  "scheduling",             "Scheduling",            "Dispatch Team",
+    (8,  "SCHEDULING",             "Scheduling",            "Dispatch Team",
         "Slot within capacity window",
         "schedule_fill_rate",        "Schedule Fill Rate",           False),
-    (9,  "config",                 "Config",                "NOC",
+    (9,  "CONFIG",                 "Config",                "NOC",
         "ONU pre-configured / provisioned on OLT, service profile bound (NOC, at office)",
         "config_success_rate",       "Config Success Rate",          False),
-    (10, "installation",           "Installation",          "Technical Department",
+    (10, "INSTALLATION",           "Installation",          "Technical Department",
         "Pre-configured ONU installed + connected on-site",
         "install_success_rate",      "Install Success Rate",         False),
-    (11, "connection_test",        "Connection Test",       "NOC",
+    (11, "CONNECTION_TEST",        "Connection Test",       "NOC",
         "Link up, signal confirmed",
         "connection_success_rate",   "Connection Success Rate",      False),
-    (12, "payment_confirmed",      "Payment Confirmed",     "Billing",
+    (12, "PAYMENT_CONFIRMED",      "Payment Confirmed",     "Billing",
         "First payment cleared",
         "first_payment_rate",        "First Payment Rate",           False),
-    (13, "activation",             "Activation",            "Billing",
+    (13, "ACTIVATION",             "Activation",            "Billing",
         "Account live, billing cycle started",
         "activation_rate",           "Activation Rate",              False),
     # MONITORING removed as a pipeline stage (iron rule 2026-06-11): it is NOT a stage — at ACTIVATION
@@ -125,7 +125,20 @@ async def seed_canonical_pipeline_if_empty() -> dict[str, int]:
             _log.info("seed_pipeline: no tenants — nothing to seed")
             return {"stages_inserted": 0, "kpis_inserted": 0}
 
+        # Self-heal across the B1b UPPER rename (Gev 2026-06-14): the pipeline keys are now UPPER_SNAKE,
+        # but older DBs carry the lowercase stage_def rows at the SAME sequences. The insert below is
+        # idempotent on (tenant_id, key) but NOT on (tenant_id, sequence) — so a stale lowercase row
+        # would collide on uq_stage_def_sequence and crash boot. Rename any existing lowercase canonical
+        # keys to UPPER first, so the on_conflict matches and skips them cleanly.
+        _lower_canon = [skey.lower() for (_seq, skey, *_rest) in CANONICAL_PIPELINE if skey.lower() != skey]
         for t in tenants:
+            if _lower_canon:
+                await s.execute(
+                    update(StageDef.__table__)
+                    .where(StageDef.__table__.c.tenant_id == t.id,
+                           StageDef.__table__.c.key.in_(_lower_canon))
+                    .values(key=func.upper(StageDef.__table__.c.key))
+                )
             for (seq, skey, sname, sowner, exit_gate,
                  kkey, kname, is_gate) in CANONICAL_PIPELINE:
 

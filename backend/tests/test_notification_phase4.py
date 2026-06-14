@@ -62,7 +62,7 @@ async def _ensure(s, *, tenant_id, node_id, email, role_id) -> uuid.UUID:
 @pytest_asyncio.fixture(scope="module", autouse=True)
 async def _setup_np4_users():
     async with OwnerSessionLocal() as s:
-        tenant = (await s.execute(select(Tenant))).scalars().first()
+        tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         root = (await s.execute(select(OrgNode).where(OrgNode.tenant_id == tenant.id).order_by(OrgNode.path).limit(1))).scalar_one_or_none()
         if root is None:
             root = OrgNode(tenant_id=tenant.id, type="Group", name="Root", code="grp", path=Ltree("grp"))
@@ -150,7 +150,7 @@ async def _emit(s, tenant_id, user_id, def_key, **kwargs):
 
 async def test_notification_manage_key_seeded():
     async with OwnerSessionLocal() as s:
-        tenant = (await s.execute(select(Tenant))).scalars().first()
+        tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         row = (await s.execute(select(PermissionDef).where(
             PermissionDef.tenant_id == tenant.id,
             PermissionDef.key == "notification.manage",
@@ -163,7 +163,7 @@ async def test_notification_manage_key_seeded():
 
 async def test_in_app_delivery_row_created_on_emit():
     async with OwnerSessionLocal() as s:
-        tenant = (await s.execute(select(Tenant))).scalars().first()
+        tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         user = (await s.execute(select(User).where(User.email == _USERS["alice"][0]))).scalar_one()
         await _mk_def(s, tenant.id, "np4.test.inapp_delivery", channel="inapp")
         note = await _emit(s, tenant.id, user.id, "np4.test.inapp_delivery")
@@ -182,7 +182,7 @@ async def test_in_app_delivery_row_created_on_emit():
 
 async def test_mute_suppression_returns_none():
     async with OwnerSessionLocal() as s:
-        tenant = (await s.execute(select(Tenant))).scalars().first()
+        tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         user = (await s.execute(select(User).where(User.email == _USERS["alice"][0]))).scalar_one()
         await _mk_def(s, tenant.id, "np4.test.mute", suppression_mode="MUTE")
         note = await _emit(s, tenant.id, user.id, "np4.test.mute")
@@ -192,7 +192,7 @@ async def test_mute_suppression_returns_none():
 
 async def test_mute_suppression_creates_no_inbox_row():
     async with OwnerSessionLocal() as s:
-        tenant = (await s.execute(select(Tenant))).scalars().first()
+        tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         user = (await s.execute(select(User).where(User.email == _USERS["alice"][0]))).scalar_one()
         await _mk_def(s, tenant.id, "np4.test.mute2", suppression_mode="MUTE")
         before = (await s.execute(select(Notification).where(
@@ -212,7 +212,7 @@ async def test_mute_suppression_creates_no_inbox_row():
 
 async def test_deduplicate_suppresses_second_emit_within_window():
     async with OwnerSessionLocal() as s:
-        tenant = (await s.execute(select(Tenant))).scalars().first()
+        tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         user = (await s.execute(select(User).where(User.email == _USERS["alice"][0]))).scalar_one()
         await _mk_def(s, tenant.id, "np4.test.dedup", suppression_mode="DEDUPLICATE", dedup_window=300)
         first = await _emit(s, tenant.id, user.id, "np4.test.dedup")
@@ -225,7 +225,7 @@ async def test_deduplicate_suppresses_second_emit_within_window():
 async def test_deduplicate_delivers_after_window_expires():
     """Fake an old notification (created_at in the past) then emit again — should deliver."""
     async with OwnerSessionLocal() as s:
-        tenant = (await s.execute(select(Tenant))).scalars().first()
+        tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         user = (await s.execute(select(User).where(User.email == _USERS["alice"][0]))).scalar_one()
         key = "np4.test.dedup_old"
         await _mk_def(s, tenant.id, key, suppression_mode="DEDUPLICATE", dedup_window=5)  # 5s window
@@ -245,7 +245,7 @@ async def test_deduplicate_delivers_after_window_expires():
 
 async def test_none_mode_always_delivers():
     async with OwnerSessionLocal() as s:
-        tenant = (await s.execute(select(Tenant))).scalars().first()
+        tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         user = (await s.execute(select(User).where(User.email == _USERS["alice"][0]))).scalar_one()
         await _mk_def(s, tenant.id, "np4.test.none_mode", suppression_mode="NONE")
         n1 = await _emit(s, tenant.id, user.id, "np4.test.none_mode")
@@ -258,7 +258,7 @@ async def test_none_mode_always_delivers():
 
 async def test_expired_sweep_marks_pending_notifications():
     async with OwnerSessionLocal() as s:
-        tenant = (await s.execute(select(Tenant))).scalars().first()
+        tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         user = (await s.execute(select(User).where(User.email == _USERS["alice"][0]))).scalar_one()
         now = datetime.now(timezone.utc)
         # Plant a PENDING notification with expires_at in the past
@@ -281,7 +281,7 @@ async def test_expired_sweep_marks_pending_notifications():
 
 async def test_expired_sweep_leaves_acknowledged_unchanged():
     async with OwnerSessionLocal() as s:
-        tenant = (await s.execute(select(Tenant))).scalars().first()
+        tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         user = (await s.execute(select(User).where(User.email == _USERS["alice"][0]))).scalar_one()
         now = datetime.now(timezone.utc)
         # ACKNOWLEDGED notification with expires_at in past — must stay ACKNOWLEDGED
@@ -302,7 +302,7 @@ async def test_expired_sweep_leaves_acknowledged_unchanged():
 
 async def test_expired_sweep_leaves_future_expires_at_unchanged():
     async with OwnerSessionLocal() as s:
-        tenant = (await s.execute(select(Tenant))).scalars().first()
+        tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         user = (await s.execute(select(User).where(User.email == _USERS["alice"][0]))).scalar_one()
         n = Notification(
             tenant_id=tenant.id, user_id=user.id, def_key="np4.test.future_expire",
@@ -324,7 +324,7 @@ async def test_expired_sweep_leaves_future_expires_at_unchanged():
 async def test_retry_sweep_retries_failed_delivery():
     """A notification with a FAILED delivery row gets a new attempt on retry sweep."""
     async with OwnerSessionLocal() as s:
-        tenant = (await s.execute(select(Tenant))).scalars().first()
+        tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         user = (await s.execute(select(User).where(User.email == _USERS["alice"][0]))).scalar_one()
         now = datetime.now(timezone.utc)
         # Plant notification + one FAILED delivery
@@ -360,7 +360,7 @@ async def test_retry_sweep_dead_letters_after_max_retries():
     """After _MAX_DELIVERY_RETRIES FAILED rows, next sweep dead-letters the notification."""
     from app.routers.notifications import _MAX_DELIVERY_RETRIES
     async with OwnerSessionLocal() as s:
-        tenant = (await s.execute(select(Tenant))).scalars().first()
+        tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         user = (await s.execute(select(User).where(User.email == _USERS["alice"][0]))).scalar_one()
         now = datetime.now(timezone.utc)
         n = Notification(
@@ -413,7 +413,7 @@ async def test_retry_sweep_endpoint_requires_manage(client, alice, nada):
 async def test_preference_hierarchy_def_key_wins_over_category():
     """A26 pref keyed on the exact def_key takes priority over a category-level pref."""
     async with OwnerSessionLocal() as s:
-        tenant = (await s.execute(select(Tenant))).scalars().first()
+        tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         user = (await s.execute(select(User).where(User.email == _USERS["alice"][0]))).scalar_one()
         from app.routers.notifications import _resolve_pref, PREF_CHANNEL_SENTINEL
         # Category-level pref: category=system → digest
@@ -438,7 +438,7 @@ async def test_preference_hierarchy_def_key_wins_over_category():
 async def test_preference_hierarchy_category_wins_over_default():
     """A category-level pref wins over the global default."""
     async with OwnerSessionLocal() as s:
-        tenant = (await s.execute(select(Tenant))).scalars().first()
+        tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         user = (await s.execute(select(User).where(User.email == _USERS["alice"][0]))).scalar_one()
         from app.routers.notifications import _resolve_pref, PREF_CHANNEL_SENTINEL, CATEGORY_DEFAULT
         # Global default pref
@@ -463,7 +463,7 @@ async def test_preference_hierarchy_category_wins_over_default():
 async def test_preference_hierarchy_global_default_fallback():
     """When no def_key or category pref exists, the global default is used."""
     async with OwnerSessionLocal() as s:
-        tenant = (await s.execute(select(Tenant))).scalars().first()
+        tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         user = (await s.execute(select(User).where(User.email == _USERS["alice"][0]))).scalar_one()
         from app.routers.notifications import _resolve_pref, PREF_CHANNEL_SENTINEL, CATEGORY_DEFAULT
         s.add(NotificationPref(

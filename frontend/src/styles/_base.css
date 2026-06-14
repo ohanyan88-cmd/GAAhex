@@ -4,7 +4,9 @@ html, body { margin: 0; padding: 0; height: 100%; }
 #root { height: 100%; }
 body {
   /* GLASS ambient backdrop — base bg + colored gradient blobs that the
-     translucent/blurred surfaces refract. Fixed so it stays put while scrolling. */
+     translucent/blurred surfaces refract. Fixed so it stays put while scrolling.
+     (The hexagon brand field lives on the page-shell `.ps`, not here — `.ps` is opaque
+     and would bury a body-level texture.) */
   background:
     radial-gradient(circle 700px at -8% -15%, rgba(28, 59, 104, 0.55), transparent 70%),
     radial-gradient(circle 500px at 108% 118%, rgba(197, 160, 89, 0.18), transparent 70%),

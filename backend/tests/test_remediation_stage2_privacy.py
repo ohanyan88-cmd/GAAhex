@@ -89,7 +89,7 @@ async def _ensure_user(s, *, tenant_id, node_id, email, role_id) -> uuid.UUID:
 @pytest_asyncio.fixture(scope="module", autouse=True)
 async def _setup_privacy_users():
     async with OwnerSessionLocal() as s:
-        tenant = (await s.execute(select(Tenant))).scalars().first()
+        tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         root = (await s.execute(
             select(OrgNode).where(OrgNode.tenant_id == tenant.id).order_by(OrgNode.path).limit(1)
         )).scalar_one_or_none()
@@ -231,7 +231,7 @@ async def _new_customer(
         r = Record(
             tenant_id=tenant_id,
             entity_key="customer",
-            status="active",
+            status="ACTIVE",  # SPEC §7 UPPER_SNAKE
             data={"name": name, "email": email, "phone": phone, "plan": "FIBER-100"},
             deletion_state=deletion_state,
         )
@@ -451,7 +451,7 @@ async def test_complete_access_request_excludes_other_tenants(client, admin):
         # for the foreign customer and assert the invoice does NOT appear in the demo-tenant
         # export. The other-tenant row simply must not appear.
         other_cust = Record(
-            tenant_id=_CTX["other_tenant_id"], entity_key="customer", status="active",
+            tenant_id=_CTX["other_tenant_id"], entity_key="customer", status="ACTIVE",  # SPEC §7 UPPER_SNAKE
             data={"name": "Other Subject", "email": "other@example.com"},
         )
         s.add(other_cust); await s.flush()

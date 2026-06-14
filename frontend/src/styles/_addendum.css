@@ -127,8 +127,115 @@
 .kpi-scope-dept { background: var(--gx-gold-soft); color: var(--gx-gold); }
 .kpi-scope-org  { background: var(--gx-surface-2); border: 1px solid var(--gx-border); color: var(--gx-text-2); }
 
-/* ── Workspace ME | TEAM layout ─────────────────────────────────────────── */
+/* ── Workspace ME | TEAM layout (legacy two-column; kept for any caller) ─────── */
 .ws-layout { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gx-space-18); align-items: start; }
 .ws-col { display: flex; flex-direction: column; gap: var(--gx-space-8); }
 .ws-col-head { font-size: var(--gx-text-xl); font-weight: var(--gx-weight-bold); letter-spacing: .06em; text-transform: uppercase; color: var(--gx-text-2); padding: 0 var(--gx-space-2) var(--gx-space-4); }
 @media (max-width: 860px) { .ws-layout { grid-template-columns: 1fr; } }
+
+/* ── Personalized workspace landing (registry-driven) ───────────────────────── */
+.ws-home { display: flex; flex-direction: column; gap: var(--gx-space-8); }
+
+/* Needs You Now — always-on status band. All chips EQUAL width = the longest one
+   (inline-grid `1fr` columns size to the widest content); glass like the cards (Gev 2026-06-14). */
+.ws-urgent { display: inline-grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: var(--gx-space-5); max-width: 100%; align-self: flex-start; justify-self: start; }
+.ws-urgent-chip {
+  display: inline-flex; align-items: center; gap: var(--gx-space-4); white-space: nowrap;
+  padding: var(--gx-space-4) var(--gx-space-8); border-radius: var(--gx-radius-md);
+  border: 1px solid var(--gx-border-subtle);                 /* background set inline (status glass tint) */
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  color: var(--gx-text-1); font-size: var(--gx-text-13); font-weight: var(--gx-weight-medium);
+  cursor: pointer; transition: border-color var(--gx-dur-fast);
+}
+.ws-urgent-chip:hover { border-color: var(--gx-border-strong); }
+@media (max-width: 720px) { .ws-urgent { grid-auto-flow: row; grid-auto-columns: auto; } }
+
+/* Toolbar (role label + Customize) */
+.ws-toolbar { display: flex; align-items: center; justify-content: space-between; gap: var(--gx-space-5); }
+.ws-customize-btn {
+  display: inline-flex; align-items: center; gap: var(--gx-space-3);
+  padding: var(--gx-space-3) var(--gx-space-6); border-radius: var(--gx-radius-md);
+  background: var(--gx-surface); border: 1px solid var(--gx-border); color: var(--gx-text-2);
+  font-size: var(--gx-text-12); font-weight: var(--gx-weight-medium); cursor: pointer;
+  transition: all var(--gx-dur-fast);
+}
+.ws-customize-btn:hover { background: var(--gx-surface-2); color: var(--gx-text-1); border-color: var(--gx-border-strong); }
+
+/* Customize panel */
+.ws-customize { display: flex; flex-direction: column; }
+.ws-cust-row { display: flex; align-items: center; gap: var(--gx-space-5); padding: var(--gx-space-4) var(--gx-space-6); border-bottom: 1px solid var(--gx-border-subtle); }
+.ws-cust-row:last-child { border-bottom: none; }
+.ws-icon-btn {
+  display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px;
+  border-radius: var(--gx-radius-sm); background: transparent; border: 1px solid transparent;
+  color: var(--gx-text-3); cursor: pointer; transition: all var(--gx-dur-fast); flex-shrink: 0;
+}
+.ws-icon-btn:hover { background: var(--gx-hover); color: var(--gx-text-1); border-color: var(--gx-border-subtle); }
+
+/* Widget grid — reflows by available width; every widget is EQUAL height (Gev 2026-06-14):
+   the body shows ~6 rows then scrolls, so the grid stays tidy regardless of content length. */
+.ws-grid { display: flex; flex-wrap: wrap; gap: var(--gx-space-8); align-content: flex-start; }
+.ws-grid > .card { flex: 1 1 340px; min-width: 0; height: 256px; }
+@media (max-width: 720px) { .ws-grid > .card, .ws-grid > .card.wx-full { flex-basis: 100%; } }
+.wx-body { flex: 1; min-height: 0; overflow-y: auto; }
+.wx-body .wx-table thead th { position: sticky; top: 0; background: var(--gx-surface); z-index: 1; }
+
+/* Widget header — no icon, bigger title, count INLINE beside it (Gev 2026-06-14). */
+.wx-head { display: flex; align-items: baseline; gap: var(--gx-space-4); padding: var(--gx-space-8) var(--gx-space-18); border-bottom: 1px solid var(--gx-border); }
+.wx-title { margin: 0; font-size: var(--gx-text-lg); font-weight: var(--gx-weight-semibold); color: var(--gx-text-1); letter-spacing: -0.01em; }
+.wx-count { font-size: var(--gx-text-13); font-weight: var(--gx-weight-semibold); color: var(--gx-text-3); }
+
+/* Recent Activity fills the LAST row's leftover — BESIDE the lone last widget (e.g. Org Health), or
+   full-width if that row is already full (Gev 2026-06-14). Huge flex-grow → it hogs the remaining width. */
+.ws-grid > .card.wx-full { flex: 1000 1 340px; height: 256px; }
+.wx-activity { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0 var(--gx-space-8); padding: var(--gx-space-4) var(--gx-space-8); flex: 1; min-height: 0; overflow-y: auto; }
+.wx-act-row { display: flex; align-items: center; gap: var(--gx-space-5); padding: var(--gx-space-4) var(--gx-space-8); border-bottom: 1px solid var(--gx-border-subtle); cursor: pointer; transition: background var(--gx-dur-fast); }
+.wx-act-row:hover { background: var(--gx-hover); }
+.wx-act-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gx-interactive); flex-shrink: 0; }
+.wx-act-text { flex: 1; font-size: var(--gx-text-13); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wx-act-time { font-size: var(--gx-text-11); color: var(--gx-text-3); flex-shrink: 0; }
+
+/* ── Widget visual treatments (variety so the grid isn't monotone) ──────────── */
+/* table (My Open Tasks · Overdue Invoices) */
+.wx-table { width: 100%; border-collapse: collapse; font-size: var(--gx-text-13); }
+.wx-table thead th { text-align: left; font-size: var(--gx-text-10); letter-spacing: .06em; text-transform: uppercase; color: var(--gx-text-3); font-weight: var(--gx-weight-semibold); padding: var(--gx-space-4) var(--gx-space-18); border-bottom: 1px solid var(--gx-border); }
+.wx-table tbody tr { border-bottom: 1px solid var(--gx-border-subtle); cursor: pointer; transition: background var(--gx-dur-fast); }
+.wx-table tbody tr:hover { background: var(--gx-hover); }
+.wx-table tbody tr:last-child { border-bottom: none; }
+.wx-table td { padding: var(--gx-space-4) var(--gx-space-18); vertical-align: middle; }
+.wx-td-name { font-weight: var(--gx-weight-medium); max-width: 0; width: 58%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wx-td-due { color: var(--gx-text-3); font-size: var(--gx-text-11); text-align: right; white-space: nowrap; }
+.wx-tr-danger .wx-td-due { color: var(--gx-danger); font-weight: var(--gx-weight-semibold); }
+.wx-table tbody tr:has(.wx-empty-cell) { cursor: default; }
+.wx-table tbody tr:has(.wx-empty-cell):hover { background: transparent; }
+.wx-empty-cell { padding: var(--gx-space-12) var(--gx-space-18); color: var(--gx-text-3); text-align: center; font-size: var(--gx-text-13); }
+
+/* stat tiles (Org Health) */
+.wx-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--gx-border-subtle); }
+.wx-stat { background: color-mix(in srgb, var(--gx-surface) 50%, transparent); padding: var(--gx-space-5) var(--gx-space-12); display: flex; flex-direction: column; gap: 1px; }
+.wx-stat-val { font-family: var(--gx-font-display); font-size: var(--gx-text-xl); font-weight: var(--gx-weight-bold); font-variant-numeric: tabular-nums; line-height: 1.15; }
+.wx-stat-val.wx-good { color: var(--gx-success); }
+.wx-stat-val.wx-bad { color: var(--gx-danger); }
+.wx-stat-lbl { font-size: var(--gx-text-11); color: var(--gx-text-3); }
+
+/* avatar grid (Team Members) */
+.wx-avatars { display: flex; flex-wrap: wrap; gap: var(--gx-space-4); padding: var(--gx-space-8) var(--gx-space-12); }
+.wx-avatar-chip { display: inline-flex; align-items: center; gap: var(--gx-space-3); padding: 2px var(--gx-space-5) 2px 2px; border-radius: 999px; background: var(--gx-surface-2); border: 1px solid var(--gx-border-subtle); }
+.wx-avatar { width: 22px; height: 22px; border-radius: 50%; background: linear-gradient(135deg, var(--cobalt-500), var(--cobalt-700)); color: var(--gx-on-primary); display: flex; align-items: center; justify-content: center; font-size: var(--gx-text-10); font-weight: var(--gx-weight-bold); flex-shrink: 0; }
+.wx-avatar-name { font-size: var(--gx-text-12); color: var(--gx-text-2); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* stage bars (My Pipeline) */
+.wx-bars { display: flex; flex-direction: column; gap: var(--gx-space-4); padding: var(--gx-space-8) var(--gx-space-18); cursor: pointer; }
+.wx-bar-row { display: flex; align-items: center; gap: var(--gx-space-5); }
+.wx-bar-lbl { width: 70px; font-size: var(--gx-text-12); color: var(--gx-text-2); flex-shrink: 0; }
+.wx-bar-track { flex: 1; height: 8px; border-radius: 4px; background: var(--gx-surface-2); overflow: hidden; }
+.wx-bar-fill { display: block; height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--gx-interactive), var(--gold-400)); transition: width var(--gx-dur-moderate) var(--gx-ease-standard); }
+.wx-bar-n { width: 24px; text-align: right; font-size: var(--gx-text-12); color: var(--gx-text-2); font-weight: var(--gx-weight-semibold); flex-shrink: 0; }
+
+/* timeline (My Route Today) */
+.wx-timeline { display: flex; flex-direction: column; padding: var(--gx-space-4) 0; }
+.wx-tl-row { display: flex; align-items: center; gap: var(--gx-space-5); padding: var(--gx-space-4) var(--gx-space-18); cursor: pointer; transition: background var(--gx-dur-fast); }
+.wx-tl-row:hover { background: var(--gx-hover); }
+.wx-tl-time { width: 52px; font-size: var(--gx-text-11); color: var(--gx-text-3); flex-shrink: 0; }
+.wx-tl-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gx-interactive); flex-shrink: 0; box-shadow: 0 0 0 3px var(--gx-interactive-soft); }
+.wx-tl-name { flex: 1; font-size: var(--gx-text-13); font-weight: var(--gx-weight-medium); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

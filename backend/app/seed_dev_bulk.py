@@ -377,7 +377,7 @@ async def seed_dev_bulk_if_empty() -> dict | None:
             # --- 5a. Customer Record (entity_key="customer") ---
             cust = Record(
                 tenant_id=tenant.id, entity_key="customer", owner_node_id=owner_node_id,
-                status="monitoring",   # SST #14 — active monitored customer
+                status="ACTIVE",   # SST #14 — active monitored customer (SPEC §7 UPPER_SNAKE)
                 data=_tag({
                     "name": cust_name, "email": email, "phone": phone, "plan": plan_label,
                     # extra (non-schema) fields are fine — config records accept arbitrary keys
@@ -387,7 +387,7 @@ async def seed_dev_bulk_if_empty() -> dict | None:
             s.add(cust)
             await s.flush()
             await workflow.emit(s, tenant.id, "create", "customer", cust.id, actor_id,
-                                {"data": cust.data, "status": "monitoring"})
+                                {"data": cust.data, "status": "ACTIVE"})
             summary["customers"] += 1
 
             # --- 5b. Party row (BSS first-class table — for the holder picker) ---
@@ -459,7 +459,7 @@ async def seed_dev_bulk_if_empty() -> dict | None:
                     order_status = "COMPLETED"
                 else:
                     # Mix in a couple of in-flight SST order stages for variety
-                    order_status = ("order_created", "scheduling", "activation", "activation")[idx % 4]
+                    order_status = ("ORDER_CREATED", "SCHEDULING", "ACTIVATION", "ACTIVATION")[idx % 4]
                 order_seq += 1
                 order = Order(
                     tenant_id=tenant.id, owner_node_id=owner_node_id, customer_id=cust.id,
@@ -962,12 +962,12 @@ async def seed_dev_threads_if_empty() -> dict | None:
 # deleted 2026-06-11. Spread across the funnel so the gate strip + KPI cards have a real shape.
 _LEADS = [
     ("Հակոբյան Արամ Սարգսի — Մաշտոցի ֆայբեր",   "assigned",        "Demo Admin", "WEBSITE",  45000),
-    ("Tumo Center — Enterprise կապ",      "contract_signed", "Demo Admin", "OUTBOUND", 250000),
-    ("Erebuni IT Solutions",              "validated_lead",  "Demo Admin", "OUTBOUND", 120000),
+    ("Tumo Center — Enterprise կապ",      "CONTRACT_SIGNED", "Demo Admin", "OUTBOUND", 250000),
+    ("Erebuni IT Solutions",              "VALIDATED_LEAD",  "Demo Admin", "OUTBOUND", 120000),
     ("Գրիգորյան Մարիամ Վահանի — բիզնес փաթեթ",   "deal",            "Demo Admin", "WEBSITE",  45000),
-    ("Սարգսյան Լիլիթ Արմենի — բնակարան",         "validated_lead",  "Demo Agent", "REFERRAL", 8000),
+    ("Սարգսյան Լիլիթ Արմենի — բնակարան",         "VALIDATED_LEAD",  "Demo Agent", "REFERRAL", 8000),
     ("Պետրոսյան Գևորգ Արամի",                   "lead",            "Demo Agent", "WEBSITE",  8000),
-    ("Մկրտչյան Անի Կարենի — տուն",               "contract_signed", "Demo Agent", "WALK_IN",  15000),
+    ("Մկրտչյան Անի Կարենի — տուն",               "CONTRACT_SIGNED", "Demo Agent", "WALK_IN",  15000),
     ("Ավագյան Նարեկ Հայկի",                     "lead",            "Demo Agent", "REFERRAL", 8000),
     ("Սարուխանյան Հայկ Գագիկի",                  "lead",            "Demo Agent", "WEBSITE",  8000),
     ("Ադամյան Լուսինե Սուրենի",                   "assigned",        "Demo Admin", "WALK_IN",  12000),
@@ -986,8 +986,8 @@ _LEADS_PRIOR = [
     ("Aren Tech — fiber quote",           "lead",            "Demo Admin", "OUTBOUND", 75000),
     ("Բաբայան Արմեն Սմբատի",                     "lead",            "Demo Agent", "WEBSITE",  8000),
     ("Մելքոնյան Շուշան Արթուրի",                  "assigned",        "Demo Agent", "WALK_IN",  15000),
-    ("Tigran Auto — 2 sites",             "contract_signed", "Demo Admin", "OUTBOUND", 180000),
-    ("Գրիգորյան Վահե Կարապետի",                    "validated_lead",  "Demo Agent", "WEBSITE",  8000),
+    ("Tigran Auto — 2 sites",             "CONTRACT_SIGNED", "Demo Admin", "OUTBOUND", 180000),
+    ("Գրիգորյան Վահե Կարապետի",                    "VALIDATED_LEAD",  "Demo Agent", "WEBSITE",  8000),
 ]
 # Yerevan demo addresses, cycled per lead so the Address column reads real.
 _ADDR = [

@@ -27,7 +27,7 @@ def test_event_categories_are_exactly_16_upper_snake():
 
 async def test_emit_rejects_category_outside_the_enum():
     async with SessionLocal() as s:
-        tenant = (await s.execute(select(Tenant))).scalars().first()
+        tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         # the validation fires before the Event is added, so no real record/commit is needed
         with pytest.raises(ValueError):
             await workflow.emit(s, tenant.id, "TEST", "widget", uuid.uuid4(), None, {}, category="BOGUS")
@@ -37,7 +37,7 @@ async def test_emit_rejects_category_outside_the_enum():
 
 async def test_emit_accepts_a_valid_category_and_none():
     async with SessionLocal() as s:
-        tenant = (await s.execute(select(Tenant))).scalars().first()
+        tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         # neither raises (valid 16-set member, and the legacy None) — rolled back, not committed
         await workflow.emit(s, tenant.id, "TEST", "widget", uuid.uuid4(), None, {}, category="SECURITY")
         await workflow.emit(s, tenant.id, "TEST", "widget", uuid.uuid4(), None, {}, category=None)

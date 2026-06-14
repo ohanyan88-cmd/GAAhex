@@ -39,7 +39,7 @@ from app.models import Event, Tenant, WorkflowDef, WorkflowInstance
 
 async def _tenant_id(s) -> uuid.UUID:
     """Pick the first tenant the conftest seeded — same shape used by every other suite."""
-    return (await s.execute(select(Tenant))).scalars().first().id
+    return (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first().id
 
 
 @pytest_asyncio.fixture

@@ -44,7 +44,7 @@ async def create_customer_from_lead(s: AsyncSession, user: User, order: Order) -
     cust_data["ref"] = await next_reference_number(s, tenant_id=user.tenant_id, prefix="CUS")
     customer = Record(
         tenant_id=user.tenant_id, entity_key=cust_ent.key, owner_node_id=order.owner_node_id,
-        status="active",                                                # active base member (not a stage)
+        status="ACTIVE",                                                # active base member (not a stage); SPEC §7 UPPER_SNAKE
         data=cust_data,
     )
     s.add(customer)
@@ -52,7 +52,7 @@ async def create_customer_from_lead(s: AsyncSession, user: User, order: Order) -
     # back-link the lead → customer for the full lead → order → customer trail
     lead.data = {**lead_data, "converted_customer_id": str(customer.id)}
     await workflow.emit(s, user.tenant_id, "CREATE", "customer", customer.id, user.id,
-                        {"data": cust_data, "status": "active", "from_order": str(order.id),
+                        {"data": cust_data, "status": "ACTIVE", "from_order": str(order.id),
                          "from_lead": str(lead.id)})
     return customer
 
@@ -69,8 +69,8 @@ async def on_order_activated(s: AsyncSession, *, order: Order, user: User):
         cust = await create_customer_from_lead(s, user, order)
         if cust is not None:
             order.customer_id = cust.id
-    if cust is not None and cust.status != "active":
-        cust.status = "active"
+    if cust is not None and cust.status != "ACTIVE":
+        cust.status = "ACTIVE"   # SPEC §7 UPPER_SNAKE (active base member)
     return cust
 
 

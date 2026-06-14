@@ -56,7 +56,7 @@ async def _make_order_provisioning(client, admin, customer_id: str) -> str:
     })).json()
     async with SessionLocal() as s:
         order = (await s.execute(select(Order).where(Order.id == uuid.UUID(o["id"])))).scalar_one()
-        order.status = "installation"
+        order.status = "INSTALLATION"
         order.control_pass = True
         await s.commit()
     return o["id"]

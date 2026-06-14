@@ -67,13 +67,14 @@ export function nextAdvanceLabel(status: string): string | null {
   return _NEXT_VERB[(status ?? '').toLowerCase()] ?? null
 }
 
-// The order's forward fulfillment chain = the SST service-delivery stages (lifecycle.ts), lowercased to
-// match the backend status strings — the SINGLE source, NOT a parallel hardcoded map. Returns the {to}
-// target for the unified transition route (POST /api/orders/{id}/transition), or null at the chain end.
-const _ORDER_CHAIN = SERVICE_DELIVERY_STAGES.map((s) => s.key.toLowerCase())
+// The order's forward fulfillment chain = the SST service-delivery stages (lifecycle.ts), UPPER_SNAKE to
+// match the backend status strings (B1b 2026-06-14, no exception) — the SINGLE source, NOT a parallel
+// hardcoded map. Returns the {to} target for the unified transition route
+// (POST /api/orders/{id}/transition), or null at the chain end.
+const _ORDER_CHAIN: string[] = SERVICE_DELIVERY_STAGES.map((s) => s.key)
 export function nextOrderStatus(status: string): string | null {
-  const cur = (status ?? '').toLowerCase()
-  if (cur === 'order_created') return _ORDER_CHAIN[0] ?? null   // /submit: sales-terminal → first order stage
+  const cur = (status ?? '').toUpperCase()
+  if (cur === 'ORDER_CREATED') return _ORDER_CHAIN[0] ?? null   // /submit: sales-terminal → first order stage
   const i = _ORDER_CHAIN.indexOf(cur)
   return i >= 0 && i + 1 < _ORDER_CHAIN.length ? _ORDER_CHAIN[i + 1] : null
 }

@@ -31,7 +31,7 @@ async def _order_with_credit_pass(client, admin, customer_id: str, amount: int =
         "items": [{"description": "x", "quantity": 1, "unit_amount": amount}],
     })).json()
     # submit + flip credit to PASS so the stage 8 check is clear
-    await client.post(f"/api/orders/{order['id']}/transition", headers=admin, json={"to": "order_validated"})
+    await client.post(f"/api/orders/{order['id']}/transition", headers=admin, json={"to": "ORDER_VALIDATED"})
     async with SessionLocal() as s:
         o = (await s.execute(select(Order).where(Order.id == uuid.UUID(order["id"])))).scalar_one()
         o.credit_check_status = "PASS"
@@ -49,10 +49,10 @@ async def test_release_succeeds_when_stage8_passes(client, admin):
     # Cutover split: the bundled /release became /stage8-apply (persist the Revenue-Control verdict →
     # control_pass=True) + the gated /transition. The frontend Stage8Modal does exactly this 2-step.
     await client.post(f"/api/orders/{order['id']}/stage8-apply", headers=admin)
-    r = await client.post(f"/api/orders/{order['id']}/transition", headers=admin, json={"to": "scheduling"})
+    r = await client.post(f"/api/orders/{order['id']}/transition", headers=admin, json={"to": "SCHEDULING"})
     assert r.status_code == 200, r.text
     body = r.json()
-    assert body["status"] == "scheduling"
+    assert body["status"] == "SCHEDULING"
 
     # Verify control_pass was persisted to TRUE.
     async with SessionLocal() as s:
@@ -69,13 +69,13 @@ async def test_release_409_with_block_reason_when_stage8_fails(client, admin):
         "customer_id": cust,
         "items": [{"description": "x", "quantity": 1, "unit_amount": 1000}],
     })).json()
-    await client.post(f"/api/orders/{order['id']}/transition", headers=admin, json={"to": "order_validated"})
+    await client.post(f"/api/orders/{order['id']}/transition", headers=admin, json={"to": "ORDER_VALIDATED"})
     # credit_check_status left NULL — stage 8 should fail with "credit check pending"
 
     # Persist the (failing) verdict via /stage8-apply → control_pass=False + block reason, then the
     # gated /transition refuses (mirrors the UI's stage8-apply → release 2-step).
     await client.post(f"/api/orders/{order['id']}/stage8-apply", headers=admin)
-    r = await client.post(f"/api/orders/{order['id']}/transition", headers=admin, json={"to": "scheduling"})
+    r = await client.post(f"/api/orders/{order['id']}/transition", headers=admin, json={"to": "SCHEDULING"})
     assert r.status_code == 409, r.text
     detail = r.json().get("detail", "")
     assert "stage 8" in detail.lower() or "control gate" in detail.lower(), detail
@@ -86,7 +86,7 @@ async def test_release_409_with_block_reason_when_stage8_fails(client, admin):
         fresh = (await s.execute(
             select(Order).where(Order.id == uuid.UUID(order["id"]))
         )).scalar_one()
-        assert fresh.status == "order_validated"
+        assert fresh.status == "ORDER_VALIDATED"
         # control_pass was persisted as False with a block reason.
         assert fresh.control_pass is False
         assert fresh.control_gate_block_reason is not None
@@ -204,10 +204,10 @@ async def test_advance_to_provisioning_refuses_when_stage8_fails(client, admin):
         "customer_id": cust,
         "items": [{"description": "x", "quantity": 1, "unit_amount": 1000}],
     })).json()
-    await client.post(f"/api/orders/{order['id']}/transition", headers=admin, json={"to": "order_validated"})
+    await client.post(f"/api/orders/{order['id']}/transition", headers=admin, json={"to": "ORDER_VALIDATED"})
     # credit_check left NULL → stage 8 fails
 
-    r = await client.post(f"/api/orders/{order['id']}/transition", headers=admin, json={"to": "scheduling"})
+    r = await client.post(f"/api/orders/{order['id']}/transition", headers=admin, json={"to": "SCHEDULING"})
     assert r.status_code == 409
     detail = r.json().get("detail", "").lower()
     assert "stage 8" in detail or "control gate" in detail or "control_pass" in detail

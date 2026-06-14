@@ -162,6 +162,14 @@ def _enter_production(monkeypatch):
     monkeypatch.setattr(settings, "radius_backend_provider", "freeradius")
     # Stage 2 — portal_auth_mode must be cookie/both in production.
     monkeypatch.setattr(settings, "portal_auth_mode", "cookie")
+    # E1/E2 gates: legacy comms off the dev/no-op channel + abuse guard on.
+    monkeypatch.setattr(settings, "email_provider", "smtp")
+    monkeypatch.setattr(settings, "sms_provider", "twilio")
+    monkeypatch.setattr(settings, "smtp_host", "smtp.example.com")       # E1b: real SMTP gateway constructs
+    monkeypatch.setattr(settings, "twilio_account_sid", "ACxxxxxxxxxxxx")  # E1b: real Twilio gateway constructs
+    monkeypatch.setattr(settings, "twilio_auth_token", "tok_xxxxxxxxxxxx")
+    monkeypatch.setattr(settings, "twilio_from", "+37410000000")
+    monkeypatch.setattr(settings, "rate_limit_enabled", True)
 
 
 def test_prod_contract_refuses_mock_payment_provider(monkeypatch):

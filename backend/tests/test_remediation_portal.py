@@ -52,7 +52,7 @@ async def xss_setup(client: AsyncClient, admin):
     cid = r.json()["id"]
 
     async with OwnerSessionLocal() as s:
-        tenant = (await s.execute(select(Tenant))).scalars().first()
+        tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         tid = tenant.id
 
         email = "xss_portal@test.isp"

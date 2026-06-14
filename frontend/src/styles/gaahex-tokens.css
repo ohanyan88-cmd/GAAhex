@@ -364,6 +364,10 @@
 
   /* Surfaces */
   --gx-bg:          #0A1322;   /* app background — deep cobalt-slate */
+  /* GAAhex brand-motif: a barely-there honeycomb field tiled over the app backdrop (the "hex" in
+     GAAhex). Seamless 28×49 hex tile rendered at 48×84; faint GOLD on dark. Consumed as the top
+     background layer of `body` in _base.css. Theme-overridden to cobalt on light below. */
+  --gx-hex-field: url("/brand/hex-field-dark.svg");
   --gx-bg-subtle:   #0E1A2D;
   --gx-surface:     #13203A;   /* cards */
   --gx-surface-2:   #182943;   /* nested / hover surface */
@@ -482,6 +486,8 @@
   color-scheme: light;
 
   --gx-bg:          #F4F7FB;
+  /* Honeycomb brand field — faint COBALT on light (gold disappears on near-white). */
+  --gx-hex-field: url("/brand/hex-field-light.svg");
   --gx-bg-subtle:   #EDF1F5;
   --gx-surface:     #FFFFFF;
   --gx-surface-2:   #F7F9FB;

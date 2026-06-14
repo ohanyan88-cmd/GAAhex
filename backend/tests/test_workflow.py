@@ -34,9 +34,9 @@ async def test_full_lifecycle_and_history(client, admin):
     admin_id = await _admin_id()
     lead = (await client.post("/api/leads", headers=admin, json={"name": "Lifecycle", "phone": "+37491000"})).json()
     lid = lead["id"]
-    assert lead["status"] == "lead"
+    assert lead["status"] == "LEAD"
 
-    steps = ["validated_lead", "assigned", "deal"]
+    steps = ["VALIDATED_LEAD", "ASSIGNED", "DEAL"]
     prev = "lead"
     for to in steps:
         r = await client.post(f"/api/leads/{lid}/transition", headers=admin, json={"to": to})
@@ -49,7 +49,7 @@ async def test_full_lifecycle_and_history(client, admin):
     assert [e["type"] for e in history] == ["CREATE", "TRANSITION", "TRANSITION", "TRANSITION"]
     transitions = [e for e in history if e["type"] == "TRANSITION"]
     assert [(e["data"]["from"], e["data"]["to"]) for e in transitions] == [
-        ("lead", "validated_lead"), ("validated_lead", "assigned"), ("assigned", "deal"),
+        ("LEAD", "VALIDATED_LEAD"), ("VALIDATED_LEAD", "ASSIGNED"), ("ASSIGNED", "DEAL"),
     ]
     # actor is the admin on every event
     assert all(e["actor_user_id"] == admin_id for e in history)
@@ -61,18 +61,18 @@ async def test_guard_pass_and_fail_same_edge(client, admin):
     lead = (await client.post("/api/leads", headers=admin, json={"name": "Guarded"})).json()
     lid = lead["id"]
     # no phone yet → NEW->CONTACTED guard fails → 422
-    fail = await client.post(f"/api/leads/{lid}/transition", headers=admin, json={"to": "validated_lead"})
+    fail = await client.post(f"/api/leads/{lid}/transition", headers=admin, json={"to": "VALIDATED_LEAD"})
     assert fail.status_code == 422
     # add a phone, same edge now passes
     assert (await client.patch(f"/api/leads/{lid}", headers=admin, json={"phone": "+37499123"})).status_code == 200
-    ok = await client.post(f"/api/leads/{lid}/transition", headers=admin, json={"to": "validated_lead"})
-    assert ok.status_code == 200 and ok.json()["status"] == "validated_lead"
+    ok = await client.post(f"/api/leads/{lid}/transition", headers=admin, json={"to": "VALIDATED_LEAD"})
+    assert ok.status_code == 200 and ok.json()["status"] == "VALIDATED_LEAD"
 
     # the failed attempt emitted NO transition event; only the successful one did
     history = (await client.get(f"/api/leads/{lid}/history", headers=admin)).json()
     transition_events = [e for e in history if e["type"] == "TRANSITION"]
     assert len(transition_events) == 1
-    assert (transition_events[0]["data"]["from"], transition_events[0]["data"]["to"]) == ("lead", "validated_lead")
+    assert (transition_events[0]["data"]["from"], transition_events[0]["data"]["to"]) == ("LEAD", "VALIDATED_LEAD")
 
 
 # ---- a transition emits exactly one event ----
@@ -81,7 +81,7 @@ async def test_transition_emits_single_event(client, admin):
     lead = (await client.post("/api/leads", headers=admin, json={"name": "Single", "phone": "+37411"})).json()
     lid = lead["id"]
     before = sum(1 for t, _, _ in await _events_for(lid) if t == "TRANSITION")
-    assert (await client.post(f"/api/leads/{lid}/transition", headers=admin, json={"to": "validated_lead"})).status_code == 200
+    assert (await client.post(f"/api/leads/{lid}/transition", headers=admin, json={"to": "VALIDATED_LEAD"})).status_code == 200
     after = sum(1 for t, _, _ in await _events_for(lid) if t == "TRANSITION")
     assert after - before == 1
 
@@ -108,7 +108,7 @@ async def test_history_chronological_ordering(client, admin):
     lid = lead["id"]
     await client.patch(f"/api/leads/{lid}", headers=admin, json={"phone": "+37413"})
     await client.patch(f"/api/leads/{lid}", headers=admin, json={"email": "o@x.io"})
-    await client.post(f"/api/leads/{lid}/transition", headers=admin, json={"to": "validated_lead"})
+    await client.post(f"/api/leads/{lid}/transition", headers=admin, json={"to": "VALIDATED_LEAD"})
 
     history = (await client.get(f"/api/leads/{lid}/history", headers=admin)).json()
     assert [e["type"] for e in history] == ["CREATE", "UPDATE", "UPDATE", "TRANSITION"]

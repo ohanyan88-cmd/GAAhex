@@ -63,7 +63,7 @@ async def _setup_job_users():
     """Seed two users (alice + nada) on the default tenant, plus the JobRun rows
     used by the read-side tests. Module-scoped so the rows survive across tests."""
     async with OwnerSessionLocal() as s:
-        tenant = (await s.execute(select(Tenant))).scalars().first()
+        tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         root = (await s.execute(
             select(OrgNode).where(OrgNode.tenant_id == tenant.id).order_by(OrgNode.path).limit(1)
         )).scalar_one_or_none()
@@ -133,7 +133,7 @@ async def nada(client):
 
 async def _resolve_tenant_id() -> uuid.UUID:
     async with OwnerSessionLocal() as s:
-        t = (await s.execute(select(Tenant))).scalars().first()
+        t = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         return t.id
 
 

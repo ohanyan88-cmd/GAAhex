@@ -8,8 +8,14 @@ dist/
 *.egg-info/
 .DS_Store
 brand/
+# …but the frontend brand assets (hex-field SVGs referenced by the CSS) MUST ship:
+!frontend/public/brand/
+!frontend/public/brand/*
 TASKS/
 .claude/
+# audit scratch tooling (contains a venv) + TS build cache — never commit
+audit_tools/
+frontend/tsconfig.tsbuildinfo
 
 # Build / log artifacts
 *storybook.log

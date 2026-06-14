@@ -10,10 +10,14 @@
 }
 .card {
   position: relative;
-  background: var(--gx-surface);
+  /* GLASS (Gev 2026-06-14): panels are translucent so the hex brand field + ambient gradient glow
+     through — lighter, airier. Token --gx-surface stays opaque (inputs/dropdowns/sticky headers
+     keep full contrast); only the .card panel is frosted. */
+  background: color-mix(in srgb, var(--gx-surface) 40%, transparent);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
   padding: 28px;
   border-radius: var(--gx-radius-lg);
-  /* GLASS — soft inset highlight on top of the elevation shadow (blur removed per kit spec) */
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), var(--gx-shadow-md);
   border: 1px solid var(--gx-border);
   display: flex; flex-direction: column; gap: 12px;

@@ -26,7 +26,7 @@ router = APIRouter(prefix="/api", tags=["convert"])
 
 # A sales-complete lead lands at ORDER_CREATED (iron rule stage 6 — sales done; it has just spawned an
 # order). Resolved against the entity's configured StatusDefs below — we never invent a status.
-_CONVERTED_KEY = "order_created"
+_CONVERTED_KEY = "ORDER_CREATED"
 # Terminals that are NOT a conversion outcome — excluded from the structural fallback so we never
 # accidentally land a converted lead in a loss state.
 _LOSS_KEYS = {"lost", "terminated", "rejected", "cancelled", "LOST", "CHURNED", "REJECTED", "CANCELLED"}
@@ -92,7 +92,7 @@ async def convert_lead(lead_id: uuid.UUID, user: User = Depends(current_user), s
         lead_id=lead.id,
         customer_id=None,
         number=number,
-        status="order_validated",                                       # SST stage 7 — order's first stage
+        status="ORDER_VALIDATED",                                       # SST stage 7 — order's first stage
         total=0,
     )
     s.add(order)

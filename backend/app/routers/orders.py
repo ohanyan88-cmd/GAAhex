@@ -41,7 +41,7 @@ router = APIRouter(prefix="/api", tags=["orders"])
 # (frontend/src/lib/lifecycle.ts LIFECYCLE_STAGES, stages 6-13). Single source of truth — the
 # order does NOT carry its own parallel status vocabulary anymore (the legacy
 # DRAFT/SUBMITTED/PROVISIONING/COMPLETED set was deleted 2026-06-11). Kept in sync with the SST.
-ORDER_INITIAL = "order_created"           # SST #6 — created from a contract-signed lead
+ORDER_INITIAL = "ORDER_CREATED"           # SST #6 — created from a contract-signed lead
 ORDER_EDITABLE = ORDER_INITIAL            # only an unvalidated order can be edited
 
 

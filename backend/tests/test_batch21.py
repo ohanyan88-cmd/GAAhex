@@ -105,11 +105,11 @@ async def _drive_order_to_completed(client, admin, customer_id: str, product_id:
                    "quantity": 1, "unit_amount": unit_amount}],
     })).json()
     oid = order["id"]
-    r = await client.post(f"/api/orders/{oid}/transition", headers=admin, json={"to": "order_validated"})
-    assert r.json()["status"] == "order_validated", r.text
+    r = await client.post(f"/api/orders/{oid}/transition", headers=admin, json={"to": "ORDER_VALIDATED"})
+    assert r.json()["status"] == "ORDER_VALIDATED", r.text
     await _pass_control_gate(oid)                                               # control gate (SST #7→#8)
     # walk the SST fulfillment chain to activation (where subscriptions provision)
-    for expected in ["scheduling", "config", "installation", "connection_test", "payment_confirmed", "activation"]:
+    for expected in ["SCHEDULING", "CONFIG", "INSTALLATION", "CONNECTION_TEST", "PAYMENT_CONFIRMED", "ACTIVATION"]:
         r = await client.post(f"/api/orders/{oid}/transition", headers=admin, json={"to": expected})
         assert r.json()["status"] == expected, r.text
     return r.json()

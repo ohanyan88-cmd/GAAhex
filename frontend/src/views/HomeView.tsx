@@ -1,307 +1,192 @@
-// HomeView — role-aware personalized landing page.
+// HomeView — role/department-personalized landing (the "LayoutRegistry" the backend's
+// /api/me/workspace-role was built to drive).
 //
-// Per Gev's spec:
-//   • Unique landing page per user
-//   • Role-aware widgets (Support / Sales / Tech / Finance / Admin / General)
-//   • Personal KPIs WITH TARGETS (X/Y progress format)
-//   • Personal urgent alerts (SLA breaches, upcoming dispatches, pending approvals)
+// Personalization key = the backend-resolved WORKSPACE ROLE (one of 10: ceo · d2d_agent ·
+// retail_agent · b2b_am · support_t1 · support_t2 · field_tech · noc_engineer · billing_spec ·
+// general). It already encodes position nuance. From it we resolve:
+//   • EXACTLY 4 role KPIs (with X/Y targets where a real ratio exists)
+//   • a "Needs You Now" urgent band (SLA breaches · overdue · approvals waiting on you)
+//   • a role-default widget layout (lib/workspace/registry). The layout is FIXED per role — end
+//     users do NOT customize it; only an admin sets layouts (via Studio). Widgets are equal-height
+//     (≈6 rows, scroll for more); a full-width Recent Activity card fills the bottom.
 //
 // Real data only — every number comes from a backend endpoint. No mocks, no random.
-//
-// Role detection: derived from /api/me/capabilities (auto-detected, no manual override).
-//
-// Migrated onto the PageShell framework (type=workspace): title / subtitle /
-// breadcrumb / icon / KPIs are now PageShell props; the body keeps the urgent
-// alerts band and role-specific widgets.
 import { useState, useMemo } from 'react'
-import {
-  CheckSquare, Clock, Shield, Inbox,
-  AlertTriangle, Users, MapPin,
-  type LucideIcon,
-} from 'lucide-react'
+import { AlertTriangle, Shield, Clock, Check } from 'lucide-react'
 import { type Capabilities } from '../lib/capabilities'
 import { PageShell, type KPISpec } from '../page-shell'
 import { useAuth } from '../context/AuthContext'
 import { initialsOf } from '../lib/utils'
 import { TICKET_CLOSED } from '../lib/status-constants'
-import { WIDGET_ITEMS, WIDGET_APPROVALS } from '../lib/pagination'
-import { OBJ } from '../lib/permissions-constants'
 import { DetailTab, DetailTabList } from '../primitives'
 import { useFetch, useFetched } from '../hooks/useFetch'
 import { useI18n } from '../lib/i18n'
+import { type WorkspaceRole, resolveWidgets } from '../lib/workspace/registry'
 import AskGaaexView from './AskGaaexView'
 import MessagesView from './MessagesView'
 import MailView from './mail/MailView'
 import CalendarView from './CalendarView'
 import ProfileView from './ProfileView'
 
-// ── helpers shared in component scope ────────────────────────────────────────
-const toArr = (d: any): any[] => Array.isArray(d) ? d : (d?.items ?? d?.records ?? [])
+const toArr = (d: any): any[] => (Array.isArray(d) ? d : (d?.items ?? d?.records ?? []))
+const relTime = (iso?: string | null) => { if (!iso) return ''; const d = Math.max(0, Date.now() - Date.parse(iso)) / 1000; return d < 3600 ? `${Math.floor(d / 60)}m` : d < 86400 ? `${Math.floor(d / 3600)}h` : `${Math.floor(d / 86400)}d` }
+const NONE: { hidden: string[]; order: string[] } = { hidden: [], order: [] }
 
 type Me = { id: string; name: string; email: string }
-// Covers all 11 system roles seeded by the backend (seed.py) plus workspace-module roles.
-// Mapped to 8 distinct UI personalities:
-//   admin        ← super_admin
-//   manager      ← manager
-//   support      ← customer_care, sales_agent (helpdesk-heavy)
-//   sales        ← sales_agent, sales_d2d, sales_retail, sales_b2b
-//   tech         ← field_technician, network_noc, noc_engineer
-//   finance      ← billing, billing_specialist, revenue_control, finance
-//   hr           ← hr
-//   executive    ← executive
-//   general      ← fallback
-type Role = 'admin' | 'manager' | 'support' | 'sales' | 'tech' | 'finance' | 'hr' | 'executive' | 'general'
+type WorkspaceRoleResp = { resolved_role: WorkspaceRole; label: string; source: string }
 
-// ── role detection from capabilities ──────────────────────────────────────────
-function detectRole(caps: Capabilities): Role {
-  // Priority: most specific role first. Empty caps = FULL_ACCESS = super_admin.
-  if (Object.keys(caps).length === 0) return 'admin'
-  const has = (k: string, v: 'view' | 'create' | 'edit' | 'delete') =>
-    caps[k] === undefined ? true : caps[k]?.[v] === true
-  const hasAny = (k: string, v: string) => (caps as any)[k]?.[v] === true
-
-  // configuration.manage = super_admin / admin
-  if (hasAny(OBJ.CONFIGURATION, 'manage')) return 'admin'
-  // role.manage = manager (has broad permissions but not full config)
-  if (hasAny(OBJ.ROLE, 'manage')) return 'manager'
-  // HR: employee management
-  if (caps['employee']?.['edit']) return 'hr'
-  // Executive: KPI/dashboard read-only, no write on operational objects
-  if (caps['kpi']?.['view'] && !has(OBJ.HELPDESK_TICKET, 'create') && !has(OBJ.WORKITEM, 'create')) return 'executive'
-  // Finance: billing, invoices, payments, collections
-  if (has(OBJ.INVOICE, 'create') || has(OBJ.PAYMENT, 'create') || caps['billing_account']?.['view']) return 'finance'
-  // Revenue Control / Billing: payment_order + billing_account but no invoice creation
-  if (hasAny(OBJ.PAYMENT_ORDER, 'collect') || caps['credit_note']?.['view']) return 'finance'
-  // Helpdesk / Customer Care: can edit helpdesk tickets
-  if (has(OBJ.HELPDESK_TICKET, 'edit')) return 'support'
-  // Sales (all variants: agent, D2D, retail, B2B): lead create/edit
-  if (has(OBJ.LEAD, 'create') || has(OBJ.DEAL, 'edit')) return 'sales'
-  // Field Technician / NOC / Network: work orders or workitem + schedule/service
-  if (has(OBJ.WORKITEM, 'edit') || has(OBJ.SCHEDULE_SLOT, 'edit') || caps['alarm']?.['view']) return 'tech'
-  return 'general'
+const ROLE_LABEL_DEFAULT: Record<WorkspaceRole, string> = {
+  ceo: 'Executive overview', b2b_am: 'B2B account desk', d2d_agent: 'Door-to-door sales',
+  retail_agent: 'Retail sales', support_t1: 'Support — Tier 1', support_t2: 'Support — Tier 2',
+  field_tech: 'Field technician', noc_engineer: 'NOC engineer', billing_spec: 'Billing & collections',
+  general: 'Your workspace',
 }
 
-const ROLE_SUBTITLE_KEY: Record<Role, string> = {
-  admin:     'home.subtitle.admin',
-  manager:   'home.subtitle.manager',
-  support:   'home.subtitle.support',
-  sales:     'home.subtitle.sales',
-  tech:      'home.subtitle.tech',
-  finance:   'home.subtitle.finance',
-  hr:        'home.subtitle.hr',
-  executive: 'home.subtitle.executive',
-  general:   'home.subtitle.general',
-}
-const ROLE_SUBTITLE_DEFAULT: Record<Role, string> = {
-  admin:     'Administrator overview',
-  manager:   'Manager dashboard',
-  support:   'Support center',
-  sales:     'Sales overview',
-  tech:      'Tech bench',
-  finance:   'Finance desk',
-  hr:        'HR overview',
-  executive: 'Executive overview',
-  general:   'Your workspace',
-}
-
-
-
-// ── helpers ─────────────────────────────────────────────────────────────────
-function relTime(iso: string | null | undefined): string {
-  if (!iso) return ''
-  const d = Math.max(0, Date.now() - Date.parse(iso)) / 1000
-  if (d < 60) return 'just now'
-  if (d < 3600) return `${Math.floor(d / 60)}m ago`
-  if (d < 86400) return `${Math.floor(d / 3600)}h ago`
-  return `${Math.floor(d / 86400)}d ago`
-}
-function todayKey(): string {
-  return new Date().toISOString().slice(0, 10)
-}
-
-// ── Widget shell ─────────────────────────────────────────────────────────────
-function Widget({ icon: Icon, title, children, count }: {
-  icon: LucideIcon; title: string; children: React.ReactNode; count?: number
-}) {
+// Full-width card that fills the bottom of the grid — a tenant-wide recent-activity feed.
+function RecentActivity({ onNavigate }: { onNavigate?: (t: string, id?: string) => void }) {
+  const { t } = useI18n()
+  const { data } = useFetch<any[]>('/api/activity?limit=24')
+  const items = toArr(data)
   return (
-    <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
-      <div className="card-head" style={{ borderBottom: '1px solid var(--gx-border)', padding: 'var(--gx-space-6) var(--gx-space-18)' }}>
-        <Icon size={14} color="var(--gx-text-3)" />
-        <h3 style={{ margin: 0, fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-semibold)' }}>{title}</h3>
-        {count !== undefined && (
-          <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)', marginLeft: 'var(--gx-space-3)' }}>{count}</span>
-        )}
+    <div className="card wx-full">
+      <div className="wx-head">
+        <h3 className="wx-title">{t('home.widget.recentActivity', 'Recent Activity')}</h3>
+        {items.length > 0 && <span className="wx-count">{items.length}</span>}
       </div>
-      <div style={{ flex: 1 }}>{children}</div>
+      {items.length === 0 ? (
+        <div style={{ padding: 'var(--gx-space-18)', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-13)', textAlign: 'center' }}>{t('home.empty.noActivity', 'No recent activity')}</div>
+      ) : (
+        <div className="wx-activity">
+          {items.slice(0, 18).map((a: any, i: number) => (
+            <div key={a.id ?? i} className="wx-act-row" role="button" tabIndex={0}
+              onClick={() => a.entity_key && a.record_id && onNavigate?.(a.entity_key, a.record_id)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && a.entity_key && a.record_id) onNavigate?.(a.entity_key, a.record_id) }}>
+              <span className="wx-act-dot" />
+              <span className="wx-act-text">
+                <strong style={{ color: 'var(--gx-text-1)', fontWeight: 'var(--gx-weight-semibold)' }}>{a.actor_name || 'System'}</strong>{' '}
+                {a.summary ?? (a.type ?? a.event_type ?? 'activity').replace(/_/g, ' ')}
+              </span>
+              <span className="wx-act-time">{relTime(a.created_at ?? a.at ?? a.timestamp)}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
 
-function Empty({ msg }: { msg: string }) {
-  return <div style={{ padding: 'var(--gx-space-18)', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-13)', textAlign: 'center' }}>{msg}</div>
-}
-function Skel({ rows = 3 }: { rows?: number }) {
-  return (
-    <div style={{ padding: 'var(--gx-space-4) 0' }}>
-      {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="skel-row"><div className="skel skel-cell" /></div>
-      ))}
-    </div>
-  )
-}
-
-// ── Main view ────────────────────────────────────────────────────────────────
 export default function HomeView({ onNavigate, capabilities }: {
   onNavigate?: (type: string, id?: string) => void
-  capabilities?: Capabilities  // SM-2 — App's capabilities snapshot
+  capabilities?: Capabilities
 }) {
   const { user: authUser } = useAuth()
   const { t } = useI18n()
   const [tab, setTab] = useState<'workspace' | 'ask' | 'messages' | 'mail' | 'calendar' | 'requests' | 'documents' | 'benefits' | 'kb'>('workspace')
 
-  // SM-2 — receive caps via prop instead of refetching.
   const caps: Capabilities = capabilities ?? {}
-  const capsLoaded = capabilities !== undefined
 
-  // role: auto-detected from caps
-  const role: Role = capsLoaded ? detectRole(caps) : 'general'
-
-  // Identity
+  // Identity + the backend-resolved workspace role (the personalization key).
   const { data: me } = useFetch<Me>('/auth/me')
+  const { data: roleResp } = useFetch<WorkspaceRoleResp>('/api/me/workspace-role')
+  const role: WorkspaceRole = roleResp?.resolved_role ?? 'general'
 
-  // Org nodes + members for Team tab
-  const { data: rawNodes }      = useFetch<any>('/api/org/nodes')
-  const { data: rawOrgMembers } = useFetch<any>('/api/users')
-  const nodes      = useMemo(() => toArr(rawNodes),      [rawNodes])
-  const orgMembers = useMemo(() => toArr(rawOrgMembers), [rawOrgMembers])
+  // ── KPI data sources (fetched per-role; null = not fetched) ───────────────────
+  const needsBilling = role === 'ceo' || role === 'billing_spec'
+  const needsTeamTickets = role === 'support_t2'
+  const needsLeads = role === 'd2d_agent' || role === 'retail_agent' || role === 'b2b_am'
 
-  // Workspace data — 4 endpoints the ME|TEAM layout renders
-  // SM-2 — capabilities now flow as a prop from App.tsx; no per-view refetch.
-  const tasks     = useFetched<any[]>(me?.id ? `/api/workitems?assignee=${me.id}&limit=${WIDGET_ITEMS}` : null, d => toArr(d).length > 0)
-  const tickets   = useFetched<any[]>(`/api/helpdesk/tickets?limit=${WIDGET_ITEMS}`,                           d => toArr(d).length > 0)
-  const approvals = useFetched<any[]>(`/api/mandatory-approvals?status=PENDING&limit=${WIDGET_APPROVALS}`,     d => toArr(d).length > 0)
-  const slots     = useFetched<any[]>(`/api/schedule-slots?limit=${WIDGET_ITEMS}`,                             d => toArr(d).length > 0)
+  const myTasks   = useFetched<any[]>(me?.id ? `/api/workitems?assignee=${me.id}&limit=50` : null, d => toArr(d).length > 0)
+  const myTickets = useFetched<any[]>(me?.id ? '/api/helpdesk/tickets?mine=true&limit=50' : null, d => toArr(d).length > 0)
+  const teamTix   = useFetched<any[]>(needsTeamTickets ? '/api/helpdesk/tickets?limit=80' : null, d => toArr(d).length > 0)
+  const approvals = useFetched<any[]>('/api/mandatory-approvals?status=PENDING&limit=50', d => toArr(d).length > 0)
+  const overdue   = useFetched<any[]>(needsBilling ? '/api/invoices?status=overdue&limit=80' : null, d => toArr(d).length > 0)
+  const leads     = useFetched<any[]>(needsLeads ? `/api/leads?filter=${encodeURIComponent("status != 'LOST' and status != 'ORDER_CREATED'")}&limit=80` : null, d => toArr(d).length > 0)
+  const { data: dashStats, loading: dashLoading } = useFetch<any>(needsBilling ? '/api/analytics/dashboard/stats' : null)
 
-  // L-6 — dashboard stats: 4 live org-level KPIs for admin/manager/finance roles.
-  // Scoped by the backend to the caller's tenant; zero-safe defaults while loading.
-  type DashboardStats = {
-    payments_today: number
-    collections_resolved: number
-    active_users: number
-    system_health_pct: number
-  }
-  const { data: dashStats, loading: dashStatsLoading } = useFetch<DashboardStats>(
-    (role === 'admin' || role === 'manager' || role === 'finance') ? '/api/analytics/dashboard/stats' : null
-  )
+  const val = (q: { state: string; value?: any }) => (q.state === 'ok' ? toArr(q.value) : [])
+  const taskArr = val(myTasks), myTixArr = val(myTickets), teamTixArr = val(teamTix), apprArr = val(approvals)
+  const overdueArr = val(overdue), leadArr = val(leads)
 
-  // ── Derived state ────────────────────────────────────────────────────────────
-  const today = useMemo(() => todayKey(), [])
-
-  const taskArr     = tasks.state     === 'ok' ? toArr(tasks.value)     : []
-  const ticketArr   = tickets.state   === 'ok' ? toArr(tickets.value)   : []
-  const approvalArr = approvals.state === 'ok' ? toArr(approvals.value) : []
-  const slotArr     = slots.state     === 'ok' ? toArr(slots.value)     : []
-
-  const myTickets   = me ? ticketArr.filter(t => t.assigned_user_id === me.id) : []
-  const breachedTickets = myTickets.filter(t => {
-    if (TICKET_CLOSED.includes(t.status)) return false
-    const age = (Date.now() - Date.parse(t.created_at)) / (1000 * 3600)
-    return age > 24
-  })
-
-  const tasksOpen    = taskArr.filter(t => ['TODO','IN_PROGRESS','BLOCKED'].includes(t.status))
+  const today = useMemo(() => new Date().toISOString().slice(0, 10), [])
+  const tasksOpen = taskArr.filter(t => ['TODO', 'IN_PROGRESS', 'BLOCKED'].includes(t.status))
   const overdueTasks = tasksOpen.filter(t => t.due_at && Date.parse(t.due_at) < Date.now())
+  const myTixOpen = myTixArr.filter(t => !TICKET_CLOSED.includes(t.status ?? ''))
+  const slaBreached = myTixOpen.filter(t => (Date.now() - Date.parse(t.created_at)) / 3600000 > 24)
+  const todayJobs = taskArr.filter(t => (t.scheduled_at ?? '').slice(0, 10) === today)
+  const todayJobsDone = todayJobs.filter(t => ['DONE', 'CLOSED', 'COMPLETED'].includes(t.status))
 
-  const todaySlots   = slotArr.filter(sl => (sl.data?.date ?? '') === today)
-  const myTodaySlots = me ? todaySlots.filter(sl => sl.data?.tech === me.name || sl.data?.tech === me.id) : todaySlots
+  // ── EXACTLY 4 role KPIs (real values; X/Y progress where a real ratio exists) ─────
+  const kpiYou = (label: string, value: number | string, sub: string, extra?: Partial<KPISpec>): KPISpec =>
+    ({ label, value, subtitle: sub, cornerNote: <span className="kpi-scope kpi-scope-you">YOU</span>, ...extra })
+  const kpiTeam = (label: string, value: number | string, sub: string, extra?: Partial<KPISpec>): KPISpec =>
+    ({ label, value, subtitle: sub, cornerNote: <span className="kpi-scope kpi-scope-team">TEAM</span>, ...extra })
+  const kpiOrg = (label: string, value: number | string, sub: string, extra?: Partial<KPISpec>): KPISpec =>
+    ({ label, value, subtitle: sub, cornerNote: <span className="kpi-scope kpi-scope-org">ORG</span>, ...extra })
 
-  // ── 4 scope-locked KPI tiles ─────────────────────────────────────────────
-  // Each tile shows data at a different visibility scope:
-  //   1 YOU   — personal:   only the signed-in user's own metrics
-  //   2 TEAM  — team:       your immediate team's load (company-level until team_id lands)
-  //   3 DEPT  — department: today's dispatches across the org node
-  //   4 ORG   — company:    company-wide health snapshot
-  const kpiSpecs: KPISpec[] = [
-    {
-      label: t('home.kpi.myOpenTasks', 'My Open Tasks'),
-      value: tasksOpen.length,
-      subtitle: overdueTasks.length > 0 ? `${overdueTasks.length} overdue` : t('home.kpi.upToDate', 'up to date'),
-      cornerNote: <span className="kpi-scope kpi-scope-you">YOU</span>,
-      warning: overdueTasks.length > 0,
-      loading: tasks.state === 'loading',
-      onClick: () => onNavigate?.('workitems'),
-    },
-    {
-      label: t('home.kpi.teamTicketsOpen', 'Team Tickets Open'),
-      value: ticketArr.filter(t => !TICKET_CLOSED.includes(t.status ?? '')).length,
-      subtitle: breachedTickets.length > 0 ? `${breachedTickets.length} past SLA` : t('home.kpi.allWithinSla', 'all within SLA'),
-      cornerNote: <span className="kpi-scope kpi-scope-team">TEAM</span>,
-      danger: breachedTickets.length > 0,
-      loading: tickets.state === 'loading',
-      onClick: () => onNavigate?.('helpdesk'),
-    },
-    {
-      label: t('home.kpi.todayDispatches', "Today's Dispatches"),
-      value: todaySlots.length,
-      subtitle: myTodaySlots.length > 0 ? `${myTodaySlots.length} assigned to me` : t('home.kpi.noneAssignedToMe', 'none assigned to me'),
-      cornerNote: <span className="kpi-scope kpi-scope-dept">DEPT</span>,
-      loading: slots.state === 'loading',
-    },
-    {
-      label: t('home.kpi.pendingApprovals', 'Pending Approvals'),
-      value: approvalArr.length,
-      subtitle: approvalArr.length > 0 ? t('home.kpi.requireDecision', 'require your decision') : t('home.kpi.nothingPending', 'nothing pending'),
-      cornerNote: <span className="kpi-scope kpi-scope-org">ORG</span>,
-      warning: approvalArr.length > 0,
-      loading: approvals.state === 'loading',
-      onClick: () => onNavigate?.('my-approvals'),
-    },
-    // L-6 — live org stats; only surfaced for roles that have org-level visibility
-    ...(role === 'admin' || role === 'manager' || role === 'finance' ? [
-      {
-        label: t('home.kpi.paymentsToday', 'Payments Today'),
-        value: dashStats?.payments_today ?? 0,
-        subtitle: t('home.kpi.collectedSinceMidnight', 'collected since midnight'),
-        cornerNote: <span className="kpi-scope kpi-scope-org">ORG</span>,
-        loading: dashStatsLoading,
-      },
-      {
-        label: t('home.kpi.resolvedToday', 'Resolved Today'),
-        value: dashStats?.collections_resolved ?? 0,
-        subtitle: t('home.kpi.ticketsClosedToday', 'tickets closed today'),
-        cornerNote: <span className="kpi-scope kpi-scope-org">ORG</span>,
-        loading: dashStatsLoading,
-      },
-      {
-        label: t('home.kpi.activeUsers', 'Active Users'),
-        value: dashStats?.active_users ?? 0,
-        subtitle: t('home.kpi.staffAccountsActive', 'staff accounts active'),
-        cornerNote: <span className="kpi-scope kpi-scope-org">ORG</span>,
-        loading: dashStatsLoading,
-      },
-      {
-        label: t('home.kpi.systemHealth', 'System Health'),
-        value: `${dashStats?.system_health_pct ?? 0}%`,
-        subtitle: dashStats?.system_health_pct === 100 ? t('home.kpi.allSystemsGo', 'all systems go') : t('home.kpi.degraded', 'degraded'),
-        cornerNote: <span className="kpi-scope kpi-scope-org">ORG</span>,
-        loading: dashStatsLoading,
-        warning: (dashStats?.system_health_pct ?? 100) < 100,
-      },
-    ] as KPISpec[] : []),
+  const kTasks = kpiYou(t('home.kpi.myOpenTasks', 'My Open Tasks'), tasksOpen.length,
+    overdueTasks.length > 0 ? `${overdueTasks.length} overdue` : t('home.kpi.upToDate', 'up to date'),
+    { warning: overdueTasks.length > 0, loading: myTasks.state === 'loading', onClick: () => onNavigate?.('workitems') })
+  const kMyTix = kpiYou(t('home.kpi.myTickets', 'My Tickets'), myTixOpen.length,
+    slaBreached.length > 0 ? `${slaBreached.length} past SLA` : t('home.kpi.allWithinSla', 'all within SLA'),
+    { danger: slaBreached.length > 0, loading: myTickets.state === 'loading', onClick: () => onNavigate?.('helpdesk') })
+  const kSla = kpiTeam(t('home.kpi.slaAtRisk', 'SLA at Risk'), slaBreached.length,
+    slaBreached.length > 0 ? t('home.kpi.actNow', 'act now') : t('home.kpi.clear', 'clear'),
+    { danger: slaBreached.length > 0, loading: myTickets.state === 'loading' })
+  const kAppr = kpiOrg(t('home.kpi.pendingApprovals', 'Pending Approvals'), apprArr.length,
+    apprArr.length > 0 ? t('home.kpi.requireDecision', 'require your decision') : t('home.kpi.nothingPending', 'nothing pending'),
+    { warning: apprArr.length > 0, loading: approvals.state === 'loading', onClick: () => onNavigate?.('my-approvals') })
+  const kPipe = kpiYou(t('home.kpi.myPipeline', 'My Pipeline'), leadArr.length, t('home.kpi.activeLeads', 'active leads'),
+    { loading: leads.state === 'loading', onClick: () => onNavigate?.('leads') })
+  const kDispatch = kpiYou(t('home.kpi.dispatchesToday', "Today's Dispatches"), todayJobs.length,
+    todayJobs.length > 0 ? `${todayJobsDone.length}/${todayJobs.length} ${t('home.kpi.done', 'done')}` : t('home.kpi.noneToday', 'none today'),
+    { loading: myTasks.state === 'loading', progress: todayJobs.length ? Math.round((todayJobsDone.length / todayJobs.length) * 100) : 0, progressVariant: 'gold', progressLabel: `${todayJobsDone.length}/${todayJobs.length}`, onClick: () => onNavigate?.('workitems') })
+  const kDoneToday = kpiYou(t('home.kpi.doneToday', 'Done Today'), todayJobsDone.length, t('home.kpi.jobsCompleted', 'jobs completed'), { onClick: () => onNavigate?.('workitems') })
+  const kTeamTix = kpiTeam(t('home.kpi.teamTicketsOpen', 'Team Tickets Open'), teamTixArr.filter(x => !TICKET_CLOSED.includes(x.status ?? '')).length,
+    t('home.kpi.acrossQueue', 'across the queue'), { loading: teamTix.state === 'loading', onClick: () => onNavigate?.('helpdesk') })
+  const kOverdue = kpiOrg(t('home.kpi.overdueInvoices', 'Overdue Invoices'), overdueArr.length, t('home.kpi.inCollections', 'in collections'),
+    { danger: overdueArr.length > 0, loading: overdue.state === 'loading', onClick: () => onNavigate?.('invoices') })
+  const kPayments = kpiOrg(t('home.kpi.paymentsToday', 'Payments Today'), dashStats?.payments_today ?? 0, t('home.kpi.collectedSinceMidnight', 'collected since midnight'), { loading: dashLoading })
+  const kResolved = kpiOrg(t('home.kpi.resolvedToday', 'Resolved Today'), dashStats?.collections_resolved ?? 0, t('home.kpi.ticketsClosedToday', 'tickets closed today'), { loading: dashLoading })
+  const kActive = kpiOrg(t('home.kpi.activeUsers', 'Active Users'), dashStats?.active_users ?? 0, t('home.kpi.staffAccountsActive', 'staff active'), { loading: dashLoading })
+  const kHealth = kpiOrg(t('home.kpi.systemHealth', 'System Health'), `${dashStats?.system_health_pct ?? 0}%`,
+    (dashStats?.system_health_pct ?? 100) === 100 ? t('home.kpi.allSystemsGo', 'all systems go') : t('home.kpi.degraded', 'degraded'),
+    { loading: dashLoading, progress: dashStats?.system_health_pct ?? 0, progressVariant: (dashStats?.system_health_pct ?? 100) < 100 ? 'danger' : 'success', warning: (dashStats?.system_health_pct ?? 100) < 100 })
+
+  const ROLE_KPIS: Record<WorkspaceRole, KPISpec[]> = {
+    ceo:          [kPayments, kResolved, kActive, kHealth],
+    billing_spec: [kOverdue, kPayments, kTasks, kAppr],
+    field_tech:   [kDispatch, kDoneToday, kTasks, kMyTix],
+    noc_engineer: [kMyTix, kDispatch, kTasks, kAppr],
+    support_t1:   [kMyTix, kSla, kTasks, kAppr],
+    support_t2:   [kTeamTix, kMyTix, kSla, kAppr],
+    b2b_am:       [kPipe, kMyTix, kTasks, kAppr],
+    d2d_agent:    [kPipe, kTasks, kMyTix, kAppr],
+    retail_agent: [kPipe, kTasks, kMyTix, kAppr],
+    general:      [kTasks, kMyTix, kSla, kAppr],
+  }
+  const kpiSpecs = (ROLE_KPIS[role] ?? ROLE_KPIS.general).slice(0, 4)
+
+  // ── "Needs You Now" — ALWAYS-ON status band (Gev 2026-06-14): every category is shown even when
+  //     clear (green + "0 …"), and turns red/amber the moment it needs you. ─────────────────────────
+  const pl = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
+  // Glass tint: a status colour over a 50%-translucent surface — matches the KPI/card glass level.
+  const glassTint = (c: string) => `color-mix(in srgb, ${c} 16%, color-mix(in srgb, var(--gx-surface) 50%, transparent))`
+  const bands = [
+    { count: slaBreached.length, icon: AlertTriangle, warn: 'var(--gx-danger)',  soft: 'var(--gx-danger-soft)',  label: pl(slaBreached.length, t('home.urgent.sla.one', 'ticket past SLA'), t('home.urgent.sla.many', 'tickets past SLA')), onClick: () => onNavigate?.('helpdesk') },
+    { count: overdueTasks.length, icon: Clock,        warn: 'var(--gx-warning)', soft: 'var(--gx-warning-soft)', label: pl(overdueTasks.length, t('home.urgent.overdue.one', 'task overdue'), t('home.urgent.overdue.many', 'tasks overdue')), onClick: () => onNavigate?.('workitems') },
+    { count: apprArr.length,      icon: Shield,       warn: 'var(--gx-warning)', soft: 'var(--gx-warning-soft)', label: pl(apprArr.length, t('home.urgent.approvals.one', 'approval awaiting you'), t('home.urgent.approvals.many', 'approvals awaiting you')), onClick: () => onNavigate?.('my-approvals') },
   ]
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // Role-default widget layout (FIXED per role — no end-user customization).
+  const widgets = useMemo(() => resolveWidgets(role, caps, NONE), [role, caps])
+
   return (
     <PageShell
       type="WORKSPACE"
       breadcrumb={[t('nav.workspace', 'Workspace')]}
-      icon={
-        authUser?.avatar_url
-          ? <img src={authUser.avatar_url} alt="" />
-          : <span className="ps-header-icon-initials">{initialsOf(authUser?.name ?? me?.name)}</span>
-      }
+      icon={authUser?.avatar_url ? <img src={authUser.avatar_url} alt="" /> : <span className="ps-header-icon-initials">{initialsOf(authUser?.name ?? me?.name)}</span>}
       title={me?.name ?? 'Workspace'}
-      subtitle={t(ROLE_SUBTITLE_KEY[role], ROLE_SUBTITLE_DEFAULT[role])}
+      subtitle={roleResp?.label ?? ROLE_LABEL_DEFAULT[role]}
       kpis={kpiSpecs}
       pageTabs={
         <DetailTabList ariaLabel="Workspace sections">
@@ -317,109 +202,26 @@ export default function HomeView({ onNavigate, capabilities }: {
         </DetailTabList>
       }
     >
-
       {tab === 'workspace' && (
-        <div className="ws-layout">
-
-          {/* ── ME ──────────────────────────────────────────────────────────── */}
-          <div className="ws-col">
-            <div className="ws-col-head">{t('home.section.me', 'ME')}</div>
-
-            <Widget icon={Inbox} title={t('home.widget.myTickets', 'My Tickets')} count={myTickets.filter(t => !TICKET_CLOSED.includes(t.status ?? '')).length}>
-              {tickets.state === 'loading' && <Skel />}
-              {myTickets.length === 0 ? <Empty msg={t('home.empty.noTicketsAssigned', 'No tickets assigned to you')} /> : myTickets.slice(0, 8).map(t => (
-                <div key={t.id} role="button" tabIndex={0} onClick={() => onNavigate?.('helpdesk', t.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate?.('helpdesk', t.id) } }} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
-                  <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-medium)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.subject ?? '(no subject)'}</span>
-                  <span className="badge badge-primary" style={{ fontSize: 'var(--gx-text-11)' }}>{t.status}</span>
-                </div>
-              ))}
-            </Widget>
-
-            <Widget icon={CheckSquare} title={t('home.widget.myOpenTasks', 'My Open Tasks')} count={tasksOpen.length}>
-              {tasks.state === 'loading' && <Skel />}
-              {tasksOpen.length === 0 ? <Empty msg={t('home.empty.noOpenTasks', 'No open tasks')} /> : tasksOpen.slice(0, 8).map(t => (
-                <button key={t.id} type="button" onClick={() => onNavigate?.('workitems')} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', cursor: 'pointer', width: '100%', background: 'none', border: 'none', borderBottom: '1px solid var(--gx-border)', font: 'inherit', textAlign: 'left' }}>
-                  <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-medium)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
-                  <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)' }}>{t.status?.replace(/_/g, ' ')}</span>
+        <div className="ws-home">
+          <div className="ws-urgent">
+            {bands.map((bnd, i) => {
+              const ok = bnd.count === 0
+              const Icon = ok ? Check : bnd.icon
+              return (
+                <button key={i} type="button" className="ws-urgent-chip"
+                  style={{ background: glassTint(ok ? 'var(--gx-success)' : bnd.warn) }} onClick={bnd.onClick}>
+                  <Icon size={14} color={ok ? 'var(--gx-success)' : bnd.warn} />
+                  <span>{bnd.label}</span>
                 </button>
-              ))}
-            </Widget>
-
-            <Widget icon={MapPin} title={t('home.widget.myDispatchesToday', 'My Dispatches Today')} count={myTodaySlots.length}>
-              {slots.state === 'loading' && <Skel />}
-              {myTodaySlots.length === 0 ? <Empty msg={t('home.empty.noDispatchesToday', 'No dispatches for you today')} /> : myTodaySlots.slice(0, 8).map(s => (
-                <div key={s.id} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)' }}>
-                  <Clock size={13} color="var(--gx-text-3)" />
-                  <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-medium)' }}>{s.data?.title ?? 'Slot'}</span>
-                  {s.data?.time_from && <span className="mono" style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>{String(s.data.time_from)}</span>}
-                </div>
-              ))}
-            </Widget>
-
-            {overdueTasks.length > 0 && (
-              <Widget icon={AlertTriangle} title={t('home.widget.overdue', 'Overdue')} count={overdueTasks.length}>
-                {overdueTasks.slice(0, 6).map(t => (
-                  <div key={t.id} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)' }}>
-                    <AlertTriangle size={13} color="var(--gx-danger)" />
-                    <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
-                    <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-danger)' }}>{t.due_at ? `${Math.round((Date.now() - Date.parse(t.due_at)) / 86400000)}d` : '!'}</span>
-                  </div>
-                ))}
-              </Widget>
-            )}
+              )
+            })}
           </div>
 
-          {/* ── TEAM ────────────────────────────────────────────────────────── */}
-          <div className="ws-col">
-            <div className="ws-col-head">{t('home.section.team', 'TEAM')}</div>
-
-            <Widget icon={Inbox} title={t('home.widget.teamTickets', 'Team Tickets')} count={ticketArr.filter(t => !TICKET_CLOSED.includes(t.status ?? '')).length}>
-              {tickets.state === 'loading' && <Skel />}
-              {ticketArr.length === 0 ? <Empty msg={t('home.empty.noOpenTickets', 'No open tickets')} /> : ticketArr.filter(t => !TICKET_CLOSED.includes(t.status ?? '')).slice(0, 8).map(t => (
-                <div key={t.id} role="button" tabIndex={0} onClick={() => onNavigate?.('helpdesk', t.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate?.('helpdesk', t.id) } }} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
-                  <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.subject ?? '(no subject)'}</span>
-                  <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)' }}>{t.status}</span>
-                </div>
-              ))}
-            </Widget>
-
-            {breachedTickets.length > 0 && (
-              <Widget icon={AlertTriangle} title={t('home.widget.slaAtRisk', 'SLA at Risk')} count={breachedTickets.length}>
-                {breachedTickets.slice(0, 6).map(t => (
-                  <div key={t.id} role="button" tabIndex={0} onClick={() => onNavigate?.('helpdesk', t.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate?.('helpdesk', t.id) } }} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
-                    <AlertTriangle size={13} color="var(--gx-danger)" />
-                    <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.subject}</span>
-                    <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-danger)' }}>{Math.round((Date.now() - Date.parse(t.created_at)) / 3600000)}h</span>
-                  </div>
-                ))}
-              </Widget>
-            )}
-
-            <Widget icon={Shield} title={t('home.widget.pendingApprovals', 'Pending Approvals')} count={approvalArr.length}>
-              {approvals.state === 'loading' && <Skel />}
-              {approvalArr.length === 0 ? <Empty msg={t('home.empty.nothingPending', 'Nothing pending')} /> : approvalArr.slice(0, 8).map(a => (
-                <div key={a.id} role="button" tabIndex={0} onClick={() => onNavigate?.('my-approvals')} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate?.('my-approvals') } }} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
-                  <span style={{ flex: 1, fontSize: 'var(--gx-text-13)' }}>{a.action_type?.replace(/_/g, ' ')}</span>
-                  <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>{relTime(a.created_at)}</span>
-                </div>
-              ))}
-            </Widget>
-
-            {(nodes.length > 0 || orgMembers.length > 0) && (
-              <Widget icon={Users} title={t('home.widget.teamMembers', 'Team Members')} count={orgMembers.length}>
-                {orgMembers.slice(0, 8).map((m: any) => (
-                  <div key={m.id} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)' }}>
-                    <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--gx-interactive)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--gx-text-10)', fontWeight: 'var(--gx-weight-bold)', color: 'var(--gx-on-primary)', flexShrink: 0 }}>
-                      {(m.name ?? '?').split(' ').map((w: string) => w[0] ?? '').join('').slice(0, 2).toUpperCase()}
-                    </div>
-                    <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
-                    <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>{m.department ?? ''}</span>
-                  </div>
-                ))}
-              </Widget>
-            )}
+          <div className="ws-grid">
+            {widgets.map(w => <w.Component key={w.id} meId={me?.id} onNavigate={onNavigate} />)}
+            <RecentActivity onNavigate={onNavigate} />
           </div>
-
         </div>
       )}
 
@@ -431,7 +233,6 @@ export default function HomeView({ onNavigate, capabilities }: {
       {tab === 'documents' && <ProfileView embedded initialSection="documents" />}
       {tab === 'benefits' && <ProfileView embedded initialSection="benefits" />}
       {tab === 'kb' && <ProfileView embedded initialSection="kb" />}
-
     </PageShell>
   )
 }

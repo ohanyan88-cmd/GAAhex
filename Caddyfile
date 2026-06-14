@@ -1,0 +1,29 @@
+# OPS-5 — Caddy reverse proxy for the GAAhex backend (used by docker-compose.prod.yml).
+# Automatic HTTPS: Caddy provisions + renews a Let's Encrypt certificate for $GAAHEX_DOMAIN.
+# The site address is taken from the GAAHEX_DOMAIN env var (set it before `docker compose ... up`).
+
+{$GAAHEX_DOMAIN} {
+	encode zstd gzip
+
+	# Terminate TLS here and proxy to the backend over the internal compose network.
+	# `backend` is the compose service name; 8099 is its in-container port.
+	reverse_proxy backend:8099 {
+		health_uri /api/health
+		health_interval 30s
+	}
+
+	# Security headers (HSTS preloadable; clickjacking / MIME-sniffing / referrer hardening).
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# Caddy's own access log to stdout (captured by `docker logs gaahex-caddy`).
+	log {
+		output stdout
+		format console
+	}
+}

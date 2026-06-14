@@ -41,7 +41,7 @@ PRESETS: dict[str, dict] = {
             {"key": "email",   "label": "Email",     "role": "plain",   "width": 210},
         ],
         "stageWidth": 180,
-        "kanbanStages": ["lead", "validated_lead", "assigned", "deal", "contract_signed", "order_created"],
+        "kanbanStages": ["LEAD", "VALIDATED_LEAD", "ASSIGNED", "DEAL", "CONTRACT_SIGNED", "ORDER_CREATED"],
         "cardChips": ["phone", "email", "address"],
     }},
     "orders": {"list": {
@@ -56,8 +56,8 @@ PRESETS: dict[str, dict] = {
             {"key": "total",    "label": "Total",    "role": "plain",   "width": 150},
         ],
         "stageWidth": 180,
-        "kanbanStages": ["order_validated", "scheduling", "config",
-                         "installation", "connection_test", "payment_confirmed", "activation"],
+        "kanbanStages": ["ORDER_VALIDATED", "SCHEDULING", "CONFIG",
+                         "INSTALLATION", "CONNECTION_TEST", "PAYMENT_CONFIRMED", "ACTIVATION"],
         "cardChips": ["total"],
     }},
 }

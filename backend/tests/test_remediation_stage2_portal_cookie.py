@@ -46,7 +46,7 @@ async def cookie_user(client: AsyncClient, admin):
     cid = r.json()["id"]
 
     async with OwnerSessionLocal() as s:
-        tenant = (await s.execute(select(Tenant))).scalars().first()
+        tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         tid = tenant.id
         existing = (await s.execute(
             select(CustomerUser).where(

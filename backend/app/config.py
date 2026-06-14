@@ -425,6 +425,59 @@ def _assert_production_deploy_contract() -> None:
                 "module. See docs/M1A-DEPLOY-CONTRACT.md."
             )
 
+    # E1 (SEC-1/2) — legacy notification channels. channels.py + adapters/{email,sms}.py read
+    # settings.email_provider / settings.sms_provider; their default 'dev' is a SILENT no-op, so in
+    # production that DROPS every outbound email/SMS (password resets, dunning, OTPs) with no error.
+    # Refuse the dev/mock channel in prod — set EMAIL_PROVIDER=smtp (+SMTP_HOST) and SMS_PROVIDER=twilio
+    # (+creds), or route comms through the M1-C *_gateway_provider abstraction (already gated above).
+    _legacy_comms = {
+        "EMAIL_PROVIDER": (settings.email_provider or "").strip().lower(),
+        "SMS_PROVIDER": (settings.sms_provider or "").strip().lower(),
+    }
+    _dev_comms = sorted(n for n, v in _legacy_comms.items() if v in ("dev", "mock", ""))
+    if _dev_comms:
+        raise RuntimeError(
+            "Production deploy contract violation: legacy notification provider(s) still on the "
+            f"dev/no-op channel: {', '.join(_dev_comms)}. In production these silently DROP outbound "
+            "email/SMS. Set EMAIL_PROVIDER=smtp (+SMTP_HOST) / SMS_PROVIDER=twilio (+creds). "
+            "See docs/M1A-DEPLOY-CONTRACT.md."
+        )
+
+    # E1b (SEC-1/2 construct-check) — parity with the RADIUS construct gate above. The E1 check refuses a
+    # *named* dev/mock provider, but channels.configure_adapters() swaps in the REAL adapter only when the
+    # provider's required config is ALSO present (SMTP needs SMTP_HOST; Twilio needs ACCOUNT_SID +
+    # AUTH_TOKEN + FROM). When it isn't, configure_adapters SILENTLY falls back to the dev console-log
+    # no-op — so EMAIL_PROVIDER=smtp with no SMTP_HOST passes E1 yet still DROPS every outbound email.
+    # Fail-closed: require exactly the config the real adapter needs in order to register (mirrors the
+    # conditions in channels.configure_adapters), so a real provider can never silently degrade to no-op.
+    _comms_missing: list[str] = []
+    if _legacy_comms["EMAIL_PROVIDER"] == "smtp" and not (settings.smtp_host or "").strip():
+        _comms_missing.append("EMAIL_PROVIDER=smtp requires SMTP_HOST")
+    if _legacy_comms["SMS_PROVIDER"] == "twilio":
+        if not (settings.twilio_account_sid or "").strip():
+            _comms_missing.append("SMS_PROVIDER=twilio requires TWILIO_ACCOUNT_SID")
+        if not (settings.twilio_auth_token or "").strip():
+            _comms_missing.append("SMS_PROVIDER=twilio requires TWILIO_AUTH_TOKEN")
+        if not (settings.twilio_from or "").strip():
+            _comms_missing.append("SMS_PROVIDER=twilio requires TWILIO_FROM")
+    if _comms_missing:
+        raise RuntimeError(
+            "Production deploy contract violation: a real notification provider is selected but its "
+            "gateway config is incomplete, so channels.configure_adapters() would SILENTLY fall back to "
+            "the dev console-log no-op (dropping outbound email/SMS): " + "; ".join(_comms_missing) +
+            ". See docs/M1A-DEPLOY-CONTRACT.md."
+        )
+
+    # E2 (SEC-3) — rate limiting defaults OFF (so the suite/dev are unaffected). An unset
+    # RATE_LIMIT_ENABLED in production leaves the API with NO abuse guard (brute-force / scraping /
+    # DoS). Fail-closed: require it ON in prod. The single-worker in-process counter (main.py +
+    # apikeys.py) is acceptable for the pilot footprint.
+    if not settings.rate_limit_enabled:
+        raise RuntimeError(
+            "Production deploy contract violation: RATE_LIMIT_ENABLED is false — the API abuse guard "
+            "is disabled in production. Set RATE_LIMIT_ENABLED=true. See docs/M1A-DEPLOY-CONTRACT.md."
+        )
+
     # C2 — legacy inbound-payment provider contract (checked LAST so the more fundamental checks above
     # surface first). FEATURE_PAYMENTS_ENABLED arms the /payment/callback/{provider} route. In
     # production that route must NOT run on the dev/mock provider (it would settle every order with no

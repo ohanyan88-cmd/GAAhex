@@ -84,7 +84,7 @@ async def _setup_comment_users():
     """Build the 6 test users + a second tenant + cross-tenant user."""
     async with OwnerSessionLocal() as s:
         # Resolve demo tenant + root node.
-        tenant = (await s.execute(select(Tenant))).scalars().first()
+        tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         root_node = (await s.execute(
             select(OrgNode).where(OrgNode.tenant_id == tenant.id).order_by(OrgNode.path).limit(1)
         )).scalar_one()

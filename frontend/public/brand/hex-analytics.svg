@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <!-- GAAhex brand hex field — multi-colour, each hex glows its own colour. Per-page-type variant. -->
+  <defs>
+    <filter id="g" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g fill="none" stroke-width="3.5" filter="url(#g)">
+    <polygon points="1500,100 1863.7,310 1863.7,730 1500,940 1136.3,730 1136.3,310" stroke="#A78BE6" stroke-opacity="0.22"/>
+    <polygon points="150,-190 444.4,-20 444.4,320 150,490 -144.4,320 -144.4,-20" stroke="#E6CC93" stroke-opacity="0.2"/>
+    <polygon points="700,660 838.6,740 838.6,900 700,980 561.4,900 561.4,740" stroke="#4FB8F0" stroke-opacity="0.2"/>
+    <polygon points="1120,180 1223.9,240 1223.9,360 1120,420 1016.1,360 1016.1,240" stroke="#3FCB86" stroke-opacity="0.18"/>
+    <polygon points="420,470 497.9,515 497.9,605 420,650 342.1,605 342.1,515" stroke="#E6CC93" stroke-opacity="0.13"/>
+  </g>
+</svg>

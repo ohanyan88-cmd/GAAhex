@@ -80,7 +80,7 @@ async def _snapshot(sm):
         agent = (await s.execute(select(User).where(User.email == "agent@demo.isp"))).scalar_one_or_none()
         portal = (await s.execute(select(CustomerUser).where(CustomerUser.email == "portal@demo.isp"))).scalar_one_or_none()
         boot = (await s.execute(select(User).where(User.email == boot_email))).scalar_one_or_none()
-        tenant = (await s.execute(select(Tenant))).scalars().first()
+        tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         roles = (await s.execute(select(RoleDef))).scalars().all()
         boot_is_super_admin = False
         if boot is not None:
@@ -118,7 +118,7 @@ async def _run_boot_seeds(monkeypatch, *, environment, bootstrap_pw):
         await seed_mod.seed_if_empty()
         await seed_mod.seed_access_if_empty()
         async with sm() as s:
-            tenant = (await s.execute(select(Tenant))).scalars().first()
+            tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
             s.add(Record(tenant_id=tenant.id, entity_key="customer", data={}))
             await s.commit()
         await seed_mod.seed_portal_if_empty()

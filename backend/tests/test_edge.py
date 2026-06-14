@@ -25,7 +25,7 @@ async def test_agent_cannot_get_out_of_scope_record(client, admin, agent):
 
 async def test_agent_cannot_transition_out_of_scope_record(client, admin, agent):
     hq = (await client.post("/api/leads", headers=admin, json={"name": "HQ WF", "phone": "+37411"})).json()
-    r = await client.post(f"/api/leads/{hq['id']}/transition", headers=agent, json={"to": "validated_lead"})
+    r = await client.post(f"/api/leads/{hq['id']}/transition", headers=agent, json={"to": "VALIDATED_LEAD"})
     assert r.status_code == 403
 
 
@@ -57,7 +57,7 @@ async def test_unknown_transition_target_409(client, admin):
 async def test_transition_guard_failure_422(client, admin):
     # NEW->CONTACTED guard requires a phone; created without one → guard fails
     lead = (await client.post("/api/leads", headers=admin, json={"name": "T422"})).json()
-    r = await client.post(f"/api/leads/{lead['id']}/transition", headers=admin, json={"to": "validated_lead"})
+    r = await client.post(f"/api/leads/{lead['id']}/transition", headers=admin, json={"to": "VALIDATED_LEAD"})
     assert r.status_code == 422
 
 

@@ -37,7 +37,7 @@ async def portal_setup(client: AsyncClient, admin):
     cid_b = rb.json()["id"]
 
     async with OwnerSessionLocal() as s:
-        tenant = (await s.execute(select(Tenant))).scalars().first()
+        tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         tid = tenant.id
 
         for email, pw, cid in [
@@ -70,7 +70,7 @@ async def portal_setup(client: AsyncClient, admin):
     token_b = rb_tok.json()["access_token"]
 
     async with OwnerSessionLocal() as s:
-        tenant = (await s.execute(select(Tenant))).scalars().first()
+        tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
 
     return {"tenant_id": str(tid), "cid_a": cid_a, "cid_b": cid_b, "token_a": token_a, "token_b": token_b}
 
@@ -180,7 +180,7 @@ async def test_staff_provision_portal_user(client: AsyncClient, admin, portal_se
 
     # Clean up any previous run
     async with OwnerSessionLocal() as s:
-        tenant = (await s.execute(select(Tenant))).scalars().first()
+        tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         existing = (await s.execute(
             select(CustomerUser).where(
                 CustomerUser.tenant_id == tenant.id,
@@ -213,7 +213,7 @@ async def test_inactive_user_cannot_login(client: AsyncClient, portal_setup):
     email = "inactive_b34@test.isp"
 
     async with OwnerSessionLocal() as s:
-        tenant = (await s.execute(select(Tenant))).scalars().first()
+        tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         cu = (await s.execute(
             select(CustomerUser).where(
                 CustomerUser.tenant_id == tenant.id,

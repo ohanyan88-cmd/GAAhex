@@ -15,8 +15,10 @@ a one-line wire-up.
 """
 from __future__ import annotations
 
+import logging
 import re
 import uuid
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
 
@@ -31,6 +33,7 @@ from ..exceptions import FeatureDisabledError
 from ..models.billing import Subscription
 from ..models.cpe_binding import CpeBinding
 from ..models.order import Order
+from ..models.record import Record
 from ..models.respool import PoolAllocation, ResourcePool
 from ..models.service import Service
 from ..models.splitter import SplitterStrandAllocation
@@ -57,6 +60,13 @@ except ImportError:  # pragma: no cover — only hit if P1 hasn't landed yet
         feature_olt_provisioning_required = False
 
     feature_gate = _FeatureGateStub()  # type: ignore[assignment]
+
+
+_log = logging.getLogger("gaahex.install_board")
+
+# Default OLT line/DBA profile when neither the splitter config nor the caller names one.
+# The real per-plan profile names live on the OLT and are configured per deployment.
+DEFAULT_OLT_LINE_PROFILE = "default"
 
 
 # ==========================================================================================
@@ -166,6 +176,85 @@ async def _pick_free_vlan_allocation(
 
 
 # ==========================================================================================
+# Provisioning-target resolver (config-driven splitter→OLT map)
+# ==========================================================================================
+
+@dataclass(frozen=True)
+class ProvisioningTarget:
+    """Physical OLT coordinates for lighting one ONU, resolved from config.
+
+    Built by :func:`resolve_provisioning_target` from the optical_splitter Record's ``data``
+    (``olt_record_id`` + ``olt_slot`` + ``olt_port`` [+ optional ``olt_line_profile``]) plus the
+    bound CPE serial + the assigned VLAN. No schema change: the splitter→OLT uplink and the
+    line-profile name are configuration on the splitter Record, supplied per deployment.
+    """
+
+    olt_record: Any            # Record(entity_key='olt') — fed to get_driver_for_olt
+    slot: int
+    port: int
+    onu_serial: str
+    line_profile: str
+    vlan_id: int
+    customer_ref: str | None
+
+
+async def resolve_provisioning_target(
+    s: AsyncSession,
+    *,
+    order: Order,
+    cpe: CpeBinding,
+    strand: SplitterStrandAllocation,
+    vlan_value: Any,
+    line_profile: str | None = None,
+) -> "ProvisioningTarget | None":
+    """Resolve the OLT provisioning target for an install, or ``None`` if not configured.
+
+    Reads the splitter→OLT uplink off the optical_splitter Record's ``data``: ``olt_record_id``
+    (the OLT Record), ``olt_slot`` + ``olt_port`` (the PON port feeding the splitter), and the
+    optional ``olt_line_profile``. Returns ``None`` — NOT an error — when the splitter isn't
+    mapped yet, so the caller falls back to the dev-mode path instead of failing a real install
+    over missing config. The ONU serial is the serial captured at CPE bind (the GPON SN).
+    """
+    splitter = (await s.execute(
+        select(Record).where(Record.id == strand.splitter_record_id)
+    )).scalar_one_or_none()
+    if splitter is None:
+        return None
+    sdata = splitter.data or {}
+    olt_record_id = sdata.get("olt_record_id")
+    olt_slot = sdata.get("olt_slot")
+    olt_port = sdata.get("olt_port")
+    if not olt_record_id or olt_slot is None or olt_port is None:
+        return None
+    try:
+        olt_uuid = uuid.UUID(str(olt_record_id))
+        slot_i = int(olt_slot)
+        port_i = int(olt_port)
+        vlan_i = int(vlan_value)
+    except (TypeError, ValueError):
+        return None
+    olt = (await s.execute(
+        select(Record).where(Record.id == olt_uuid, Record.entity_key == "olt")
+    )).scalar_one_or_none()
+    if olt is None:
+        return None
+    serial = (getattr(cpe, "serial", None) or "").strip()
+    if not serial:
+        return None
+    prof = line_profile or sdata.get("olt_line_profile") or DEFAULT_OLT_LINE_PROFILE
+    customer_ref = str(order.customer_id) if order.customer_id else order.number
+    return ProvisioningTarget(
+        olt_record=olt,
+        slot=slot_i,
+        port=port_i,
+        onu_serial=serial,
+        line_profile=str(prof),
+        vlan_id=vlan_i,
+        customer_ref=customer_ref,
+    )
+
+
+# ==========================================================================================
 # Stage 9 — allocate_resources
 # ==========================================================================================
 
@@ -183,9 +272,9 @@ async def allocate_resources(
     )).scalar_one_or_none()
     if order is None:
         raise HTTPException(404, "Order not found")
-    if order.status != "installation":
+    if order.status != "INSTALLATION":
         raise HTTPException(
-            409, f"allocate_resources requires order.status='installation' (got '{order.status}')",
+            409, f"allocate_resources requires order.status='INSTALLATION' (got '{order.status}')",
         )
 
     # Idempotency — if both linkages are already set, return them.
@@ -279,9 +368,9 @@ async def bind_cpe(
     )).scalar_one_or_none()
     if order is None:
         raise HTTPException(404, "Order not found")
-    if order.status != "installation":
+    if order.status != "INSTALLATION":
         raise HTTPException(
-            409, f"bind_cpe requires order.status='installation' (got '{order.status}')",
+            409, f"bind_cpe requires order.status='INSTALLATION' (got '{order.status}')",
         )
 
     mac = normalize_mac(mac_address)
@@ -393,9 +482,9 @@ async def activate_service(
     )).scalar_one_or_none()
     if order is None:
         raise HTTPException(404, "Order not found")
-    if order.status != "installation":
+    if order.status != "INSTALLATION":
         raise HTTPException(
-            409, f"activate_service requires order.status='installation' (got '{order.status}')",
+            409, f"activate_service requires order.status='INSTALLATION' (got '{order.status}')",
         )
 
     blockers: list[str] = []
@@ -474,29 +563,49 @@ async def activate_service(
     olt_driver_invoked_dev_mode = False
     bypass_reason: str | None = None
 
+    prov_target: "ProvisioningTarget | None" = None
+    real_driver = None
     if feature_gate.is_enabled("olt_provisioning"):
-        # Path 1 — feature enabled. Attempt the driver. The real per-OLT lookup
-        # (cpe→port→olt_id) is the next remediation step; for now we emit an audit
-        # Event marking dev-mode and fall through to the DB-only update. A future
-        # patch will replace this block with a real call to
-        # ``await get_driver_for_olt(...).provision_onu(...)``.
+        # Path 1 — feature enabled. Resolve the physical provisioning target from config (the
+        # splitter→OLT uplink on optical_splitter.data) and obtain a real (non-mock) driver. If
+        # the splitter isn't mapped to an OLT yet, or only the mock driver is registered, fall
+        # back to the legacy dev-mode path (no real provisioning) so dev/test and not-yet-mapped
+        # installs keep working unchanged. The driver calls themselves happen AFTER the DB
+        # snapshot below, inside the rollback-guarded block, so a failure restores state.
         olt_driver_invoked = True
-        olt_driver_invoked_dev_mode = True
         try:
-            await workflow.emit(
-                s, tenant_id, "OLT_DRIVER_INVOKED",
-                "order", order.id, actor_id,
-                {
-                    "order_id": str(order.id),
-                    "cpe_id": str(cpe.id),
-                    "olt_driver_invoked_dev_mode": True,
-                    "note": "driver-wire placeholder; real provision_onu call lands in follow-up",
-                },
-                event_name="Order.OltDriverInvoked",
-                category="INTEGRATION",
+            prov_target = await resolve_provisioning_target(
+                s, order=order, cpe=cpe, strand=strand, vlan_value=pa.value,
             )
-        except Exception:
-            pass
+            if prov_target is not None:
+                from .olt.factory import get_driver_for_olt  # noqa: PLC0415
+                cand = await get_driver_for_olt(prov_target.olt_record)
+                if cand is not None and getattr(cand, "vendor", "mock") != "mock":
+                    real_driver = cand
+        except Exception as exc:  # config / driver-resolution failure → dev-mode fallback
+            _log.warning("OLT provisioning target unresolved — dev-mode fallback: %r", exc)
+            prov_target = None
+            real_driver = None
+
+        if real_driver is not None:
+            olt_driver_invoked_dev_mode = False
+        else:
+            olt_driver_invoked_dev_mode = True
+            try:
+                await workflow.emit(
+                    s, tenant_id, "OLT_DRIVER_INVOKED",
+                    "order", order.id, actor_id,
+                    {
+                        "order_id": str(order.id),
+                        "cpe_id": str(cpe.id),
+                        "olt_driver_invoked_dev_mode": True,
+                        "note": "no real driver / splitter not mapped to an OLT — DB-only dev path",
+                    },
+                    event_name="Order.OltDriverInvoked",
+                    category="INTEGRATION",
+                )
+            except Exception:
+                pass
     else:
         # Feature disabled — distinguish "required but unavailable" (production posture; must
         # fail-closed or accept an override) from "not required at all" (dev/test; preserve
@@ -643,13 +752,71 @@ async def activate_service(
     # ------------------------------------------------------------------------------------
     driver_failed = False
     driver_error: str | None = None
-    if olt_driver_invoked and not olt_driver_invoked_dev_mode:  # pragma: no cover — follow-up wiring
+    if (
+        olt_driver_invoked
+        and not olt_driver_invoked_dev_mode
+        and real_driver is not None
+        and prov_target is not None
+    ):
         try:
-            # await get_driver_for_olt(...).provision_onu(...)
-            pass
+            # 1) ensure the service VLAN exists on the PON port, 2) register the ONU with its
+            # line-profile + VLAN. provision_onu binds the service VLAN on the ONU; set_vlan
+            # declares it on the port first. Any driver error trips the rollback below.
+            await real_driver.set_vlan(
+                slot=prov_target.slot, port=prov_target.port,
+                vlan_id=prov_target.vlan_id, purpose="data",
+            )
+            prov = await real_driver.provision_onu(
+                serial=prov_target.onu_serial,
+                slot=prov_target.slot,
+                port=prov_target.port,
+                line_profile=prov_target.line_profile,
+                vlan_id=prov_target.vlan_id,
+                customer_ref=prov_target.customer_ref,
+            )
+            try:
+                await real_driver.close()
+            except Exception:
+                pass
+            # Record the real provisioning outcome on the CPE payload + a success audit Event.
+            cpe.last_payload_json = {
+                **(cpe.last_payload_json or {}),
+                "olt_provisioned": True,
+                "olt_vendor": real_driver.vendor,
+                "olt_slot": prov_target.slot,
+                "olt_port": prov_target.port,
+                "onu_serial": prov_target.onu_serial,
+                "onu_id": prov.onu_id,
+                "line_profile": prov_target.line_profile,
+            }
+            try:
+                await workflow.emit(
+                    s, tenant_id, "SERVICE_ACTIVATED_OLT",
+                    "order", order.id, actor_id,
+                    {
+                        "order_id": str(order.id),
+                        "cpe_id": str(cpe.id),
+                        "olt_record_id": (str(getattr(prov_target.olt_record, "id", "")) or None),
+                        "vendor": real_driver.vendor,
+                        "slot": prov_target.slot,
+                        "port": prov_target.port,
+                        "vlan_id": prov_target.vlan_id,
+                        "line_profile": prov_target.line_profile,
+                        "onu_serial": prov_target.onu_serial,
+                        "onu_id": prov.onu_id,
+                    },
+                    event_name="Order.ServiceActivatedOlt",
+                    category="INTEGRATION",
+                )
+            except Exception:
+                pass
         except Exception as exc:
             driver_failed = True
             driver_error = repr(exc)
+            try:
+                await real_driver.close()
+            except Exception:
+                pass
 
     if driver_failed:  # pragma: no cover — follow-up wiring
         # Rollback DB mutations to the pre-activation snapshot.
@@ -706,7 +873,7 @@ async def list_install_board(
     Returns a thin dict per row (id/number/customer/install_substage/timestamps + linkage ids)."""
     q = select(Order).where(
         Order.tenant_id == tenant_id,
-        Order.status == "installation",
+        Order.status == "INSTALLATION",
     )
     if substage:
         if substage.upper() == "NONE":

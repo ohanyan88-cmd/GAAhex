@@ -348,19 +348,19 @@ async def build_crm_entities(s, t) -> None:
         # Lead = the SALES slice of the SST (iron rule, lifecycle.ts stages 1→6): LEAD … CONTRACT_SIGNED
         # → ORDER_CREATED (sales done → converts to ORDER). `lost` is the sales off-ramp. Legacy
         # NEW/CONTACTED/QUALIFIED/CONVERTED set was DELETED 2026-06-11.
-        statuses=[("lead", "Lead", True), ("validated_lead", "Validated Lead", False),
-                  ("assigned", "Assigned", False), ("deal", "Deal", False),
-                  ("contract_signed", "Contract Signed", False), ("order_created", "Order Created", False),
-                  ("lost", "Lost", False)],
+        statuses=[("LEAD", "Lead", True), ("VALIDATED_LEAD", "Validated Lead", False),
+                  ("ASSIGNED", "Assigned", False), ("DEAL", "Deal", False),
+                  ("CONTRACT_SIGNED", "Contract Signed", False), ("ORDER_CREATED", "Order Created", False),
+                  ("LOST", "Lost", False)],
         transitions=[
-            {"from": "lead", "to": "validated_lead", "guard": "phone != None and phone != ''"},
-            {"from": "validated_lead", "to": "assigned", "guard": None},
-            {"from": "assigned", "to": "deal", "guard": None},
-            {"from": "deal", "to": "contract_signed", "guard": None},
-            {"from": "contract_signed", "to": "order_created", "guard": None},  # sales done → convert to ORDER
-            {"from": "validated_lead", "to": "lost", "guard": None},
-            {"from": "assigned", "to": "lost", "guard": None},
-            {"from": "deal", "to": "lost", "guard": None},
+            {"from": "LEAD", "to": "VALIDATED_LEAD", "guard": "phone != None and phone != ''"},
+            {"from": "VALIDATED_LEAD", "to": "ASSIGNED", "guard": None},
+            {"from": "ASSIGNED", "to": "DEAL", "guard": None},
+            {"from": "DEAL", "to": "CONTRACT_SIGNED", "guard": None},
+            {"from": "CONTRACT_SIGNED", "to": "ORDER_CREATED", "guard": None},  # sales done → convert to ORDER
+            {"from": "VALIDATED_LEAD", "to": "LOST", "guard": None},
+            {"from": "ASSIGNED", "to": "LOST", "guard": None},
+            {"from": "DEAL", "to": "LOST", "guard": None},
         ],
     )
 
@@ -377,13 +377,15 @@ async def build_crm_entities(s, t) -> None:
         # Customer = the active base (iron rule: NOT a pipeline). "monitoring" was never a stage — the
         # active-base status is ACTIVE; suspended/terminated are the off-ramps. A Customer-Care
         # check-call auto-task (created at ACTIVATION) replaces the former "monitoring stage".
-        statuses=[("active", "Active", True), ("suspended", "Suspended", False),
-                  ("terminated", "Terminated", False)],
+        # SPEC §7 canonical casing: UPPER_SNAKE, no exception (Gev 2026-06-14). StatusDef keys,
+        # record.status, and transition endpoints all agree on the SAME single-source-of-truth set.
+        statuses=[("ACTIVE", "Active", True), ("SUSPENDED", "Suspended", False),
+                  ("TERMINATED", "Terminated", False)],
         transitions=[
-            {"from": "active", "to": "suspended", "guard": None},
-            {"from": "suspended", "to": "active", "guard": None},
-            {"from": "active", "to": "terminated", "guard": None},
-            {"from": "suspended", "to": "terminated", "guard": None},
+            {"from": "ACTIVE", "to": "SUSPENDED", "guard": None},
+            {"from": "SUSPENDED", "to": "ACTIVE", "guard": None},
+            {"from": "ACTIVE", "to": "TERMINATED", "guard": None},
+            {"from": "SUSPENDED", "to": "TERMINATED", "guard": None},
         ],
     )
 

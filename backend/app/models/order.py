@@ -39,7 +39,7 @@ class Order(Base):
     # Order lifecycle = SST fulfillment slice (iron rule, stages 7→13): order_validated → scheduling →
     # config → installation → connection_test → payment_confirmed → activation (+ cancelled). The order
     # is BORN at order_validated (its first stage); ORDER_CREATED is the LEAD's terminal sales stage.
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default="order_validated")
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="ORDER_VALIDATED")
     total: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)           # luma, = sum(item line_total)
     # SPEC §3 Stage 8 Control Gate verdict (Step 4). NULL = pending validation, TRUE = Revenue
     # Control passed (KYC+Credit+Fraud+Tariff match), FALSE = explicitly failed. The kernel function

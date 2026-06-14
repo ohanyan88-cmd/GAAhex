@@ -47,7 +47,7 @@ async def _setup_cfg_schema_user():
     order without role-uniqueness collisions.
     """
     async with OwnerSessionLocal() as s:
-        tenant = (await s.execute(select(Tenant))).scalars().first()
+        tenant = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         root = (await s.execute(
             select(OrgNode).where(OrgNode.tenant_id == tenant.id)
                            .order_by(OrgNode.path).limit(1)

@@ -87,7 +87,7 @@ async def test_real_transition_event_records_delivery(client, admin):
     try:
         lead = (await client.post("/api/leads", headers=admin, json={"name": "wh lead", "phone": "+37411"})).json()
         assert (await client.post(f"/api/leads/{lead['id']}/transition", headers=admin,
-                                  json={"to": "validated_lead"})).status_code == 200
+                                  json={"to": "VALIDATED_LEAD"})).status_code == 200
         deliveries = (await client.get(f"/api/webhooks/{wid}/deliveries", headers=admin)).json()
         assert any(x["event_type"] == "TRANSITION" for x in deliveries)     # recorded (FAILED is fine)
     finally:
@@ -100,7 +100,7 @@ async def test_unsubscribed_event_no_delivery(client, admin):
         "name": "hookPayment", "url": DEAD_URL, "events": ["payment"]})).json()["id"]
     try:
         lead = (await client.post("/api/leads", headers=admin, json={"name": "wh no", "phone": "+37412"})).json()
-        await client.post(f"/api/leads/{lead['id']}/transition", headers=admin, json={"to": "validated_lead"})
+        await client.post(f"/api/leads/{lead['id']}/transition", headers=admin, json={"to": "VALIDATED_LEAD"})
         assert (await client.get(f"/api/webhooks/{wid}/deliveries", headers=admin)).json() == []
     finally:
         await _deactivate(client, admin, wid)

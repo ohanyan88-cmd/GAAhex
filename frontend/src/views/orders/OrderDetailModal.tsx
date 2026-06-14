@@ -45,8 +45,8 @@ export function OrderDetailModal({
     if (verb === 'cancel' && !window.confirm(`Cancel order ${order.number}?`)) return
     // One config-driven transition route ({to}) for every move — no per-verb endpoints. The advance
     // target is resolved from the SST; submit/cancel are fixed.
-    const to = verb === 'submit' ? 'order_validated'
-      : verb === 'cancel' ? 'cancelled'
+    const to = verb === 'submit' ? 'ORDER_VALIDATED'
+      : verb === 'cancel' ? 'CANCELLED'
       : nextOrderStatus(order.status)
     if (!to) return
     setBusy(true)
@@ -63,7 +63,7 @@ export function OrderDetailModal({
     : '—'
   const status = order?.status ?? ''
   const advLbl = nextAdvanceLabel(status)
-  const canFinalCancel = status && status !== 'activation' && status !== 'cancelled'
+  const canFinalCancel = status && status !== 'ACTIVATION' && status !== 'CANCELLED'
 
   // Map OrderRow status → RecordDrawer status pill variant. Keeps the same
   // mapping logic as the row pill (mapOrderStatus) but coerced to the drawer's
@@ -110,7 +110,7 @@ export function OrderDetailModal({
                   <CloseIcon size={13} /> {t('orders.action.cancel', 'Cancel order')}
                 </Button>
               )}
-              {status === 'order_created' && (
+              {status === 'ORDER_CREATED' && (
                 <Button variant="primary" size="sm"
             disabled={busy} onClick={() => action('submit')}>
                   <ArrowRightIcon size={13} /> {t('common.submit', 'Submit')}

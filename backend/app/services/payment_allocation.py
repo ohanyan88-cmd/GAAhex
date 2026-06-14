@@ -187,8 +187,12 @@ async def allocate_payment(
     if pay is None:
         raise HTTPException(404, "Payment not found")
 
+    # FIN-2: lock the invoice row too (Payment is already FOR UPDATE above → consistent
+    # Payment→Invoice order, deadlock-safe). Serializes concurrent payments/allocations
+    # against the SAME invoice so the balance read + auto-PAID flip below see each other.
     inv = (await session.execute(
         select(Invoice).where(Invoice.id == invoice_id, Invoice.tenant_id == tenant_id)
+        .with_for_update()
     )).scalar_one_or_none()
     if inv is None:
         raise HTTPException(404, "Invoice not found")

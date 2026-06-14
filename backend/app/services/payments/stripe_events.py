@@ -120,8 +120,11 @@ async def _handle_payment_intent_succeeded(session: AsyncSession, event: dict) -
     # Tenant-scoped invoice lookup. The handler runs under the owner role so RLS is a no-op,
     # but the explicit tenant_id filter prevents cross-tenant writes even if a future engine
     # change shifts the boundary.
+    # FIN-2: FOR UPDATE so a Stripe webhook (incl. duplicate/retried deliveries) and a manual
+    # payment racing the SAME invoice serialize their balance read + auto-PAID flip below.
     inv = (await session.execute(
         select(Invoice).where(Invoice.id == invoice_id, Invoice.tenant_id == tenant_id)
+        .with_for_update()
     )).scalar_one_or_none()
     if inv is None:
         _log.warning(

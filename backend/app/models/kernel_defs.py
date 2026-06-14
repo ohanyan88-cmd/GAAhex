@@ -66,7 +66,7 @@ class KpiDef(Base):
             "where": {
                 # entity_key | data.<json key> | column name (for non-record tables)
                 "entity_key": "lead",
-                "data.status": "validated_lead",
+                "data.status": "VALIDATED_LEAD",
                 # Boolean keys map to TRUE; key__not_null suffix maps to IS NOT NULL.
                 "control_pass": True,
                 "control_pass__not_null": True,
