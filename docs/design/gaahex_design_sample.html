@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GAAhex — Design Language Sample</title>
+<style>
+/* ============================================================
+   SEMANTIC TOKENS — flip between dark & light (one set, two maps).
+   Components never change; only these values do.
+   ============================================================ */
+:root{
+  /* brand hues — STAY across themes */
+  --gx-cobalt:#1C3B68; --gx-azure:#0EA5E9; --gx-gold:#C5A059;
+  /* scales */
+  --gx-radius-sm:8px; --gx-radius-md:12px; --gx-radius-lg:16px;
+  --gx-space-1:4px; --gx-space-2:8px; --gx-space-3:12px; --gx-space-4:16px;
+  --gx-space-5:20px; --gx-space-6:24px; --gx-space-8:32px;
+  --gx-dur:.18s; --gx-ease:cubic-bezier(.2,.6,.2,1);
+}
+[data-theme="dark"]{
+  --gx-bg:#0B0E14; --gx-surface:#15181F; --gx-surface-2:#1c2029;
+  --gx-text-1:#F4F5F7; --gx-text-2:#9AA6B8; --gx-border:#262B34;
+  --gx-logo-cobalt:#4E7FC4;
+  --gx-glass:rgba(20,24,32,.5); --gx-glass-border:rgba(255,255,255,.08);
+  --gx-azure-ink:#38BDF8; --gx-gold-ink:#D6B36A;
+  --gx-success:#22C55E; --gx-warning:#F59E0B; --gx-danger:#F05252;
+  --gx-pill:#1d2430; --gx-pill-text:#A9B4C6;
+  --gx-glow-a:rgba(197,160,89,.10); --gx-glow-b:rgba(14,165,233,.10); --gx-glow-c:rgba(34,197,94,.07);
+  --gx-shadow:0 10px 30px -12px rgba(0,0,0,.6);
+}
+[data-theme="light"]{
+  --gx-bg:#EEF1F6; --gx-surface:#FFFFFF; --gx-surface-2:#F4F5F7;
+  --gx-text-1:#0B0B0C; --gx-text-2:#475569; --gx-border:#E2E5EA;
+  --gx-logo-cobalt:#1C3B68;
+  --gx-glass:rgba(255,255,255,.5); --gx-glass-border:rgba(28,59,104,.12);
+  --gx-azure-ink:#0284C7; --gx-gold-ink:#AC8847;
+  --gx-success:#16A34A; --gx-warning:#D97706; --gx-danger:#DC2626;
+  --gx-pill:#EEF2F8; --gx-pill-text:#475569;
+  --gx-glow-a:rgba(197,160,89,.14); --gx-glow-b:rgba(14,165,233,.12); --gx-glow-c:rgba(22,163,74,.10);
+  --gx-shadow:0 12px 30px -16px rgba(28,59,104,.26);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  font-family:'Sora','Inter',system-ui,'Noto Sans Armenian','Noto Sans','Segoe UI',sans-serif;
+  background:var(--gx-bg); color:var(--gx-text-1);
+  -webkit-font-smoothing:antialiased; transition:background var(--gx-dur), color var(--gx-dur);
+  min-height:100vh; position:relative; overflow-x:hidden;
+}
+/* ambient diagonal glow — the control-room atmosphere */
+body::before{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:
+    radial-gradient(60% 40% at 85% 0%, var(--gx-glow-a), transparent 70%),
+    radial-gradient(50% 45% at 100% 55%, var(--gx-glow-b), transparent 70%),
+    radial-gradient(45% 40% at 70% 100%, var(--gx-glow-c), transparent 70%);
+}
+.hexbg{position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden}
+.hexbg svg{position:absolute}
+.wrap{position:relative; z-index:1; max-width:1180px; margin:0 auto; padding:0 var(--gx-space-6) var(--gx-space-8)}
+.tnum{font-variant-numeric:tabular-nums; letter-spacing:-.01em}
+.label{font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--gx-text-2)}
+
+/* ---- top bar ---- */
+.topbar{display:flex; align-items:center; gap:var(--gx-space-4); padding:14px var(--gx-space-6);
+  border-bottom:1px solid var(--gx-border); position:sticky; top:0; z-index:5;
+  background:color-mix(in srgb, var(--gx-bg) 86%, transparent); backdrop-filter:blur(10px)}
+.brand{display:flex; align-items:center; gap:10px; font-weight:700}
+.brand small{color:var(--gx-text-2); font-weight:600}
+.spacer{flex:1}
+.iconbtn{width:34px;height:34px;border-radius:var(--gx-radius-sm); border:1px solid var(--gx-border);
+  background:var(--gx-surface); color:var(--gx-text-2); display:grid; place-items:center; cursor:pointer;
+  transition:var(--gx-dur)}
+.iconbtn:hover{color:var(--gx-text-1); border-color:var(--gx-azure); transform:translateY(-1px)}
+.cochip{display:flex; align-items:center; gap:8px; font-weight:700; font-size:13px; padding:6px 12px; border:1px solid var(--gx-border); border-radius:999px; background:var(--gx-surface)}
+.comark{width:16px;height:16px;border-radius:5px;background:linear-gradient(135deg,#E5534B,#b8362f)}
+.userchip{display:flex; align-items:center; gap:10px}
+.userchip .nm{font-weight:700; font-size:14px} .userchip .rl{font-size:11px; color:var(--gx-text-2)}
+
+/* ---- hexagon (signature) ---- */
+.hex{--s:34px; width:var(--s); height:var(--s); display:grid; place-items:center; position:relative}
+.hex svg{position:absolute; inset:0; width:100%; height:100%}
+.hex span{position:relative; font-weight:800; font-size:13px; color:#fff}
+
+/* ---- page header ---- */
+.phead{display:flex; align-items:center; gap:14px; padding:26px 0 18px}
+.phead .htitle{font-size:30px; font-weight:800; letter-spacing:-.02em}
+.search{flex:1; max-width:380px; margin-left:auto; display:flex; align-items:center; gap:8px;
+  background:var(--gx-glass); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); border:1px solid var(--gx-glass-border); border-radius:var(--gx-radius-md);
+  padding:9px 12px; color:var(--gx-text-2)}
+.search:focus-within{border-color:var(--gx-azure); box-shadow:0 0 0 3px color-mix(in srgb,var(--gx-azure) 22%,transparent)}
+.search input{border:0; background:transparent; outline:0; color:var(--gx-text-1); width:100%; font:inherit}
+.btn{border:1px solid var(--gx-border); background:var(--gx-surface); color:var(--gx-text-1);
+  padding:9px 14px; border-radius:var(--gx-radius-md); font:inherit; font-weight:700; cursor:pointer; transition:var(--gx-dur)}
+.btn:hover{transform:translateY(-1px); border-color:var(--gx-azure)}
+.btn.primary{background:linear-gradient(180deg,var(--gx-gold),#b8924d); color:#1a1406; border-color:transparent}
+.btn.primary:hover{filter:brightness(1.05)}
+
+/* ---- KPI strip ---- */
+.kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:var(--gx-space-4)}
+.card{background:var(--gx-glass); -webkit-backdrop-filter:blur(16px) saturate(1.25); backdrop-filter:blur(16px) saturate(1.25);
+  border:1px solid var(--gx-glass-border); border-radius:var(--gx-radius-lg); padding:18px; box-shadow:var(--gx-shadow);
+  transition:var(--gx-dur)}
+.card:hover{border-color:color-mix(in srgb,var(--gx-azure) 45%,var(--gx-border)); transform:translateY(-2px)}
+.kpi .top{display:flex; justify-content:space-between; align-items:center}
+.pill{font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  background:var(--gx-pill); color:var(--gx-pill-text); padding:3px 8px; border-radius:999px; border:1px solid var(--gx-border)}
+.kpi .big{font-size:34px; font-weight:800; margin:8px 0 2px}
+.kpi .sub{font-size:12px; color:var(--gx-text-2)}
+.trend{display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:700; margin-top:10px}
+.trend.up{color:var(--gx-success)} .trend.down{color:var(--gx-danger)}
+.bar{height:6px; border-radius:999px; background:var(--gx-pill); margin-top:12px; overflow:hidden}
+.bar>i{display:block; height:100%; border-radius:999px; background:linear-gradient(90deg,var(--gx-azure),var(--gx-success))}
+
+/* ---- chips row ---- */
+.chips{display:flex; gap:var(--gx-space-3); margin:18px 0 4px; flex-wrap:wrap}
+.chip{display:inline-flex; align-items:center; gap:8px; padding:9px 14px; border-radius:var(--gx-radius-md);
+  border:1px solid var(--gx-glass-border); background:var(--gx-glass); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); font-weight:600; font-size:13px}
+.chip.warn{border-color:color-mix(in srgb,var(--gx-danger) 40%,var(--gx-border)); background:color-mix(in srgb,var(--gx-danger) 9%,var(--gx-surface)); color:var(--gx-danger)}
+.chip.ok{color:var(--gx-success)}
+
+/* ---- content grid ---- */
+.grid{display:grid; grid-template-columns:1fr 1fr 1fr; gap:var(--gx-space-4); margin-top:18px}
+.ctitle{display:flex; align-items:center; gap:8px; font-size:15px; font-weight:800; margin:0 0 14px}
+.ctitle .ct-count{color:var(--gx-text-2); font-weight:700}
+.row{display:flex; align-items:center; gap:10px; padding:11px 0; border-top:1px solid var(--gx-border)}
+.row:first-of-type{border-top:0}
+.row .nm{flex:1; font-size:13.5px; font-weight:600}
+.row:hover .nm{color:var(--gx-azure-ink)}
+.warnico{color:var(--gx-danger); font-weight:800}
+.hrs{font-size:12.5px; font-weight:700; color:var(--gx-danger)}
+.spill{font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; padding:3px 8px;
+  border-radius:6px; background:var(--gx-pill); color:var(--gx-pill-text)}
+.spill.prog{color:var(--gx-azure-ink)}
+/* table + empty state */
+.thead{display:grid; grid-template-columns:1fr auto auto; gap:10px; font-size:10px; font-weight:700;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--gx-text-2); padding-bottom:8px; border-bottom:1px solid var(--gx-border)}
+.empty{text-align:center; color:var(--gx-text-2); padding:26px 0; font-size:13px}
+.empty .hexmini{opacity:.5; margin-bottom:8px}
+/* definition grid */
+.dl{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+.dl .k{font-size:11px; color:var(--gx-text-2); text-transform:uppercase; letter-spacing:.08em; font-weight:700}
+.dl .v{font-size:26px; font-weight:800; margin-top:2px}
+.dl .v.good{color:var(--gx-success)}
+/* activity feed */
+.feed .it{display:flex; align-items:center; gap:10px; padding:9px 0; font-size:13px; border-top:1px solid var(--gx-border)}
+.feed .it:first-child{border-top:0}
+.dot{width:7px;height:7px;border-radius:50%;flex:none}
+.feed .ago{margin-left:auto; color:var(--gx-text-2); font-size:11.5px; font-weight:600}
+.span2{grid-column:span 2}
+/* modal */
+.backdrop{position:fixed; inset:0; background:rgba(5,9,18,.55); backdrop-filter:blur(3px);
+  display:none; place-items:center; z-index:20}
+.backdrop.show{display:grid}
+.modal{width:min(440px,92vw); background:linear-gradient(180deg,var(--gx-surface),var(--gx-surface-2));
+  border:1px solid var(--gx-border); border-radius:var(--gx-radius-lg); box-shadow:var(--gx-shadow);
+  overflow:hidden; animation:pop .2s var(--gx-ease)}
+@keyframes pop{from{opacity:0; transform:translateY(8px) scale(.98)}to{opacity:1}}
+.modal .mh{display:flex; align-items:center; gap:10px; padding:16px 18px; border-bottom:1px solid var(--gx-border); font-weight:800}
+.modal .mb{padding:18px}
+.modal .mf{display:flex; justify-content:flex-end; gap:10px; padding:14px 18px; border-top:1px solid var(--gx-border)}
+.mx{margin-left:auto; cursor:pointer; color:var(--gx-text-2); background:none; border:0; font-size:18px}
+.note{font-size:12px; color:var(--gx-text-2); margin-top:22px; text-align:center; line-height:1.6}
+/* theme toggle */
+.tgl{display:inline-flex; border:1px solid var(--gx-border); border-radius:999px; overflow:hidden; background:var(--gx-surface)}
+.tgl button{border:0; background:transparent; color:var(--gx-text-2); padding:7px 14px; font:inherit; font-weight:700; font-size:12px; cursor:pointer}
+.tgl button.on{background:var(--gx-cobalt); color:#fff}
+[data-theme="light"] .tgl button.on{background:var(--gx-azure)}
+@media(max-width:920px){.kpis{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}.span2{grid-column:auto}}
+</style>
+</head>
+<body>
+
+<!-- GAAhex logo (real v3.0 icon: honeycomb · 4 cobalt · 2 azure signal · 1 gold apex) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="gxlogo" viewBox="0 0 1024 1024">
+<g transform="translate(24.85,16.01) scale(3.3066)">
+<g stroke-width="2.108" stroke-linejoin="round">
+<path d="M109.06 42.86 L90.80 32.32 L72.54 42.86 L72.54 63.94 L90.80 74.48 L109.06 63.94 Z" fill="var(--gx-logo-cobalt)" stroke="var(--gx-logo-cobalt)"/>
+<path d="M147.46 75.06 L129.20 64.52 L110.94 75.06 L110.94 96.14 L129.20 106.68 L147.46 96.14 Z" fill="var(--gx-logo-cobalt)" stroke="var(--gx-logo-cobalt)"/>
+<path d="M185.86 107.26 L167.60 96.72 L149.34 107.26 L149.34 128.34 L167.60 138.88 L185.86 128.34 Z" fill="#0EA5E9" stroke="#0EA5E9"/>
+<path d="M185.86 171.66 L167.60 161.12 L149.34 171.66 L149.34 192.74 L167.60 203.28 L185.86 192.74 Z" fill="#0EA5E9" stroke="#0EA5E9"/>
+<path d="M147.46 203.86 L129.20 193.32 L110.94 203.86 L110.94 224.94 L129.20 235.48 L147.46 224.94 Z" fill="var(--gx-logo-cobalt)" stroke="var(--gx-logo-cobalt)"/>
+<path d="M109.06 236.06 L90.80 225.52 L72.54 236.06 L72.54 257.14 L90.80 267.68 L109.06 257.14 Z" fill="var(--gx-logo-cobalt)" stroke="var(--gx-logo-cobalt)"/>
+</g>
+<path d="M224.26 139.46 L206.00 128.92 L187.74 139.46 L187.74 160.54 L206.00 171.08 L224.26 160.54 Z" fill="#C5A059"/>
+</g></symbol></svg>
+
+<div class="hexbg" id="hexbg"></div>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="brand">
+    <svg width="30" height="30"><use href="#gxlogo"/></svg>
+    <span><b>GAA</b><span style="color:var(--gx-gold-ink)">hex</span></span>
+  </div>
+  <div class="spacer"></div>
+  <div class="iconbtn" title="Search">🔍</div>
+  <div class="iconbtn" title="Notifications">🔔</div>
+  <div class="iconbtn" title="Messages">💬</div>
+  <div class="tgl" style="margin:0 6px">
+    <button id="d" class="on" onclick="setTheme('dark')">Dark</button>
+    <button id="l" onclick="setTheme('light')">Light</button>
+  </div>
+  <div class="cochip"><span class="comark"></span>Demo Company</div>
+  <div class="userchip">
+    <div class="hex" style="--s:34px"><svg viewBox="0 0 100 100"><polygon points="50,3 93,27 93,73 50,97 7,73 7,27" fill="var(--gx-surface-2)" stroke="var(--gx-azure)" stroke-width="4"/></svg><span style="color:var(--gx-azure-ink)">DA</span></div>
+    <div><div class="nm">Demo Admin</div><div class="rl">Administrator</div></div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- PAGE HEADER -->
+  <div class="phead">
+    <svg width="42" height="42"><use href="#gxlogo"/></svg>
+    <div class="htitle">Workspace</div>
+    <div class="search"><span>🔍</span><input placeholder="Search anything — ID · phone · name · ինվոյս…"></div>
+    <button class="btn">Download</button>
+    <button class="btn primary">+ New Lead</button>
+  </div>
+
+  <!-- KPI STRIP -->
+  <div class="kpis">
+    <div class="card kpi">
+      <div class="top"><span class="label">Payments today</span><span class="pill">Org</span></div>
+      <div class="big tnum">20</div><div class="sub">collected since midnight</div>
+      <svg width="100%" height="34" viewBox="0 0 120 34" style="margin-top:8px"><polyline points="0,24 20,20 40,26 60,14 80,18 100,8 120,12" fill="none" stroke="var(--gx-azure)" stroke-width="2.5"/></svg>
+    </div>
+    <div class="card kpi">
+      <div class="top"><span class="label">Resolved today</span><span class="pill">Org</span></div>
+      <div class="big tnum">0</div><div class="sub">tickets closed today</div>
+      <div class="bar"><i style="width:8%"></i></div>
+      <div class="trend down">↓ 12% <span style="color:var(--gx-text-2);font-weight:600">WoW</span></div>
+    </div>
+    <div class="card kpi">
+      <div class="top"><span class="label">Active users</span><span class="pill">Org</span></div>
+      <div class="big tnum">2</div><div class="sub">staff active</div>
+      <div class="trend up">↑ 30% <span style="color:var(--gx-text-2);font-weight:600">WoW</span></div>
+    </div>
+    <div class="card kpi">
+      <div class="top"><span class="label">System health</span><span class="pill">Org</span></div>
+      <div class="big tnum" style="color:var(--gx-success)">100%</div><div class="sub">all systems go</div>
+      <div class="bar"><i style="width:100%;background:var(--gx-success)"></i></div>
+    </div>
+  </div>
+
+  <!-- ALERT CHIPS -->
+  <div class="chips">
+    <div class="chip warn">⚠ 1 ticket past SLA</div>
+    <div class="chip ok">✓ 0 tasks overdue</div>
+    <div class="chip ok">✓ 0 approvals awaiting you</div>
+  </div>
+
+  <!-- CONTENT GRID -->
+  <div class="grid">
+    <!-- list with semantic -->
+    <div class="card">
+      <div class="ctitle">SLA at Risk <span class="ct-count">9</span></div>
+      <div class="row"><span class="warnico">⚠</span><span class="nm">Չի աշխատում WiFi-ը</span><span class="hrs tnum">202h</span></div>
+      <div class="row"><span class="warnico">⚠</span><span class="nm">Տեղափոխում նոր հասցե</span><span class="hrs tnum">202h</span></div>
+      <div class="row"><span class="warnico">⚠</span><span class="nm">Գումարը մինուս է երևում</span><span class="hrs tnum">202h</span></div>
+      <div class="row"><span class="warnico">⚠</span><span class="nm">Не работает интернет</span><span class="hrs tnum">202h</span></div>
+    </div>
+    <!-- list with status pills -->
+    <div class="card">
+      <div class="ctitle">Team Tickets <span class="ct-count">9</span></div>
+      <div class="row"><span class="nm">Չի աշխատում WiFi-ը</span><span class="spill prog">In_progress</span></div>
+      <div class="row"><span class="nm">Տեղափոխում նոր հասցե</span><span class="spill prog">In_progress</span></div>
+      <div class="row"><span class="nm">Գումարը մինուս է երևում</span><span class="spill">Open</span></div>
+      <div class="row"><span class="nm">Подключение нового</span><span class="spill">Open</span></div>
+    </div>
+    <!-- table + empty state -->
+    <div class="card">
+      <div class="ctitle">My Open Tasks <span class="ct-count">0</span></div>
+      <div class="thead"><span>Task</span><span>Status</span><span>Due</span></div>
+      <div class="empty">
+        <div class="hexmini"><svg width="40" height="40" style="opacity:.5"><use href="#gxlogo"/></svg></div>
+        No open tasks — you're all clear.
+      </div>
+    </div>
+    <!-- org health stat grid -->
+    <div class="card">
+      <div class="ctitle">Org Health</div>
+      <div class="dl">
+        <div><div class="k">Payments today</div><div class="v tnum">20</div></div>
+        <div><div class="k">Resolved</div><div class="v tnum">0</div></div>
+        <div><div class="k">Active users</div><div class="v tnum">2</div></div>
+        <div><div class="k">System health</div><div class="v good tnum">100%</div></div>
+      </div>
+    </div>
+    <!-- activity feed (span 2) -->
+    <div class="card span2">
+      <div class="ctitle">Recent Activity <span class="ct-count">24</span></div>
+      <div class="feed">
+        <div class="it"><span class="dot" style="background:var(--gx-azure)"></span><b>Demo Admin</b>&nbsp;assigned a ticket<span class="ago">1h</span></div>
+        <div class="it"><span class="dot" style="background:var(--gx-success)"></span><b>Demo Admin</b>&nbsp;moved installation → done<span class="ago">1d</span></div>
+        <div class="it"><span class="dot" style="background:var(--gx-gold)"></span><b>Demo Admin</b>&nbsp;created lead <b>#1042 · Aram P.</b><span class="ago">3d</span></div>
+        <div class="it"><span class="dot" style="background:var(--gx-azure)"></span><b>Demo Admin</b>&nbsp;opened&nbsp;<a href="#" onclick="openM(event)" style="color:var(--gx-azure-ink);font-weight:700;text-decoration:none">INV-000010 →</a><span class="ago">3d</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    Click <b>INV-000010</b> above — opens an <b>in-place modal</b> (one modal type system-wide, never a page change).<br>
+    Toggle <b>Dark / Light</b> top-right — same components, only the semantic tokens flip.
+  </div>
+</div>
+
+<!-- MODAL (one type, in place) -->
+<div class="backdrop" id="bd" onclick="if(event.target==this)closeM()">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="mh">
+      <svg width="26" height="26"><use href="#gxlogo"/></svg>
+      Invoice <span class="tnum" style="color:var(--gx-gold-ink)">INV-000010</span>
+      <button class="mx" onclick="closeM()">✕</button>
+    </div>
+    <div class="mb">
+      <div class="dl">
+        <div><div class="k">Customer</div><div class="v" style="font-size:16px">Aram Petrosyan</div></div>
+        <div><div class="k">Amount</div><div class="v tnum" style="font-size:16px">45 000 ֏</div></div>
+        <div><div class="k">Status</div><div style="margin-top:4px"><span class="spill" style="color:var(--gx-danger)">Overdue</span></div></div>
+        <div><div class="k">Phone</div><div class="v tnum" style="font-size:16px">077 74 74 74</div></div>
+      </div>
+    </div>
+    <div class="mf"><button class="btn" onclick="closeM()">Close</button><button class="btn primary">Open full</button></div>
+  </div>
+</div>
+
+<script>
+(function(){const hb=document.getElementById('hexbg');
+  const hues=['var(--gx-cobalt)','var(--gx-azure)','var(--gx-gold)','var(--gx-azure)'];
+  for(let i=0;i<18;i++){
+    const sz=(36+Math.random()*200)|0, x=(Math.random()*100).toFixed(1), y=(Math.random()*100).toFixed(1);
+    const op=(0.04+Math.random()*0.09).toFixed(3), rot=(Math.random()*60)|0, hue=hues[(Math.random()*hues.length)|0];
+    const fill=Math.random()<0.28; const sw=(1.5+Math.random()*1).toFixed(1);
+    hb.insertAdjacentHTML('beforeend',
+      `<svg width="${sz}" height="${sz}" viewBox="0 0 100 100" style="left:${x}%;top:${y}%;opacity:${op};transform:translate(-50%,-50%) rotate(${rot}deg)">`+
+      `<polygon points="50,3 93,27 93,73 50,97 7,73 7,27" fill="${fill?hue:'none'}" stroke="${hue}" stroke-width="${sw}"/></svg>`);
+  }
+})();
+function setTheme(t){document.documentElement.dataset.theme=t;
+  d.classList.toggle('on',t==='dark'); l.classList.toggle('on',t==='light');}
+function openM(e){e.preventDefault(); bd.classList.add('show');}
+function closeM(){bd.classList.remove('show');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeM();});
+</script>
+</body>
+</html>

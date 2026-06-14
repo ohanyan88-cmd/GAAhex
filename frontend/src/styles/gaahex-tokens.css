@@ -110,6 +110,14 @@
   src: url('/fonts/ibm-plex-mono-600.woff2') format('woff2');
 }
 
+/* ── Sora (Brand v3.0 display/UI) + Noto fallbacks for AM + RU, per script via
+   unicode-range. Drop the 3 woff2 into /public/fonts/; then --gx-font-sans/-display
+   flip to --gx-font-family (kept on Space Grotesk until present so the app doesn't
+   degrade to system-ui). ─────────────────────────────────────────────────────── */
+@font-face{font-family:'Sora';src:url('/fonts/sora.woff2') format('woff2');font-weight:100 800;font-display:swap}
+@font-face{font-family:'Noto Sans Armenian';src:url('/fonts/noto-armenian.woff2') format('woff2');font-weight:100 900;font-display:swap;unicode-range:U+0530-058F,U+FB13-FB17}
+@font-face{font-family:'Noto Sans Cyr';src:url('/fonts/noto-cyrillic.woff2') format('woff2');font-weight:100 900;font-display:swap;unicode-range:U+0400-04FF,U+0500-052F}
+
 /* ───────────────────────────────────────────────────────────────────────────
    TIER 1 — PRIMITIVE SCALES (theme-independent)
    ─────────────────────────────────────────────────────────────────────────── */
@@ -126,6 +134,9 @@
   --cobalt-800: #142C4E;  /* logo base stop  */
   --cobalt-900: #0F2138;
   --cobalt-950: #0A1626;
+  /* Login / brand-mark gradient stops (theme-independent brand identity) */
+  --cobalt-grad-deep: #142D4F;
+  --cobalt-grad-mid:  #2E5A9C;
 
   /* Azure — D18 interactive family (LOCKED 2026-06-04).
      Sky-blue hue family, color-blind-distinct from cobalt at every stop.
@@ -252,6 +263,9 @@
   --gx-font-sans: 'IBM Plex Sans', 'Segoe UI', -apple-system, sans-serif;
   --gx-font-mono: 'IBM Plex Mono', 'SF Mono', ui-monospace, monospace;
   --gx-font-am: 'Noto Sans Armenian', 'IBM Plex Sans', sans-serif; /* local-language */
+  /* Brand v3.0 canonical font stack (Sora + Noto AM/Cyr). --gx-font-sans/-display flip
+     to this once the 3 woff2 land in /public/fonts/ (kept on Space Grotesk until then). */
+  --gx-font-family: 'Sora', 'Noto Sans Armenian', 'Noto Sans Cyr', system-ui, sans-serif;
 
   /* D19 Path A — numeric text-size aliases restored from color-tokens.css before
      its deletion. --gx-text-10/-11 are consumed by Storybook stories + StatusPill;
@@ -353,6 +367,7 @@
      T-P3-6 — removed orphan blur ladder --gx-blur-sm/-md/-lg (only
      --gx-backdrop-blur is consumed). */
   --gx-backdrop-blur: 8px;
+  --gx-glass-blur:    16px;   /* Aurora-Glass surface blur (cards · KPI · chips · modals) — theme-independent */
 }
 
 /* ───────────────────────────────────────────────────────────────────────────
@@ -363,15 +378,15 @@
   color-scheme: dark;
 
   /* Surfaces */
-  --gx-bg:          #0A1322;   /* app background — deep cobalt-slate */
+  --gx-bg:          #0B0E14;   /* app background — control-room charcoal (sample) */
   /* GAAhex brand-motif: a barely-there honeycomb field tiled over the app backdrop (the "hex" in
      GAAhex). Seamless 28×49 hex tile rendered at 48×84; faint GOLD on dark. Consumed as the top
      background layer of `body` in _base.css. Theme-overridden to cobalt on light below. */
   --gx-hex-field: url("/brand/hex-field-dark.svg");
-  --gx-bg-subtle:   #0E1A2D;
-  --gx-surface:     #13203A;   /* cards */
-  --gx-surface-2:   #182943;   /* nested / hover surface */
-  --gx-elevated:    #1C2E4B;   /* modals, popovers */
+  --gx-bg-subtle:   #11141B;
+  --gx-surface:     #15181F;   /* cards (sample) */
+  --gx-surface-2:   #1C2029;   /* nested / hover surface (sample) */
+  --gx-elevated:    #20242E;   /* modals, popovers */
   --gx-overlay:     rgba(6, 12, 22, 0.66);
   --gx-sidebar:     #0C1626;
   --gx-topbar:      rgba(12, 22, 38, 0.82);
@@ -401,6 +416,12 @@
   --gx-cobalt: #1C3B68;
   --gx-gold:   #C5A059;
   --gx-gold-soft: rgba(197, 160, 89, 0.16);
+
+  /* Aurora-Glass surfaces (theme-aware) + logo cell colour (Brand v3.0 §2/§3) */
+  --gx-glass:        color-mix(in srgb, var(--gx-surface) 40%, transparent);  /* card glass */
+  --gx-glass-strong: color-mix(in srgb, var(--gx-surface) 50%, transparent);  /* KPI / emphasis glass */
+  --gx-glass-border: rgba(255, 255, 255, 0.08);
+  --gx-logo-cobalt:  #4E7FC4;   /* honeycomb cobalt cell — reads on dark chrome */
 
   /* D18 — Color Token Families (LOCKED 2026-06-04).
    * Cobalt    (--gx-primary*)       → brand spine: structural chrome only
@@ -437,11 +458,16 @@
   --gx-ring-offset: var(--gx-bg);
 
   /* Status — semantic */
-  --gx-success: #34C77B;  --gx-success-soft: var(--green-soft);  --gx-success-fg:#8CE9B6;
-  --gx-warning: #F2AE3C;  --gx-warning-soft: var(--amber-soft);  --gx-warning-fg:#F8CE86;
-  --gx-danger:  #F0666B;    --gx-danger-soft:  var(--red-soft);    --gx-danger-fg: #F6A9AC;
-  --gx-info:    #5293F2;   --gx-info-soft:    var(--gx-interactive-soft); --gx-info-fg:#A9CBF7;
+  --gx-success: #22C55E;  --gx-success-soft: color-mix(in srgb, var(--gx-success) 16%, transparent);  --gx-success-fg:#86EFAC;
+  --gx-warning: #F59E0B;  --gx-warning-soft: color-mix(in srgb, var(--gx-warning) 16%, transparent);  --gx-warning-fg:#FCD34D;
+  --gx-danger:  #F05252;    --gx-danger-soft:  color-mix(in srgb, var(--gx-danger) 16%, transparent);    --gx-danger-fg: #FCA5A5;
+  --gx-info:    #3B82F6;   --gx-info-soft:    color-mix(in srgb, var(--gx-info) 16%, transparent); --gx-info-fg:#93C5FD;
   --gx-neutral: #94A3B8;  --gx-neutral-soft: rgba(148,163,184,0.16);
+
+  /* Control interaction states — theme-aware (components must NOT hardcode these) */
+  --gx-danger-hover:    #EF4D58;
+  --gx-danger-disabled: #3D1B1F;
+  --gx-accent-disabled: #3A3527;
 
   /* Chart roles (D18 — default viz fill is SLATE, gold marks the ONE peak/critical/featured
      datum per view, azure = the selected/interactive series, semantic only for value text.
@@ -485,12 +511,12 @@
 [data-theme="light"] {
   color-scheme: light;
 
-  --gx-bg:          #F4F7FB;
+  --gx-bg:          #EEF1F6;
   /* Honeycomb brand field — faint COBALT on light (gold disappears on near-white). */
   --gx-hex-field: url("/brand/hex-field-light.svg");
   --gx-bg-subtle:   #EDF1F5;
   --gx-surface:     #FFFFFF;
-  --gx-surface-2:   #F7F9FB;
+  --gx-surface-2:   #F4F5F7;
   --gx-elevated:    #FFFFFF;
   --gx-overlay:     rgba(15, 33, 56, 0.34);
   --gx-sidebar:     #0F2138;   /* keep brand-dark sidebar in light mode */
@@ -519,6 +545,12 @@
   --gx-gold:   #AC8847;
   --gx-gold-soft: rgba(172, 136, 71, 0.14);
 
+  /* Aurora-Glass surfaces (theme-aware, light) + logo cell colour (Brand v3.0 §2/§3) */
+  --gx-glass:        color-mix(in srgb, var(--gx-surface) 55%, transparent);
+  --gx-glass-strong: color-mix(in srgb, var(--gx-surface) 65%, transparent);
+  --gx-glass-border: rgba(28, 59, 104, 0.12);
+  --gx-logo-cobalt:  #1C3B68;   /* honeycomb cobalt cell — brand anchor on light */
+
   /* Brand spine (Cobalt) — structural chrome. Values UNCHANGED (decoupled from --azure-*). */
   --gx-primary:        #2C63BC;
   --gx-primary-soft:   rgba(59, 123, 224, 0.12);
@@ -538,11 +570,16 @@
   --gx-focus-ring: var(--gx-ring);
   --gx-ring-offset: #FFFFFF;
 
-  --gx-success: #16804A;  --gx-success-soft: rgba(31,157,87,0.12);  --gx-success-fg:#16804A;
-  --gx-warning: #B97412;  --gx-warning-soft: rgba(224,144,26,0.14); --gx-warning-fg:#B97412;
-  --gx-danger:  #E5484D;    --gx-danger-soft:  rgba(229,72,77,0.12);  --gx-danger-fg: #C53338;
-  --gx-info:    #2C63BC;   --gx-info-soft:    var(--gx-interactive-soft); --gx-info-fg:#234E96;
+  --gx-success: #16A34A;  --gx-success-soft: color-mix(in srgb, var(--gx-success) 12%, transparent);  --gx-success-fg:#15803D;
+  --gx-warning: #D97706;  --gx-warning-soft: color-mix(in srgb, var(--gx-warning) 14%, transparent); --gx-warning-fg:#B45309;
+  --gx-danger:  #DC2626;    --gx-danger-soft:  color-mix(in srgb, var(--gx-danger) 12%, transparent);  --gx-danger-fg: #B91C1C;
+  --gx-info:    #2563EB;   --gx-info-soft:    color-mix(in srgb, var(--gx-info) 12%, transparent); --gx-info-fg:#1D4ED8;
   --gx-neutral: #64748B;  --gx-neutral-soft: rgba(100,116,139,0.12);
+
+  /* Control interaction states — theme-aware (light) */
+  --gx-danger-hover:    #C53338;
+  --gx-danger-disabled: #F3D9DA;
+  --gx-accent-disabled: #E8E1CF;
 
   /* Chart roles (light) — same D18 rule */
   --gx-chart-track:     rgba(71,85,105,0.10);

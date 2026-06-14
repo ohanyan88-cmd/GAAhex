@@ -165,6 +165,19 @@ These standards are LOCKED but live as named files rather than in the numbered 1
 | **RLS Exemption Policy** | **LOCKED** (2026-06-05) | `RLS_EXEMPTION_POLICY.md` | What an engineer does when an RLS gap surfaces (Fix Forward default; exemption rare, gated by sealed-baseline signoff). Companion: `RLS_EXEMPTION_REGISTRY.md`. |
 | **Feature Gating Policy** | **LOCKED** (2026-06-05) | `FEATURE_GATING_POLICY.md` | Locks the two-system distinction: deploy-shape gates (`feature_gate.py`) are platform-wide for technical availability; tenant feature flags (`FeatureFlag` table) are per-tenant for business preferences. Each tenant decides its business features independently. |
 
+## UI + Code Umbrella (added 2026-06-15)
+
+| Standard | Status | Source file | Governs |
+|---|---|---|---|
+| **GAAhex System Standard** | LOCKED (2026-06-15) | `GAAHEX_SYSTEM_STANDARD.md` | Operational **umbrella for ALL UI + code** (§0–§12: zero-hardcode · one `gx-` source · shell every page · one `gx-Modal` in place · no raw IDs · global search · element-matched-to-data · refactor-on-sight · replace→verify→delete · quality floor · per-page §12 gate). Subordinate to Constitution/PRM/Architecture (LAW-ST1); consolidates + governs the UI/code detail standards below; does **not** contradict them (reconciled 2026-06-15). |
+| **GAAhex Design Language** | LOCKED (2026-06-15) | `GAAHEX_DESIGN_LANGUAGE.md` | Aesthetic north-star companion — hive spirit, restrained luxury, Aurora-Glass surfaces, colour soul (D18), element philosophy, trilingual voice. References Brand v3.0; never redefines it. |
+
+**Detail standards the umbrella consolidates** (each remains the detail reference for its area): 03 identity/refs (→§6) · 09 design-system (→§2/§3) · 10 page-shell (→§1) · 14 enum-registry (→§2) · 16 status (→§2) · 17 permission (→§3) · 20 validation (→§3) · 21 search (→§5) · 22 navigation (→§7) · `UI_PRIMITIVES` (→§3) · `TOKEN_MIGRATION` (→§2) · `CONTENT_VOICE` (→§8) · `GOVERNANCE` (→§0/§11). Reconciliation 2026-06-15: all AGREE, zero conflicts.
+
+**Localization target updated (Gev 2026-06-15):** trilingual parity **hy · en · ru** (was hy + en). Applies to `CONTENT_VOICE_STANDARD.md` + the Localization standard (file 08, #28); implemented in the i18n catalog under umbrella §8.
+
+**Standard v1-final + Design Language (Gev 2026-06-15):** `GAAHEX_SYSTEM_STANDARD.md` is now **v1-final** with a new **§2 Design Language** (ISP control-room · honeycomb logo 4-cobalt/2-azure/1-gold · GAAhex=system, tenant separate · Aurora-Glass per-page hex-scatter + ~51% glass · Sora · AM+EN+RU). **Colour/logo/font source of truth = `docs/branding/v3.0/`** (Brand v3.0, D18 — `11-figma/tokens/gaahex-tokens.css` + `import/gaahex-icon-*.svg`). **Visual target = `GAAHEX_DESIGN_LANGUAGE.md` + `docs/design/gaahex_design_sample.html`.**
+
 ## Reference prefix registry (S5 + D8 — complete)
 ```
 CUS=Customer  LED=Lead  EMP=Employee  ROL=Role  DEP=Department  TEM=Team  QUE=Queue

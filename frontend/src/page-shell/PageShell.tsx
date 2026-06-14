@@ -26,6 +26,7 @@ import { ActionBar } from './ActionBar'
 import { FilterBar } from './FilterBar'
 import { ContextPanel } from './ContextPanel'
 import { EmptyState } from './EmptyState'
+import { HexScatter } from './HexScatter'
 import type { PageShellProps, ContextPanelSpec } from './types'
 
 function normalizeContextPanel(
@@ -107,6 +108,7 @@ export function PageShell({
       data-page-type={cssPageType}
       data-context={showContext ? 'shown' : 'hidden'}
     >
+      <HexScatter />
       <PageHeader
         breadcrumb={breadcrumb}
         icon={icon}

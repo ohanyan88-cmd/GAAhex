@@ -128,9 +128,9 @@
 /* 6-bucket avatar palette — semantic tokens only so themes track. */
 .act-avatar.p0 { background: var(--azure-500); }
 .act-avatar.p1 { background: var(--green-500, var(--gx-success)); }
-.act-avatar.p2 { background: var(--amber-500, var(--gx-warning)); color: #1a1102; }
+.act-avatar.p2 { background: var(--amber-500, var(--gx-warning)); color: var(--gx-text-on-gold); }
 .act-avatar.p3 { background: var(--red-500, var(--gx-danger)); }
-.act-avatar.p4 { background: var(--gx-gold); color: #1a1102; }
+.act-avatar.p4 { background: var(--gx-gold); color: var(--gx-text-on-gold); }
 .act-avatar.p5 { background: var(--azure-600); }
 
 .act-badge {

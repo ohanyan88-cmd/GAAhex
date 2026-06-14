@@ -212,7 +212,7 @@
 
 /* stat tiles (Org Health) */
 .wx-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--gx-border-subtle); }
-.wx-stat { background: color-mix(in srgb, var(--gx-surface) 50%, transparent); padding: var(--gx-space-5) var(--gx-space-12); display: flex; flex-direction: column; gap: 1px; }
+.wx-stat { background: var(--gx-glass-strong); padding: var(--gx-space-5) var(--gx-space-12); display: flex; flex-direction: column; gap: 1px; }
 .wx-stat-val { font-family: var(--gx-font-display); font-size: var(--gx-text-xl); font-weight: var(--gx-weight-bold); font-variant-numeric: tabular-nums; line-height: 1.15; }
 .wx-stat-val.wx-good { color: var(--gx-success); }
 .wx-stat-val.wx-bad { color: var(--gx-danger); }

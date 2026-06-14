@@ -106,9 +106,9 @@ select.inp { cursor:pointer; appearance:none; background-image:url("data:image/s
    (we don't fake a destination on tiles without a real drill-through target). */
 .kpi-tile {
   /* GLASS standard (Gev 2026-06-14): KPI cards at 50%; all other panels (.card) at 40%. Same on every page. */
-  background: color-mix(in srgb, var(--gx-surface) 50%, transparent);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
+  background: var(--gx-glass-strong);
+  -webkit-backdrop-filter: blur(var(--gx-glass-blur));
+  backdrop-filter: blur(var(--gx-glass-blur));
   border:1px solid var(--gx-border);
   border-radius:var(--gx-radius-lg);
   padding:var(--gx-space-8);

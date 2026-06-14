@@ -23,25 +23,28 @@
   width: 100%;
   min-height: 0;
   min-width: 0;
-  /* GAAhex hexagon brand field — a FEW big, faint hexagon outlines (echoes the IndexBrandBeast hive),
-     NOT a dense tile. The page-shell is the app's main OPAQUE surface (it covers the <body> backdrop),
-     so the field lives HERE to be seen; .ps-header / .ps-kpis are transparent and reveal it.
-     center/cover/no-repeat → the SVG paints once, scaled to the content area. */
-  background: var(--gx-hex-field) center center / cover no-repeat, var(--gx-bg);
+  /* Aurora-Glass canvas: a solid control-room base; the hexagon brand field is now a per-page
+     RANDOM <HexScatter> layer (unique per page) + a faint ambient glow (::before), read softly
+     through the glass surfaces. .ps-header / .ps-kpis are transparent and reveal them. */
+  background: var(--gx-bg);
+  position: relative;
   color: var(--gx-text-1);
   font-family: var(--gx-font-sans);
 }
+/* Ambient diagonal glow — control-room atmosphere (brand-hued, faint). */
+.ps::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(60% 40% at 85% 0%, color-mix(in srgb, var(--gx-gold) 9%, transparent), transparent 70%),
+    radial-gradient(50% 45% at 100% 55%, color-mix(in srgb, var(--gx-interactive) 9%, transparent), transparent 70%),
+    radial-gradient(45% 40% at 70% 100%, color-mix(in srgb, var(--gx-success) 6%, transparent), transparent 70%);
+}
+/* Per-page random hexagon scatter (replaces the static per-page-type SVG field). */
+.ps-hexscatter { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+.ps-hexscatter svg { position: absolute; }
+/* Content sits above the scatter + glow. */
+.ps-header, .ps-kpis, .ps-actions, .ps-filters, .ps-body, .ps-context { position: relative; z-index: 1; }
 
-/* Per-page-type hex brand field — a different brand-colour mix + arrangement on each page kind
-   (Gev 2026-06-14). workspace + placeholder use the default token (hex-field-dark.svg). */
-.ps[data-page-type="registry"]      { --gx-hex-field: url('/brand/hex-registry.svg'); }
-.ps[data-page-type="pipeline"]      { --gx-hex-field: url('/brand/hex-pipeline.svg'); }
-.ps[data-page-type="operations"]    { --gx-hex-field: url('/brand/hex-operations.svg'); }
-.ps[data-page-type="analytics"]     { --gx-hex-field: url('/brand/hex-analytics.svg'); }
-.ps[data-page-type="communication"] { --gx-hex-field: url('/brand/hex-communication.svg'); }
-.ps[data-page-type="configuration"] { --gx-hex-field: url('/brand/hex-configuration.svg'); }
-/* Light theme: one cool cobalt variant for every page kind (must follow the per-type rules to win). */
-[data-theme="light"] .ps { --gx-hex-field: url('/brand/hex-field-light.svg'); }
 
 .ps-header   { grid-area: header; }
 .ps-kpis     { grid-area: kpis; }
