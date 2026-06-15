@@ -80,6 +80,7 @@ import { fetchCapabilities, FULL_ACCESS, type Capabilities } from './lib/capabil
 import { useAuth } from './context/AuthContext'
 import SecurityModal from './modals/SecurityModal'
 import { ShortcutsModal, DocsModal, WhatsNewModal } from './modals/SupportModals'
+import GxAppShell, { type GxShellControls } from './components/AppShell/gx-AppShell'
 
 type Me = { email: string; name: string; can_configure?: boolean; avatar_url?: string | null }
 type Entity = { key: string; label: string; label_plural: string; route_slug: string }
@@ -253,8 +254,7 @@ export default function App() {
   const [password, setPassword] = useState('admin123')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
-  const [navOpen, setNavOpen] = useState(false)
-  const [collapsed, setCollapsed] = useState(false)
+
   const [accountModal, setAccountModal] = useState<
     'security' | 'shortcuts' | 'docs' | 'whatsnew' | null
   >(null)
@@ -593,32 +593,11 @@ export default function App() {
 
   return (
     <AppShellContext.Provider value={{ canConfigure, pageConfigVersion }}>
-      <div className={'app' + (collapsed ? ' collapsed' : '') + (navOpen ? ' navopen' : '')}>
-        <a href="#main-content" className="skip-link">
-          Skip to content
-        </a>
-        {navOpen && (
-          <div
-            className="nav-scrim"
-            role="button"
-            tabIndex={-1}
-            aria-label="Close navigation"
-            onClick={() => setNavOpen(false)}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') setNavOpen(false)
-            }}
-          />
-        )}
-        <aside className="sb" data-theme="dark">
-          <div className="sb-head">
-            <img
-              src={collapsed ? '/logo/GAAhex-mark-animated.svg' : '/logo/GAAhex-logo-reversed.svg'}
-              alt="GAAhex"
-              className="wm"
-            />
-          </div>
-
-          <div className="sb-scroll">
+      <GxAppShell
+        logoSrc="/logo/GAAhex-logo-reversed.svg"
+        logoMarkSrc="/logo/GAAhex-mark-animated.svg"
+        leftNav={
+          <>
             {navSections
               .filter((sec) => !sec.adminOnly || canConfigure)
               .map((sec) => {
@@ -723,19 +702,17 @@ export default function App() {
                   </div>
                 )
               })}
-          </div>
-        </aside>
-
-        <div className="main">
-          <header className="tb">
+          </>
+        }
+        header={(controls: GxShellControls) => (
+          <>
+            {/* EN: All topbar tools in .tb-tools — uniform 8px gap preserved.
+                HY: Бологор topbar tools-ները .tb-tools-ни ньерсум — uniform 8px gap pahpanvel: */}
             <div className="tb-tools">
               <button
                 className="tb-icon"
                 aria-label="Toggle sidebar"
-                onClick={() => {
-                  if (window.matchMedia('(max-width: 900px)').matches) setNavOpen((o) => !o)
-                  else setCollapsed((c) => !c)
-                }}
+                onClick={controls.handleToggle}
               >
                 <PanelLeft size={18} />
               </button>
@@ -818,267 +795,273 @@ export default function App() {
             <OrgIdentity />
 
             {user && <UserMenu user={user} onSignOut={logout} />}
-          </header>
-
-          <main id="main-content" className="view">
-            <ErrorBoundary>
-              <Routes>
-                <Route
-                  path="/"
-                  element={
-                    <HomeView
-                      capabilities={capabilities}
-                      onNavigate={(type, id) => {
-                        if (type === 'workitems') navigate('/workitems')
-                        else if (type === 'mytasks') navigate('/mytasks')
-                        else if (type === 'my-approvals') navigate('/my-approvals')
-                        else if (type === 'helpdesk')
-                          navigate(id ? `/helpdesk?ticket=${encodeURIComponent(id)}` : '/helpdesk')
-                        else if (type === 'entity' && id) navigate(`/entity/${id}`)
-                      }}
-                    />
-                  }
-                />
-                <Route path="/org" element={<OrgPage />} />
-                <Route
-                  path="/projects"
-                  element={<ComingSoonView title="Projects" parent="Projects" id="projects" />}
-                />
-                <Route
-                  path="/dashboards"
-                  element={
-                    <DashboardView
-                      configVersion={pageConfigVersion}
-                      canConfigure={canConfigure}
-                      capabilities={capabilities}
-                      onNavigate={(target) => {
-                        if (target.type === 'subscriptions') navigate('/subscriptions')
-                        else if (target.type === 'invoices') navigate('/invoices')
-                        else if (target.type === 'helpdesk') navigate('/helpdesk')
-                        else if (target.type === 'workitems') navigate('/workitems')
-                      }}
-                    />
-                  }
-                />
-                <Route
-                  path="/lead-pipeline"
-                  element={
-                    <PipelineView
-                      onOpenCustomer={openCustomer}
-                      canConfigure={canConfigure}
-                      capabilities={capabilities}
-                    />
-                  }
-                />
-                <Route path="/ask" element={<AskGaaexView />} />
-                <Route path="/messages" element={<MessagesView capabilities={capabilities} />} />
-                <Route path="/mail" element={<MailRouteAdapter />} />
-                <Route path="/channels" element={<ChannelsView />} />
-                <Route path="/notifications" element={<NotificationsView />} />
-                <Route path="/profile" element={<ProfileView />} />
-                <Route
-                  path="/activity-feed"
-                  element={
-                    <ActivityFeedView
-                      onNavigate={(target) => {
-                        if (target.type === 'helpdesk')
-                          navigate(
-                            `/helpdesk?ticket=${encodeURIComponent(target.openTicketId ?? '')}`,
-                          )
-                        else if (target.type === 'entity') navigate(`/entity/${target.slug}`)
-                      }}
-                    />
-                  }
-                />
-                <Route path="/activity" element={<Navigate to="/activity-feed" replace />} />
-                <Route path="/my-approvals" element={<MyApprovalsView />} />
-                <Route path="/team-workspace" element={<TeamWorkspaceView />} />
-                <Route
-                  path="/network-inventory"
-                  element={
-                    <NetworkInventoryView canConfigure={canConfigure} capabilities={capabilities} />
-                  }
-                />
-                <Route path="/dispatch-board" element={<DispatchBoardView />} />
-                <Route
-                  path="/installation-board"
-                  element={
-                    <InstallationBoardView
-                      canConfigure={canConfigure}
-                      capabilities={capabilities}
-                    />
-                  }
-                />
-                <Route path="/coverage-gis" element={<CoverageView />} />
-                <Route
-                  path="/noc-dashboard"
-                  element={
-                    <NocDashboardView canConfigure={canConfigure} capabilities={capabilities} />
-                  }
-                />
-                <Route
-                  path="/saved-views"
-                  element={<SavedViewsView onOpenEntity={(slug) => navigate(`/entity/${slug}`)} />}
-                />
-                <Route
-                  path="/payments"
-                  element={
-                    <PaymentsView canConfigure={canConfigure} configVersion={pageConfigVersion} />
-                  }
-                />
-                <Route
-                  path="/payment-methods"
-                  element={
-                    <PaymentMethodsView canConfigure={canConfigure} capabilities={capabilities} />
-                  }
-                />
-                <Route
-                  path="/gateway"
-                  element={
-                    <PaymentGatewayView
-                      canConfigure={canConfigure}
-                      configVersion={pageConfigVersion}
-                    />
-                  }
-                />
-                <Route
-                  path="/subscriptions"
-                  element={
-                    <SubscriptionsView
-                      canConfigure={canConfigure}
-                      configVersion={pageConfigVersion}
-                    />
-                  }
-                />
-                <Route
-                  path="/tariff-plans"
-                  element={
-                    <TariffPlansView canConfigure={canConfigure} capabilities={capabilities} />
-                  }
-                />
-                <Route
-                  path="/webhooks"
-                  element={
-                    <WebhooksView
-                      canConfigure={canConfigure}
-                      configVersion={pageConfigVersion}
-                      onConfigure={() => setCfgPageKey('webhooks')}
-                    />
-                  }
-                />
-                <Route
-                  path="/services"
-                  element={
-                    <ServicesView
-                      canConfigure={canConfigure}
-                      configVersion={pageConfigVersion}
-                      capabilities={capabilities}
-                    />
-                  }
-                />
-                <Route
-                  path="/usage"
-                  element={
-                    <UsageView canConfigure={canConfigure} configVersion={pageConfigVersion} />
-                  }
-                />
-                <Route
-                  path="/accounts"
-                  element={
-                    <AccountsView canConfigure={canConfigure} configVersion={pageConfigVersion} />
-                  }
-                />
-                <Route
-                  path="/workitems"
-                  element={
-                    <WorkItemsView canConfigure={canConfigure} configVersion={pageConfigVersion} />
-                  }
-                />
-                <Route
-                  path="/mytasks"
-                  element={
-                    <MyTasksView
-                      canConfigure={canConfigure}
-                      onNavigate={(t) => {
-                        if (t === 'home') navigate('/')
-                      }}
-                    />
-                  }
-                />
-                <Route path="/customer-tasks" element={<CustomerTasksView />} />
-                <Route
-                  path="/calendar"
-                  element={
-                    <CalendarView configVersion={pageConfigVersion} canConfigure={canConfigure} />
-                  }
-                />
-                <Route path="/settings" element={<SettingsView />} />
-                <Route
-                  path="/reports"
-                  element={
-                    <ReportsView
-                      configVersion={pageConfigVersion}
-                      canConfigure={canConfigure}
-                      capabilities={capabilities}
-                    />
-                  }
-                />
-                <Route
-                  path="/revenue-assurance"
-                  element={
-                    <RevenueAssuranceView
-                      configVersion={pageConfigVersion}
-                      canConfigure={canConfigure}
-                      capabilities={capabilities}
-                    />
-                  }
-                />
-                <Route
-                  path="/collections"
-                  element={
-                    <CollectionsView canConfigure={canConfigure} capabilities={capabilities} />
-                  }
-                />
-                {/* Param-bearing routes use module-level adapters */}
-                <Route path="/invoices" element={<InvoicesRouteAdapter />} />
-                <Route path="/helpdesk" element={<HelpdeskRouteAdapter />} />
-                <Route path="/entity/:slug" element={<EntityRouteAdapter />} />
-                <Route path="/customer/:id" element={<CustomerRouteAdapter />} />
-                <Route path="/studio" element={<StudioRouteAdapter />} />
-                <Route path="/coming-soon/:id" element={<ComingSoonRouteAdapter />} />
-                <Route path="/module/:id" element={<ModuleRouteAdapter />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </ErrorBoundary>
-          </main>
-        </div>
-
-        {cfgSlug && (
-          <ConfigureDrawer
-            slug={cfgSlug}
-            entities={entities}
-            onClose={() => setCfgSlug(null)}
-            onSwitchPage={(slug) => {
-              navigate(slug === 'leads' ? '/lead-pipeline' : `/entity/${slug}`)
-              setCfgSlug(slug)
-            }}
-          />
+          </>
         )}
-
-        {cfgPageKey && (
-          <ConfigureDrawer
-            pageKey={cfgPageKey}
-            entities={entities}
-            onClose={() => setCfgPageKey(null)}
-            onSaved={() => setPageConfigVersion((v) => v + 1)}
-          />
-        )}
-
-        <SecurityModal open={accountModal === 'security'} onClose={() => setAccountModal(null)} />
-        <ShortcutsModal open={accountModal === 'shortcuts'} onClose={() => setAccountModal(null)} />
-        <DocsModal open={accountModal === 'docs'} onClose={() => setAccountModal(null)} />
-        <WhatsNewModal open={accountModal === 'whatsnew'} onClose={() => setAccountModal(null)} />
-      </div>
+        contentArea={
+          <ErrorBoundary>
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  <HomeView
+                    capabilities={capabilities}
+                    onNavigate={(type, id) => {
+                      if (type === 'workitems') navigate('/workitems')
+                      else if (type === 'mytasks') navigate('/mytasks')
+                      else if (type === 'my-approvals') navigate('/my-approvals')
+                      else if (type === 'helpdesk')
+                        navigate(id ? `/helpdesk?ticket=${encodeURIComponent(id)}` : '/helpdesk')
+                      else if (type === 'entity' && id) navigate(`/entity/${id}`)
+                    }}
+                  />
+                }
+              />
+              <Route path="/org" element={<OrgPage />} />
+              <Route
+                path="/projects"
+                element={<ComingSoonView title="Projects" parent="Projects" id="projects" />}
+              />
+              <Route
+                path="/dashboards"
+                element={
+                  <DashboardView
+                    configVersion={pageConfigVersion}
+                    canConfigure={canConfigure}
+                    capabilities={capabilities}
+                    onNavigate={(target) => {
+                      if (target.type === 'subscriptions') navigate('/subscriptions')
+                      else if (target.type === 'invoices') navigate('/invoices')
+                      else if (target.type === 'helpdesk') navigate('/helpdesk')
+                      else if (target.type === 'workitems') navigate('/workitems')
+                    }}
+                  />
+                }
+              />
+              <Route
+                path="/lead-pipeline"
+                element={
+                  <PipelineView
+                    onOpenCustomer={openCustomer}
+                    canConfigure={canConfigure}
+                    capabilities={capabilities}
+                  />
+                }
+              />
+              <Route path="/ask" element={<AskGaaexView />} />
+              <Route path="/messages" element={<MessagesView capabilities={capabilities} />} />
+              <Route path="/mail" element={<MailRouteAdapter />} />
+              <Route path="/channels" element={<ChannelsView />} />
+              <Route path="/notifications" element={<NotificationsView />} />
+              <Route path="/profile" element={<ProfileView />} />
+              <Route
+                path="/activity-feed"
+                element={
+                  <ActivityFeedView
+                    onNavigate={(target) => {
+                      if (target.type === 'helpdesk')
+                        navigate(
+                          `/helpdesk?ticket=${encodeURIComponent(target.openTicketId ?? '')}`,
+                        )
+                      else if (target.type === 'entity') navigate(`/entity/${target.slug}`)
+                    }}
+                  />
+                }
+              />
+              <Route path="/activity" element={<Navigate to="/activity-feed" replace />} />
+              <Route path="/my-approvals" element={<MyApprovalsView />} />
+              <Route path="/team-workspace" element={<TeamWorkspaceView />} />
+              <Route
+                path="/network-inventory"
+                element={
+                  <NetworkInventoryView canConfigure={canConfigure} capabilities={capabilities} />
+                }
+              />
+              <Route path="/dispatch-board" element={<DispatchBoardView />} />
+              <Route
+                path="/installation-board"
+                element={
+                  <InstallationBoardView canConfigure={canConfigure} capabilities={capabilities} />
+                }
+              />
+              <Route path="/coverage-gis" element={<CoverageView />} />
+              <Route
+                path="/noc-dashboard"
+                element={
+                  <NocDashboardView canConfigure={canConfigure} capabilities={capabilities} />
+                }
+              />
+              <Route
+                path="/saved-views"
+                element={<SavedViewsView onOpenEntity={(slug) => navigate(`/entity/${slug}`)} />}
+              />
+              <Route
+                path="/payments"
+                element={
+                  <PaymentsView canConfigure={canConfigure} configVersion={pageConfigVersion} />
+                }
+              />
+              <Route
+                path="/payment-methods"
+                element={
+                  <PaymentMethodsView canConfigure={canConfigure} capabilities={capabilities} />
+                }
+              />
+              <Route
+                path="/gateway"
+                element={
+                  <PaymentGatewayView
+                    canConfigure={canConfigure}
+                    configVersion={pageConfigVersion}
+                  />
+                }
+              />
+              <Route
+                path="/subscriptions"
+                element={
+                  <SubscriptionsView
+                    canConfigure={canConfigure}
+                    configVersion={pageConfigVersion}
+                  />
+                }
+              />
+              <Route
+                path="/tariff-plans"
+                element={
+                  <TariffPlansView canConfigure={canConfigure} capabilities={capabilities} />
+                }
+              />
+              <Route
+                path="/webhooks"
+                element={
+                  <WebhooksView
+                    canConfigure={canConfigure}
+                    configVersion={pageConfigVersion}
+                    onConfigure={() => setCfgPageKey('webhooks')}
+                  />
+                }
+              />
+              <Route
+                path="/services"
+                element={
+                  <ServicesView
+                    canConfigure={canConfigure}
+                    configVersion={pageConfigVersion}
+                    capabilities={capabilities}
+                  />
+                }
+              />
+              <Route
+                path="/usage"
+                element={
+                  <UsageView canConfigure={canConfigure} configVersion={pageConfigVersion} />
+                }
+              />
+              <Route
+                path="/accounts"
+                element={
+                  <AccountsView canConfigure={canConfigure} configVersion={pageConfigVersion} />
+                }
+              />
+              <Route
+                path="/workitems"
+                element={
+                  <WorkItemsView canConfigure={canConfigure} configVersion={pageConfigVersion} />
+                }
+              />
+              <Route
+                path="/mytasks"
+                element={
+                  <MyTasksView
+                    canConfigure={canConfigure}
+                    onNavigate={(t) => {
+                      if (t === 'home') navigate('/')
+                    }}
+                  />
+                }
+              />
+              <Route path="/customer-tasks" element={<CustomerTasksView />} />
+              <Route
+                path="/calendar"
+                element={
+                  <CalendarView configVersion={pageConfigVersion} canConfigure={canConfigure} />
+                }
+              />
+              <Route path="/settings" element={<SettingsView />} />
+              <Route
+                path="/reports"
+                element={
+                  <ReportsView
+                    configVersion={pageConfigVersion}
+                    canConfigure={canConfigure}
+                    capabilities={capabilities}
+                  />
+                }
+              />
+              <Route
+                path="/revenue-assurance"
+                element={
+                  <RevenueAssuranceView
+                    configVersion={pageConfigVersion}
+                    canConfigure={canConfigure}
+                    capabilities={capabilities}
+                  />
+                }
+              />
+              <Route
+                path="/collections"
+                element={
+                  <CollectionsView canConfigure={canConfigure} capabilities={capabilities} />
+                }
+              />
+              {/* Param-bearing routes use module-level adapters */}
+              <Route path="/invoices" element={<InvoicesRouteAdapter />} />
+              <Route path="/helpdesk" element={<HelpdeskRouteAdapter />} />
+              <Route path="/entity/:slug" element={<EntityRouteAdapter />} />
+              <Route path="/customer/:id" element={<CustomerRouteAdapter />} />
+              <Route path="/studio" element={<StudioRouteAdapter />} />
+              <Route path="/coming-soon/:id" element={<ComingSoonRouteAdapter />} />
+              <Route path="/module/:id" element={<ModuleRouteAdapter />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </ErrorBoundary>
+        }
+        portals={
+          <>
+            {cfgSlug && (
+              <ConfigureDrawer
+                slug={cfgSlug}
+                entities={entities}
+                onClose={() => setCfgSlug(null)}
+                onSwitchPage={(slug) => {
+                  navigate(slug === 'leads' ? '/lead-pipeline' : `/entity/${slug}`)
+                  setCfgSlug(slug)
+                }}
+              />
+            )}
+            {cfgPageKey && (
+              <ConfigureDrawer
+                pageKey={cfgPageKey}
+                entities={entities}
+                onClose={() => setCfgPageKey(null)}
+                onSaved={() => setPageConfigVersion((v) => v + 1)}
+              />
+            )}
+            <SecurityModal
+              open={accountModal === 'security'}
+              onClose={() => setAccountModal(null)}
+            />
+            <ShortcutsModal
+              open={accountModal === 'shortcuts'}
+              onClose={() => setAccountModal(null)}
+            />
+            <DocsModal open={accountModal === 'docs'} onClose={() => setAccountModal(null)} />
+            <WhatsNewModal
+              open={accountModal === 'whatsnew'}
+              onClose={() => setAccountModal(null)}
+            />
+          </>
+        }
+      />
     </AppShellContext.Provider>
   )
 }
