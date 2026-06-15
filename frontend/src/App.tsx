@@ -26,6 +26,7 @@ import TopbarMenu from './components/TopbarMenu'
 import OrgIdentity from './components/OrgIdentity'
 import UserMenu from './components/UserMenu'
 import ConfigureDrawer from './modals/ConfigureDrawer'
+import { PageShell } from './page-shell'
 import InvoicesView from './views/InvoicesView'
 import PaymentsView from './views/PaymentsView'
 import PaymentMethodsView from './views/PaymentMethodsView'
@@ -1078,44 +1079,15 @@ export default function App() {
 
 function ModuleStubView({ moduleId, moduleLabel }: { moduleId: string; moduleLabel: string }) {
   void moduleId
+  // §1 shell — the coming-soon stub is exactly PageShell's PLACEHOLDER type (renders a
+  // coming-soon EmptyState natively). No more hand-rolled view-head / crumbs / box.
   return (
-    <div className="view">
-      <div className="view-inner section-page fade">
-        <div className="crumbs">
-          <span style={{ color: 'var(--gx-text-1)' }}>{moduleLabel}</span>
-        </div>
-        <div className="view-head">
-          <div className="view-icon">
-            <ServerIcon size={20} />
-          </div>
-          <div className="view-title-wrap">
-            <h2>{moduleLabel}</h2>
-            <span className="view-sub">Coming soon</span>
-          </div>
-        </div>
-        <div
-          style={{
-            marginTop: 60,
-            padding: '40px 20px',
-            textAlign: 'center',
-            background: 'var(--gx-surface)',
-            border: '1px solid var(--gx-border)',
-            borderRadius: 'var(--gx-radius-lg)',
-            maxWidth: 540,
-            marginLeft: 'auto',
-            marginRight: 'auto',
-          }}
-        >
-          <div
-            style={{ fontSize: 16, fontWeight: 600, color: 'var(--gx-text-1)', marginBottom: 8 }}
-          >
-            {moduleLabel}
-          </div>
-          <div style={{ fontSize: 13, color: 'var(--gx-text-3)' }}>
-            This page hasn't been built yet.
-          </div>
-        </div>
-      </div>
-    </div>
+    <PageShell
+      type="PLACEHOLDER"
+      breadcrumb={[moduleLabel]}
+      icon={<ServerIcon size={18} />}
+      title={moduleLabel}
+      subtitle="This page hasn't been built yet."
+    />
   )
 }

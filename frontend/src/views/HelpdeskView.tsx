@@ -1,8 +1,19 @@
 import { useEffect, useState } from 'react'
 import {
-  listQueues, createQueue, listTickets, createTicket,
-  assignTicket, resolveTicket, reopenTicket, closeTicket, getTicket,
-  type Queue, type Ticket, type TicketFilters, type TicketPriority, type TicketStatus,
+  listQueues,
+  createQueue,
+  listTickets,
+  createTicket,
+  assignTicket,
+  resolveTicket,
+  reopenTicket,
+  closeTicket,
+  getTicket,
+  type Queue,
+  type Ticket,
+  type TicketFilters,
+  type TicketPriority,
+  type TicketStatus,
 } from '../lib/helpdesk'
 import { loadCustomers } from '../lib/billing'
 import { listUsers, type User } from '../lib/users'
@@ -18,7 +29,7 @@ import { useCustomFields } from '../components/CustomCells'
 import { Button, StatusPill, Input, FormField, DataTableCell } from '../primitives'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 import { OBJ } from '../lib/permissions-constants'
-import { humanizeStatus } from '../lib/humanize'
+import { humanizeStatus, humanRef } from '../lib/humanize'
 import { useAuth } from '../context/AuthContext'
 import { PageShell } from '../page-shell'
 import type { KPISpec } from '../page-shell'
@@ -42,17 +53,21 @@ function fmtDateShort(iso: string | null | undefined): string {
 function priorityPill(priority: string | null | undefined) {
   if (!priority) return <span className="muted">—</span>
   const p = priority.toLowerCase()
-  const variant: PillVariant = p === 'urgent' ? 'critical'
-    : p === 'high' ? 'degraded'
-    : p === 'low' ? 'neutral'
-    : 'info'
+  const variant: PillVariant =
+    p === 'urgent' ? 'critical' : p === 'high' ? 'degraded' : p === 'low' ? 'neutral' : 'info'
   return <StatusPill variant={variant} label={humanizeStatus(priority)} size="sm" />
 }
 
 // Status → StatusPill variant — delegated to canonical mapper (L-16).
 function statusPill(status: string | null | undefined) {
   if (!status) return <span className="muted">—</span>
-  return <StatusPill variant={getStatusTone(status, 'ticket')} label={humanizeStatus(status)} size="sm" />
+  return (
+    <StatusPill
+      variant={getStatusTone(status, 'ticket')}
+      label={humanizeStatus(status)}
+      size="sm"
+    />
+  )
 }
 
 // SLA badge per spec:
@@ -60,15 +75,27 @@ function statusPill(status: string | null | undefined) {
 function SlaBadge({ ticket }: { ticket: Ticket }) {
   if (!ticket.sla_due_at) return <span className="muted">—</span>
   if (ticket.sla_breached) {
-    return <span title={fmtDate(ticket.sla_due_at)}><StatusPill variant="critical" label="Breached" size="sm" /></span>
+    return (
+      <span title={fmtDate(ticket.sla_due_at)}>
+        <StatusPill variant="critical" label="Breached" size="sm" />
+      </span>
+    )
   }
   const dueMs = new Date(ticket.sla_due_at).getTime()
   const nowMs = Date.now()
   const hourMs = 60 * 60 * 1000
   if (dueMs - nowMs <= hourMs && dueMs > nowMs) {
-    return <span title={fmtDate(ticket.sla_due_at)}><StatusPill variant="degraded" label="Due soon" size="sm" /></span>
+    return (
+      <span title={fmtDate(ticket.sla_due_at)}>
+        <StatusPill variant="degraded" label="Due soon" size="sm" />
+      </span>
+    )
   }
-  return <span className="muted" title={fmtDate(ticket.sla_due_at)}>{fmtDateShort(ticket.sla_due_at)}</span>
+  return (
+    <span className="muted" title={fmtDate(ticket.sla_due_at)}>
+      {fmtDateShort(ticket.sla_due_at)}
+    </span>
+  )
 }
 
 const STATUSES: { value: string; label: string }[] = [
@@ -85,8 +112,12 @@ const PRIORITIES: TicketPriority[] = ['low', 'normal', 'high', 'urgent']
 // ── Main view ─────────────────────────────────────────────────────────────────
 
 export default function HelpdeskView({
-  canConfigure = false, configVersion = 0, capabilities = FULL_ACCESS,
-  initialStatus, initialOpenTicketId, openTicketId,
+  canConfigure = false,
+  configVersion = 0,
+  capabilities = FULL_ACCESS,
+  initialStatus,
+  initialOpenTicketId,
+  openTicketId,
 }: {
   canConfigure?: boolean
   configVersion?: number
@@ -109,7 +140,11 @@ export default function HelpdeskView({
 
   const [queues, setQueues] = useState<Queue[]>([])
   const [tickets, setTickets] = useState<Ticket[] | null>(null)
-  const cf = useCustomFields('helpdesk', cfg.customFields, (tickets ?? []).map((t) => t.id))
+  const cf = useCustomFields(
+    'helpdesk',
+    cfg.customFields,
+    (tickets ?? []).map((t) => t.id),
+  )
   const [names, setNames] = useState<Record<string, string>>({})
   const [users, setUsers] = useState<User[]>([])
   const [error, setError] = useState('')
@@ -122,7 +157,9 @@ export default function HelpdeskView({
 
   // UI state — `openTicketId` is the canonical prop name; fall back to alias.
   const [selectedQueue, setSelectedQueue] = useState<string | null>(null)
-  const [detailId, setDetailId] = useState<string | null>(openTicketId ?? initialOpenTicketId ?? null)
+  const [detailId, setDetailId] = useState<string | null>(
+    openTicketId ?? initialOpenTicketId ?? null,
+  )
   const [createOpen, setCreateOpen] = useState(false)
   const [createQueueOpen, setCreateQueueOpen] = useState(false)
 
@@ -149,8 +186,16 @@ export default function HelpdeskView({
     if (effectiveQueue) filters.queue = effectiveQueue
 
     const res = await listTickets(token!, filters)
-    if (res.status === 404) { setUnavailable(true); setTickets([]); return }
-    if (!res.ok) { setError(t('helpdesk.loadError', 'Failed to load tickets')); setTickets([]); return }
+    if (res.status === 404) {
+      setUnavailable(true)
+      setTickets([])
+      return
+    }
+    if (!res.ok) {
+      setError(t('helpdesk.loadError', 'Failed to load tickets'))
+      setTickets([])
+      return
+    }
     const list = Array.isArray(res.data) ? res.data : []
     setTickets(list)
 
@@ -170,18 +215,42 @@ export default function HelpdeskView({
     if (usersRes.ok && Array.isArray(usersRes.data)) setUsers(usersRes.data)
   }
 
-  useEffect(() => { loadQueues() }, [token])
-  useEffect(() => { loadData() }, [token, statusFilter, queueFilter, mineOnly, selectedQueue])
+  useEffect(() => {
+    loadQueues()
+  }, [token])
+  useEffect(() => {
+    loadData()
+  }, [token, statusFilter, queueFilter, mineOnly, selectedQueue])
 
   // Derive KPIs from loaded tickets
   const allTickets = tickets ?? []
-  const kpis: KPISpec[] = tickets !== null ? [
-    { label: t('helpdesk.kpiOpen', 'Open'),        value: allTickets.filter(t => (t.status ?? '').toUpperCase() === 'OPEN').length },
-    { label: t('helpdesk.kpiAssigned', 'Assigned'),    value: allTickets.filter(t => t.assigned_agent_id != null).length },
-    { label: t('helpdesk.kpiInProgress', 'In Progress'), value: allTickets.filter(t => (t.status ?? '').toUpperCase() === 'IN_PROGRESS').length },
-    { label: t('helpdesk.kpiEscalated', 'Escalated'),   value: allTickets.filter(t => (t.status ?? '').toUpperCase() === 'ESCALATED').length, warning: true },
-    { label: t('helpdesk.kpiResolved', 'Resolved'),    value: allTickets.filter(t => (t.status ?? '').toUpperCase() === 'RESOLVED').length },
-  ] : []
+  const kpis: KPISpec[] =
+    tickets !== null
+      ? [
+          {
+            label: t('helpdesk.kpiOpen', 'Open'),
+            value: allTickets.filter((t) => (t.status ?? '').toUpperCase() === 'OPEN').length,
+          },
+          {
+            label: t('helpdesk.kpiAssigned', 'Assigned'),
+            value: allTickets.filter((t) => t.assigned_agent_id != null).length,
+          },
+          {
+            label: t('helpdesk.kpiInProgress', 'In Progress'),
+            value: allTickets.filter((t) => (t.status ?? '').toUpperCase() === 'IN_PROGRESS')
+              .length,
+          },
+          {
+            label: t('helpdesk.kpiEscalated', 'Escalated'),
+            value: allTickets.filter((t) => (t.status ?? '').toUpperCase() === 'ESCALATED').length,
+            warning: true,
+          },
+          {
+            label: t('helpdesk.kpiResolved', 'Resolved'),
+            value: allTickets.filter((t) => (t.status ?? '').toUpperCase() === 'RESOLVED').length,
+          },
+        ]
+      : []
 
   if (unavailable) {
     return (
@@ -195,7 +264,10 @@ export default function HelpdeskView({
         <EmptyState
           icon={<InboxIcon size={40} />}
           title={t('helpdesk.unavailableTitle', "Helpdesk isn't available yet")}
-          message={t('helpdesk.unavailableMsg', 'Ticket support will appear here once the helpdesk service is enabled.')}
+          message={t(
+            'helpdesk.unavailableMsg',
+            'Ticket support will appear here once the helpdesk service is enabled.',
+          )}
         />
       </PageShell>
     )
@@ -209,16 +281,25 @@ export default function HelpdeskView({
       title={t('helpdesk.title', 'Support Tickets')}
       subtitle={t('helpdesk.subtitle', 'Helpdesk queue · SLA tracking')}
       kpis={kpis.length > 0 ? kpis : undefined}
-      primaryAction={canCreateTicket ? { label: t('helpdesk.newTicket', 'New ticket'), onClick: () => setCreateOpen(true) } : undefined}
+      primaryAction={
+        canCreateTicket
+          ? { label: t('helpdesk.newTicket', 'New ticket'), onClick: () => setCreateOpen(true) }
+          : undefined
+      }
     >
-
       <div className="hd-shell">
         {/* Left rail — queues (carded) */}
         <aside className="card hd-rail" aria-label={t('helpdesk.queuesLabel', 'Helpdesk queues')}>
           <div className="hd-rail-head">
             <span className="hd-rail-label">{t('helpdesk.queues', 'Queues')}</span>
             {canConfigure && (
-              <Button variant="ghost" size="sm" leftIcon={Plus} onClick={() => setCreateQueueOpen(true)} aria-label={t('helpdesk.createQueue', 'Create queue')}>
+              <Button
+                variant="ghost"
+                size="sm"
+                leftIcon={Plus}
+                onClick={() => setCreateQueueOpen(true)}
+                aria-label={t('helpdesk.createQueue', 'Create queue')}
+              >
                 <span className="sr-only">{t('helpdesk.createQueue', 'Create queue')}</span>
               </Button>
             )}
@@ -226,7 +307,10 @@ export default function HelpdeskView({
           <div className="hd-rail-list">
             <button
               className={'hd-rail-item' + (!selectedQueue ? ' on' : '')}
-              onClick={() => { setSelectedQueue(null); setQueueFilter('') }}
+              onClick={() => {
+                setSelectedQueue(null)
+                setQueueFilter('')
+              }}
             >
               <span className="hd-rail-name">{t('helpdesk.allTickets', 'All tickets')}</span>
             </button>
@@ -243,7 +327,9 @@ export default function HelpdeskView({
                 )}
               </button>
             ))}
-            {queues.length === 0 && <p className="muted hd-rail-empty">{t('helpdesk.noQueues', 'No queues yet.')}</p>}
+            {queues.length === 0 && (
+              <p className="muted hd-rail-empty">{t('helpdesk.noQueues', 'No queues yet.')}</p>
+            )}
           </div>
         </aside>
 
@@ -253,21 +339,43 @@ export default function HelpdeskView({
             <div className="list-toolbar hd-toolbar">
               <div className="bill-filter">
                 <span className="muted export-label">{t('common.status', 'Status')}</span>
-                <select className="inp inp-sm" aria-label={t('helpdesk.filterByStatus', 'Filter by status')} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-                  {STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+                <select
+                  className="inp inp-sm"
+                  aria-label={t('helpdesk.filterByStatus', 'Filter by status')}
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                  {STATUSES.map((s) => (
+                    <option key={s.value} value={s.value}>
+                      {s.label}
+                    </option>
+                  ))}
                 </select>
               </div>
               {!selectedQueue && queues.length > 0 && (
                 <div className="bill-filter">
                   <span className="muted export-label">{t('helpdesk.queue', 'Queue')}</span>
-                  <select className="inp inp-sm" aria-label={t('helpdesk.filterByQueue', 'Filter by queue')} value={queueFilter} onChange={(e) => setQueueFilter(e.target.value)}>
+                  <select
+                    className="inp inp-sm"
+                    aria-label={t('helpdesk.filterByQueue', 'Filter by queue')}
+                    value={queueFilter}
+                    onChange={(e) => setQueueFilter(e.target.value)}
+                  >
                     <option value="">{t('common.all', 'All')}</option>
-                    {queues.map((q) => <option key={q.id} value={q.id}>{q.name}</option>)}
+                    {queues.map((q) => (
+                      <option key={q.id} value={q.id}>
+                        {q.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
               )}
               <label className="hd-mine">
-                <input type="checkbox" checked={mineOnly} onChange={(e) => setMineOnly(e.target.checked)} />
+                <input
+                  type="checkbox"
+                  checked={mineOnly}
+                  onChange={(e) => setMineOnly(e.target.checked)}
+                />
                 {t('helpdesk.myTickets', 'My tickets')}
               </label>
             </div>
@@ -283,9 +391,18 @@ export default function HelpdeskView({
                 icon={<InboxIcon size={40} />}
                 title={t('helpdesk.emptyTitle', 'No tickets yet')}
                 message={t('helpdesk.emptyMsg', 'Create a ticket or adjust your filters.')}
-                action={canCreateTicket ? (
-                  <Button variant="primary" size="sm" leftIcon={Plus} onClick={() => setCreateOpen(true)}>{t('helpdesk.newTicket', 'New ticket')}</Button>
-                ) : undefined}
+                action={
+                  canCreateTicket ? (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      leftIcon={Plus}
+                      onClick={() => setCreateOpen(true)}
+                    >
+                      {t('helpdesk.newTicket', 'New ticket')}
+                    </Button>
+                  ) : undefined
+                }
               />
             )}
 
@@ -295,10 +412,14 @@ export default function HelpdeskView({
                   <thead>
                     <tr>
                       {cfg.columns.map((col) => (
-                        <th key={col.key} scope="col">{col.label}</th>
+                        <th key={col.key} scope="col">
+                          {col.label}
+                        </th>
                       ))}
                       {cf.headers()}
-                      <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
+                      <th scope="col" className="actions-col">
+                        <span className="sr-only">Actions</span>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -306,14 +427,55 @@ export default function HelpdeskView({
                       // NOTE: kept as a plain row (not <DataTableRow>) because the click guard below —
                       // ignore clicks that land on an inline-edit custom-field cell (td[role="button"]) —
                       // needs the click event, which DataTableRow's onClick() signature doesn't expose.
-                      <tr key={t.id} className="row-link" onClick={(e) => { if (!(e.target as Element).closest('td[role="button"]')) setDetailId(t.id) }} style={{ cursor: 'pointer' }}>
+                      <tr
+                        key={t.id}
+                        className="row-link"
+                        onClick={(e) => {
+                          if (!(e.target as Element).closest('td[role="button"]')) setDetailId(t.id)
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      >
                         {cfg.columns.map((col) => {
-                          if (col.key === 'subject') return <DataTableCell key={col.key} variant="default" width="260px"><span style={{ fontWeight: 'var(--gx-weight-semibold)' }}>{t.subject}</span></DataTableCell>
-                          if (col.key === 'customer') return <DataTableCell key={col.key} variant="mono">{t.customer_id ? (names[t.customer_id] ?? t.customer_id.slice(0, 8)) : '—'}</DataTableCell>
-                          if (col.key === 'priority') return <DataTableCell key={col.key} variant="default">{priorityPill(t.priority)}</DataTableCell>
-                          if (col.key === 'status') return <DataTableCell key={col.key} variant="default">{statusPill(t.status)}</DataTableCell>
-                          if (col.key === 'assignee') return <DataTableCell key={col.key} variant="default">{resolveUserDisplay(t.assigned_agent_id, users)}</DataTableCell>
-                          if (col.key === 'sla') return <DataTableCell key={col.key} variant="default"><SlaBadge ticket={t} /></DataTableCell>
+                          if (col.key === 'subject')
+                            return (
+                              <DataTableCell key={col.key} variant="default" width="260px">
+                                <span style={{ fontWeight: 'var(--gx-weight-semibold)' }}>
+                                  {t.subject}
+                                </span>
+                              </DataTableCell>
+                            )
+                          if (col.key === 'customer')
+                            return (
+                              <DataTableCell key={col.key} variant="mono">
+                                {t.customer_id
+                                  ? (names[t.customer_id] ?? humanRef({ id: t.customer_id }))
+                                  : '—'}
+                              </DataTableCell>
+                            )
+                          if (col.key === 'priority')
+                            return (
+                              <DataTableCell key={col.key} variant="default">
+                                {priorityPill(t.priority)}
+                              </DataTableCell>
+                            )
+                          if (col.key === 'status')
+                            return (
+                              <DataTableCell key={col.key} variant="default">
+                                {statusPill(t.status)}
+                              </DataTableCell>
+                            )
+                          if (col.key === 'assignee')
+                            return (
+                              <DataTableCell key={col.key} variant="default">
+                                {resolveUserDisplay(t.assigned_agent_id, users)}
+                              </DataTableCell>
+                            )
+                          if (col.key === 'sla')
+                            return (
+                              <DataTableCell key={col.key} variant="default">
+                                <SlaBadge ticket={t} />
+                              </DataTableCell>
+                            )
                           return null
                         })}
                         {cf.cells(t.id)}
@@ -339,7 +501,10 @@ export default function HelpdeskView({
           names={names}
           users={users}
           canEdit={canEditTicket}
-          onClose={() => { setDetailId(null); loadData() }}
+          onClose={() => {
+            setDetailId(null)
+            loadData()
+          }}
         />
       )}
 
@@ -349,7 +514,10 @@ export default function HelpdeskView({
           token={token!}
           queues={queues}
           onClose={() => setCreateOpen(false)}
-          onDone={() => { setCreateOpen(false); loadData() }}
+          onDone={() => {
+            setCreateOpen(false)
+            loadData()
+          }}
         />
       )}
 
@@ -358,7 +526,10 @@ export default function HelpdeskView({
         <CreateQueueModal
           token={token!}
           onClose={() => setCreateQueueOpen(false)}
-          onDone={() => { setCreateQueueOpen(false); loadQueues() }}
+          onDone={() => {
+            setCreateQueueOpen(false)
+            loadQueues()
+          }}
         />
       )}
     </PageShell>
@@ -378,7 +549,13 @@ export default function HelpdeskView({
 // with content cramped to the left and a redundant footer "Close" button.
 
 function TicketDetailModal({
-  token, id, queues, names, users, canEdit, onClose,
+  token,
+  id,
+  queues,
+  names,
+  users,
+  canEdit,
+  onClose,
 }: {
   token: string
   id: string
@@ -397,12 +574,21 @@ function TicketDetailModal({
   async function load() {
     setError('')
     const res = await getTicket(token, id)
-    if (!res.ok) { setError(res.status === 404 ? t('helpdesk.ticketNotFound', 'Ticket not found') : t('helpdesk.ticketLoadError', 'Failed to load ticket')); return }
+    if (!res.ok) {
+      setError(
+        res.status === 404
+          ? t('helpdesk.ticketNotFound', 'Ticket not found')
+          : t('helpdesk.ticketLoadError', 'Failed to load ticket'),
+      )
+      return
+    }
     setTicket(res.data)
     setAgentId(res.data?.assigned_agent_id ?? '')
   }
 
-  useEffect(() => { load() }, [token, id])
+  useEffect(() => {
+    load()
+  }, [token, id])
 
   async function handleAssign() {
     if (!agentId.trim() || busy) return
@@ -411,8 +597,11 @@ function TicketDetailModal({
       await assignTicket(token, id, agentId.trim())
       toast.success(t('helpdesk.ticketAssigned', 'Ticket assigned'))
       await load()
-    } catch (e) { toast.error((e as Error).message) }
-    finally { setBusy(false) }
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally {
+      setBusy(false)
+    }
   }
 
   async function handleAction(action: 'resolve' | 'reopen' | 'close') {
@@ -424,16 +613,24 @@ function TicketDetailModal({
       else await closeTicket(token, id)
       toast.success(t('helpdesk.ticketActioned', `Ticket ${action}d`))
       await load()
-    } catch (e) { toast.error((e as Error).message) }
-    finally { setBusy(false) }
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally {
+      setBusy(false)
+    }
   }
 
   const status = (ticket?.status ?? '').toLowerCase() as TicketStatus | ''
-  const canResolve = canEdit && (status === 'open' || status === 'in_progress' || status === 'pending')
+  const canResolve =
+    canEdit && (status === 'open' || status === 'in_progress' || status === 'pending')
   const canReopen = canEdit && (status === 'resolved' || status === 'closed')
   const canClose = canEdit && status !== '' && status !== 'closed'
-  const queueName = ticket?.queue_id ? (queues.find((q) => q.id === ticket.queue_id)?.name ?? ticket.queue_id.slice(0, 8)) : '—'
-  const custName = ticket?.customer_id ? (names[ticket.customer_id] ?? ticket.customer_id.slice(0, 8)) : '—'
+  const queueName = ticket?.queue_id
+    ? (queues.find((q) => q.id === ticket.queue_id)?.name ?? humanRef({ id: ticket.queue_id }))
+    : '—'
+  const custName = ticket?.customer_id
+    ? (names[ticket.customer_id] ?? humanRef({ id: ticket.customer_id }))
+    : '—'
   const assigneeName = resolveUserDisplay(ticket?.assigned_agent_id, users)
 
   // Map ticket status → RecordDrawer status pill variant.
@@ -441,51 +638,80 @@ function TicketDetailModal({
     if (!s) return undefined
     const k = s.toLowerCase()
     const variant: 'active' | 'degraded' | 'critical' | 'neutral' | 'info' =
-      k === 'in_progress' ? 'active'
-      : k === 'pending' ? 'degraded'
-      : k === 'resolved' || k === 'closed' ? 'neutral'
-      : 'info'
+      k === 'in_progress'
+        ? 'active'
+        : k === 'pending'
+          ? 'degraded'
+          : k === 'resolved' || k === 'closed'
+            ? 'neutral'
+            : 'info'
     return { label: humanizeStatus(s), variant }
   }
 
-  const fields: RecordDrawerField[] = ticket ? [
-    { key: 'customer', label: t('helpdesk.fieldCustomer', 'Customer'), value: custName },
-    { key: 'priority', label: t('helpdesk.fieldPriority', 'Priority'), value: priorityPill(ticket.priority) },
-    { key: 'queue', label: t('helpdesk.fieldQueue', 'Queue'), value: queueName },
-    { key: 'assignee', label: t('helpdesk.fieldAssignee', 'Assignee'), value: assigneeName },
-    { key: 'sla', label: t('helpdesk.fieldSla', 'SLA due'), value: fmtDate(ticket.sla_due_at) },
-    { key: 'created', label: t('common.created', 'Created'), value: fmtDate(ticket.created_at) },
-    ...(ticket.body ? [{
-      key: 'description',
-      label: t('helpdesk.fieldDescription', 'Description'),
-      value: <span style={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{ticket.body}</span>,
-    }] : []),
-    ...(canEdit ? [{
-      key: 'reassign',
-      label: t('helpdesk.fieldReassign', 'Re-assign'),
-      value: (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)' }}>
-          <UserPicker
-            value={agentId}
-            onChange={setAgentId}
-            className="inp inp-sm"
-            aria-label={t('helpdesk.agentToAssign', 'Agent to assign')}
-          />
-          <Button variant="primary" size="sm" leftIcon={UserPlus} disabled={busy || !agentId.trim()} onClick={handleAssign}>
-            {t('helpdesk.assign', 'Assign')}
-          </Button>
-        </div>
-      ),
-    }] : []),
-  ] : []
+  const fields: RecordDrawerField[] = ticket
+    ? [
+        { key: 'customer', label: t('helpdesk.fieldCustomer', 'Customer'), value: custName },
+        {
+          key: 'priority',
+          label: t('helpdesk.fieldPriority', 'Priority'),
+          value: priorityPill(ticket.priority),
+        },
+        { key: 'queue', label: t('helpdesk.fieldQueue', 'Queue'), value: queueName },
+        { key: 'assignee', label: t('helpdesk.fieldAssignee', 'Assignee'), value: assigneeName },
+        { key: 'sla', label: t('helpdesk.fieldSla', 'SLA due'), value: fmtDate(ticket.sla_due_at) },
+        {
+          key: 'created',
+          label: t('common.created', 'Created'),
+          value: fmtDate(ticket.created_at),
+        },
+        ...(ticket.body
+          ? [
+              {
+                key: 'description',
+                label: t('helpdesk.fieldDescription', 'Description'),
+                value: (
+                  <span style={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{ticket.body}</span>
+                ),
+              },
+            ]
+          : []),
+        ...(canEdit
+          ? [
+              {
+                key: 'reassign',
+                label: t('helpdesk.fieldReassign', 'Re-assign'),
+                value: (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)' }}>
+                    <UserPicker
+                      value={agentId}
+                      onChange={setAgentId}
+                      className="inp inp-sm"
+                      aria-label={t('helpdesk.agentToAssign', 'Agent to assign')}
+                    />
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      leftIcon={UserPlus}
+                      disabled={busy || !agentId.trim()}
+                      onClick={handleAssign}
+                    >
+                      {t('helpdesk.assign', 'Assign')}
+                    </Button>
+                  </div>
+                ),
+              },
+            ]
+          : []),
+      ]
+    : []
 
   return (
     <>
       <RecordDrawer
         open
         onClose={onClose}
-        entityKey="TKT"
-        id={ticket ? ticket.id.slice(0, 8) : id.slice(0, 8)}
+        entityKey="ticket"
+        id={ticket ? ticket.id : id}
         title={ticket ? ticket.subject : t('helpdesk.loadingTicket', 'Loading ticket…')}
         subtitle={ticket && ticket.customer_id ? custName : undefined}
         status={drawerStatus(ticket?.status)}
@@ -494,17 +720,35 @@ function TicketDetailModal({
           canEdit && ticket ? (
             <>
               {canClose && (
-                <Button variant="ghost" size="sm" leftIcon={XIcon} disabled={busy} onClick={() => handleAction('close')}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  leftIcon={XIcon}
+                  disabled={busy}
+                  onClick={() => handleAction('close')}
+                >
                   {t('helpdesk.closeTicket', 'Close ticket')}
                 </Button>
               )}
               {canReopen && (
-                <Button variant="secondary" size="sm" leftIcon={RotateCcw} disabled={busy} onClick={() => handleAction('reopen')}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  leftIcon={RotateCcw}
+                  disabled={busy}
+                  onClick={() => handleAction('reopen')}
+                >
                   {t('helpdesk.reopen', 'Reopen')}
                 </Button>
               )}
               {canResolve && (
-                <Button variant="primary" size="sm" leftIcon={Check} disabled={busy} onClick={() => handleAction('resolve')}>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  leftIcon={Check}
+                  disabled={busy}
+                  onClick={() => handleAction('resolve')}
+                >
                   {t('helpdesk.resolve', 'Resolve')}
                 </Button>
               )}
@@ -513,7 +757,15 @@ function TicketDetailModal({
         }
       />
       {error && (
-        <div style={{ position: 'fixed', top: 'var(--gx-space-8)', left: 'var(--gx-space-8)', zIndex: 'var(--gx-z-toast)', maxWidth: 320 }}>
+        <div
+          style={{
+            position: 'fixed',
+            top: 'var(--gx-space-8)',
+            left: 'var(--gx-space-8)',
+            zIndex: 'var(--gx-z-toast)',
+            maxWidth: 320,
+          }}
+        >
           <ErrorBanner message={error} onRetry={load} />
         </div>
       )}
@@ -524,7 +776,10 @@ function TicketDetailModal({
 // ── Create Ticket Modal ───────────────────────────────────────────────────────
 
 function CreateTicketModal({
-  token, queues, onClose, onDone,
+  token,
+  queues,
+  onClose,
+  onDone,
 }: {
   token: string
   queues: Queue[]
@@ -567,15 +822,27 @@ function CreateTicketModal({
       size="md"
       footer={
         <>
-          <Button variant="ghost" size="md" onClick={onClose}>{t('common.cancel', 'Cancel')}</Button>
-          <Button variant="primary" size="md" loading={saving} disabled={saving || !subject.trim()} onClick={submit}>
+          <Button variant="ghost" size="md" onClick={onClose}>
+            {t('common.cancel', 'Cancel')}
+          </Button>
+          <Button
+            variant="primary"
+            size="md"
+            loading={saving}
+            disabled={saving || !subject.trim()}
+            onClick={submit}
+          >
             {saving ? t('common.creating', 'Creating…') : t('common.create', 'Create')}
           </Button>
         </>
       }
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-8)' }}>
-        <FormField label={t('helpdesk.fieldSubject', 'Subject')} required htmlFor="hd-create-subject">
+        <FormField
+          label={t('helpdesk.fieldSubject', 'Subject')}
+          required
+          htmlFor="hd-create-subject"
+        >
           <Input
             id="hd-create-subject"
             value={subject}
@@ -597,18 +864,39 @@ function CreateTicketModal({
         </FormField>
         {/* select has no primitive yet — kept as the themed .inp control inside the FormField label. */}
         <FormField label={t('helpdesk.fieldPriority', 'Priority')} htmlFor="hd-create-priority">
-          <select id="hd-create-priority" className="inp inp-md" value={priority} onChange={(e) => setPriority(e.target.value as TicketPriority | '')}>
+          <select
+            id="hd-create-priority"
+            className="inp inp-md"
+            value={priority}
+            onChange={(e) => setPriority(e.target.value as TicketPriority | '')}
+          >
             <option value="">{t('helpdesk.priorityDefault', 'Default')}</option>
-            {PRIORITIES.map((p) => <option key={p} value={p}>{humanizeStatus(p)}</option>)}
+            {PRIORITIES.map((p) => (
+              <option key={p} value={p}>
+                {humanizeStatus(p)}
+              </option>
+            ))}
           </select>
         </FormField>
         <FormField label={t('helpdesk.fieldQueue', 'Queue')} htmlFor="hd-create-queue">
-          <select id="hd-create-queue" className="inp inp-md" value={queueId} onChange={(e) => setQueueId(e.target.value)}>
+          <select
+            id="hd-create-queue"
+            className="inp inp-md"
+            value={queueId}
+            onChange={(e) => setQueueId(e.target.value)}
+          >
             <option value="">{t('common.none', 'None')}</option>
-            {queues.map((q) => <option key={q.id} value={q.id}>{q.name}</option>)}
+            {queues.map((q) => (
+              <option key={q.id} value={q.id}>
+                {q.name}
+              </option>
+            ))}
           </select>
         </FormField>
-        <FormField label={t('helpdesk.fieldCustomerId', 'Customer ID')} htmlFor="hd-create-customer">
+        <FormField
+          label={t('helpdesk.fieldCustomerId', 'Customer ID')}
+          htmlFor="hd-create-customer"
+        >
           <Input
             id="hd-create-customer"
             value={customerId}
@@ -624,7 +912,9 @@ function CreateTicketModal({
 // ── Create Queue Modal ────────────────────────────────────────────────────────
 
 function CreateQueueModal({
-  token, onClose, onDone,
+  token,
+  onClose,
+  onDone,
 }: {
   token: string
   onClose: () => void
@@ -662,8 +952,16 @@ function CreateQueueModal({
       size="sm"
       footer={
         <>
-          <Button variant="ghost" size="md" onClick={onClose}>{t('common.cancel', 'Cancel')}</Button>
-          <Button variant="primary" size="md" loading={saving} disabled={saving || !name.trim()} onClick={submit}>
+          <Button variant="ghost" size="md" onClick={onClose}>
+            {t('common.cancel', 'Cancel')}
+          </Button>
+          <Button
+            variant="primary"
+            size="md"
+            loading={saving}
+            disabled={saving || !name.trim()}
+            onClick={submit}
+          >
             {saving ? t('common.creating', 'Creating…') : t('common.create', 'Create')}
           </Button>
         </>
@@ -686,7 +984,10 @@ function CreateQueueModal({
             placeholder={t('common.optional', 'optional')}
           />
         </FormField>
-        <FormField label={t('helpdesk.fieldDefaultSla', 'Default SLA (minutes)')} htmlFor="hd-queue-sla">
+        <FormField
+          label={t('helpdesk.fieldDefaultSla', 'Default SLA (minutes)')}
+          htmlFor="hd-queue-sla"
+        >
           <Input
             id="hd-queue-sla"
             type="number"

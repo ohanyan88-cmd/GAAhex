@@ -3,21 +3,29 @@ import { bget, bpost, type Subscription, type Invoice, type Party } from '../lib
 import { money } from '../lib/money'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
+import { humanRef } from '../lib/humanize'
 import {
-  ChevronLeftIcon, BuildingIcon,
-  SearchIcon, GearIcon,
-  InfoIcon, ClockIcon, CheckIcon, MessageIcon, PaperclipIcon,
-  ShieldIcon, LayersIcon, MailIcon, ActivityIcon, ReceiptIcon,
+  ChevronLeftIcon,
+  BuildingIcon,
+  SearchIcon,
+  GearIcon,
+  InfoIcon,
+  ClockIcon,
+  CheckIcon,
+  MessageIcon,
+  PaperclipIcon,
+  ShieldIcon,
+  LayersIcon,
+  MailIcon,
+  ActivityIcon,
+  ReceiptIcon,
 } from '../components/icons'
-import {
-  Plus, ChevronsUpDown, ArrowUp, ArrowDown,
-  RefreshCw,
-} from 'lucide-react'
+import { Plus, ChevronsUpDown, ArrowUp, ArrowDown, RefreshCw } from 'lucide-react'
 import { useI18n } from '../lib/i18n'
 import { PageShell, Stack, Card, SectionHeading, type KPISpec } from '../page-shell'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
-import { Button, DetailTab, Pagination, StatusPill} from '../primitives'  // TB-2 — DetailTab is the canonical tab primitive
+import { Button, DetailTab, Pagination, StatusPill } from '../primitives' // TB-2 — DetailTab is the canonical tab primitive
 // TB-4 — canonical Object Detail tab bodies parameterized over (entity, id).
 // Replaces 8 AccountXxxTab local copies (~300 LOC of duplication).
 import TimelineTab from './customer-tabs/TimelineTab'
@@ -33,7 +41,7 @@ import AuditTab from './customer-tabs/AuditTab'
 // (no data) — that's fine; degrades to empty states, and 404 to "not available yet".
 type Account = {
   id: string
-  type?: string                  // residential | business | wholesale
+  type?: string // residential | business | wholesale
   holder_party_id?: string | null
   holder_party_name?: string | null
   currency?: string
@@ -96,12 +104,24 @@ function mapBillingStatus(s: string | null | undefined): PillVariant {
   return getStatusTone(s)
 }
 
-export default function AccountsView({ canConfigure = false, configVersion = 0, onConfigure }: { canConfigure?: boolean; configVersion?: number; onConfigure?: () => void }) {
+export default function AccountsView({
+  canConfigure = false,
+  configVersion = 0,
+  onConfigure,
+}: {
+  canConfigure?: boolean
+  configVersion?: number
+  onConfigure?: () => void
+}) {
   const { token } = useAuth()
   const { t } = useI18n()
   const cfg = usePageConfig(token!, 'accounts', configVersion)
   const [list, setList] = useState<Account[] | null>(null)
-  const cf = useCustomFields('accounts', cfg.customFields, (list ?? []).map((a) => a.id))
+  const cf = useCustomFields(
+    'accounts',
+    cfg.customFields,
+    (list ?? []).map((a) => a.id),
+  )
   const [parties, setParties] = useState<Party[]>([])
   const [error, setError] = useState('')
   const [unavailable, setUnavailable] = useState(false)
@@ -134,13 +154,22 @@ export default function AccountsView({ canConfigure = false, configVersion = 0, 
   // Fetch a single account's balance snapshot. 403/404 on this row → store `null` and degrade to
   // '—' in the cells; a global 404 (endpoint missing) flips `balanceApiDown` once and stops further
   // attempts. Other errors are swallowed (cell shows '—' until next refresh).
-  async function fetchBalance(accountId: string, opts?: { silent?: boolean }): Promise<BalanceCell> {
+  async function fetchBalance(
+    accountId: string,
+    opts?: { silent?: boolean },
+  ): Promise<BalanceCell> {
     if (balanceApiDown) return null
     const res = await bget<BalanceSnapshot>(token!, `/api/accounts/${accountId}/balance`)
     if (res.status === 404 && !opts?.silent) {
       // First 404 ⇒ feature unavailable. Toast once and stop further fetches.
       setBalanceApiDown((prev) => {
-        if (!prev) toast.info(t('accounts.balanceUnavailable', 'Account balance API unavailable — falling back to basic listing'))
+        if (!prev)
+          toast.info(
+            t(
+              'accounts.balanceUnavailable',
+              'Account balance API unavailable — falling back to basic listing',
+            ),
+          )
         return true
       })
       return null
@@ -155,7 +184,7 @@ export default function AccountsView({ canConfigure = false, configVersion = 0, 
   async function loadAllBalances(rows: Account[]) {
     if (balanceApiDown || rows.length === 0) return
     const results = await Promise.all(
-      rows.map(async (a) => [a.id, await fetchBalance(a.id)] as const)
+      rows.map(async (a) => [a.id, await fetchBalance(a.id)] as const),
     )
     setBalances((prev) => {
       const next = { ...prev }
@@ -173,7 +202,10 @@ export default function AccountsView({ canConfigure = false, configVersion = 0, 
     if (recomputing[accountId]) return
     setRecomputing((m) => ({ ...m, [accountId]: true }))
     try {
-      const snap = await bpost<BalanceSnapshot>(token!, `/api/accounts/${accountId}/recompute-balance`)
+      const snap = await bpost<BalanceSnapshot>(
+        token!,
+        `/api/accounts/${accountId}/recompute-balance`,
+      )
       // Trust the response body to avoid a second round-trip, but fall back to a refetch if shape
       // is unexpected (defensive — the endpoint contract is documented but admin-only).
       if (snap && typeof snap === 'object' && 'current_balance' in snap) {
@@ -186,52 +218,107 @@ export default function AccountsView({ canConfigure = false, configVersion = 0, 
       toast.error((e as Error).message || t('accounts.recomputeFailed', 'Recompute failed'))
     } finally {
       setRecomputing((m) => {
-        const next = { ...m }; delete next[accountId]; return next
+        const next = { ...m }
+        delete next[accountId]
+        return next
       })
     }
   }
 
   async function load() {
-    setError(''); setUnavailable(false); setDenied(false); setList(null)
+    setError('')
+    setUnavailable(false)
+    setDenied(false)
+    setList(null)
     const res = await bget<Account[]>(token!, '/api/accounts')
-    if (res.status === 404) { setUnavailable(true); setList([]); return }
-    if (res.status === 403) { setDenied(true); setList([]); return }
-    if (!res.ok) { setError(t('accounts.loadError', 'Failed to load accounts')); setList([]); return }
+    if (res.status === 404) {
+      setUnavailable(true)
+      setList([])
+      return
+    }
+    if (res.status === 403) {
+      setDenied(true)
+      setList([])
+      return
+    }
+    if (!res.ok) {
+      setError(t('accounts.loadError', 'Failed to load accounts'))
+      setList([])
+      return
+    }
     const rows = Array.isArray(res.data) ? res.data : []
     setList(rows)
-    setBalances({})            // wipe stale snapshots before refetch
-    loadAllBalances(rows)      // fire-and-forget; cells render '—' until each resolves
+    setBalances({}) // wipe stale snapshots before refetch
+    loadAllBalances(rows) // fire-and-forget; cells render '—' until each resolves
   }
 
-  useEffect(() => { load() }, [token])
-  useEffect(() => { bget<Party[]>(token!, '/api/parties').then((r) => setParties(r.ok && Array.isArray(r.data) ? r.data : [])) }, [token])
-  useEffect(() => { setPage(1) }, [query, sortKey, sortDir])
+  useEffect(() => {
+    load()
+  }, [token])
+  useEffect(() => {
+    bget<Party[]>(token!, '/api/parties').then((r) =>
+      setParties(r.ok && Array.isArray(r.data) ? r.data : []),
+    )
+  }, [token])
+  useEffect(() => {
+    setPage(1)
+  }, [query, sortKey, sortDir])
 
-  const holderName = (a: Account) => a.holder_party_name ?? (a.holder_party_id ? (parties.find((p) => p.id === a.holder_party_id)?.name ?? a.holder_party_id.slice(0, 8)) : '—')
+  const holderName = (a: Account) =>
+    a.holder_party_name ??
+    (a.holder_party_id
+      ? (parties.find((p) => p.id === a.holder_party_id)?.name ?? a.holder_party_id.slice(0, 8))
+      : '—')
 
   async function create() {
     if (!holder) return
     try {
-      await bpost(token!, '/api/accounts', { holder_party_id: holder, type, currency, billing_cycle: cycle })
+      await bpost(token!, '/api/accounts', {
+        holder_party_id: holder,
+        type,
+        currency,
+        billing_cycle: cycle,
+      })
       toast.success(t('accounts.created', 'Account created'))
-      setCreating(false); setHolder(''); setType('residential'); setCurrency('AMD'); setCycle('monthly')
+      setCreating(false)
+      setHolder('')
+      setType('residential')
+      setCurrency('AMD')
+      setCycle('monthly')
       await load()
-    } catch (e) { toast.error((e as Error).message) }
+    } catch (e) {
+      toast.error((e as Error).message)
+    }
   }
 
-  if (denied) return <PermissionDenied message={t('accounts.denied', "You don't have permission to view accounts.")} />
-  if (detailId) return <AccountDetail token={token!} id={detailId} parties={parties} canRecompute={canRecompute} onBack={() => { setDetailId(null); load() }} />
-
   const all = list ?? []
-  const activeCount = all.filter(a => (a.status ?? '').toUpperCase() === 'ACTIVE').length
-  const businessCount = all.filter(a => (a.type ?? '').toLowerCase() === 'business').length
-  const residentialCount = all.filter(a => (a.type ?? '').toLowerCase() === 'residential').length
+  const activeCount = all.filter((a) => (a.status ?? '').toUpperCase() === 'ACTIVE').length
+  const businessCount = all.filter((a) => (a.type ?? '').toLowerCase() === 'business').length
+  const residentialCount = all.filter((a) => (a.type ?? '').toLowerCase() === 'residential').length
 
-  const kpis: KPISpec[] = all.length > 0 ? [
-    { label: 'Accounts', value: all.length, subtitle: `${activeCount} active`, onClick: () => setQuery('') },
-    { label: 'Business', value: businessCount, subtitle: 'billable', onClick: () => setQuery('business') },
-    { label: 'Residential', value: residentialCount, subtitle: 'consumer', onClick: () => setQuery('residential') },
-  ] : []
+  const kpis: KPISpec[] =
+    all.length > 0
+      ? [
+          {
+            label: 'Accounts',
+            value: all.length,
+            subtitle: `${activeCount} active`,
+            onClick: () => setQuery(''),
+          },
+          {
+            label: 'Business',
+            value: businessCount,
+            subtitle: 'billable',
+            onClick: () => setQuery('business'),
+          },
+          {
+            label: 'Residential',
+            value: residentialCount,
+            subtitle: 'consumer',
+            onClick: () => setQuery('residential'),
+          },
+        ]
+      : []
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -244,10 +331,12 @@ export default function AccountsView({ canConfigure = false, configVersion = 0, 
         a.currency ?? '',
         a.billing_cycle ?? '',
         a.status ?? '',
-      ].join(' ').toLowerCase()
+      ]
+        .join(' ')
+        .toLowerCase()
       return fields.includes(q)
     })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [all, query, parties])
 
   const sorted = useMemo(() => {
@@ -267,16 +356,22 @@ export default function AccountsView({ canConfigure = false, configVersion = 0, 
     }
     const get = (a: Account): string => {
       switch (k) {
-        case 'type': return a.type ?? ''
-        case 'holder': return holderName(a)
-        case 'currency': return a.currency ?? ''
-        case 'cycle': return a.billing_cycle ?? ''
-        case 'status': return a.status ?? ''
-        default: return ''
+        case 'type':
+          return a.type ?? ''
+        case 'holder':
+          return holderName(a)
+        case 'currency':
+          return a.currency ?? ''
+        case 'cycle':
+          return a.billing_cycle ?? ''
+        case 'status':
+          return a.status ?? ''
+        default:
+          return ''
       }
     }
     return [...filtered].sort((a, b) => String(get(a)).localeCompare(String(get(b))) * dir)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtered, sortKey, sortDir, parties, balances])
 
   const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
@@ -284,21 +379,54 @@ export default function AccountsView({ canConfigure = false, configVersion = 0, 
 
   function toggleSort(k: string) {
     if (sortKey === k) setSortDir((d) => (d === 1 ? -1 : 1))
-    else { setSortKey(k); setSortDir(1) }
+    else {
+      setSortKey(k)
+      setSortDir(1)
+    }
   }
 
   function renderCell(colKey: string, a: Account) {
     switch (colKey) {
-      case 'type': return a.type ?? '—'
-      case 'holder': return holderName(a)
-      case 'currency': return <span className="mono">{a.currency ?? '—'}</span>
-      case 'cycle': return a.billing_cycle ?? '—'
-      case 'status': return a.status
-        ? <StatusPill variant={mapAccountStatus(a.status)} label={a.status} size="sm" />
-        : <span>—</span>
-      default: return '—'
+      case 'type':
+        return a.type ?? '—'
+      case 'holder':
+        return holderName(a)
+      case 'currency':
+        return <span className="mono">{a.currency ?? '—'}</span>
+      case 'cycle':
+        return a.billing_cycle ?? '—'
+      case 'status':
+        return a.status ? (
+          <StatusPill variant={mapAccountStatus(a.status)} label={a.status} size="sm" />
+        ) : (
+          <span>—</span>
+        )
+      default:
+        return '—'
     }
   }
+
+  // Hooks (useMemo above) must run unconditionally — these early returns therefore
+  // live AFTER all hooks (was a react-hooks/rules-of-hooks violation before Ph4).
+  if (denied)
+    return (
+      <PermissionDenied
+        message={t('accounts.denied', "You don't have permission to view accounts.")}
+      />
+    )
+  if (detailId)
+    return (
+      <AccountDetail
+        token={token!}
+        id={detailId}
+        parties={parties}
+        canRecompute={canRecompute}
+        onBack={() => {
+          setDetailId(null)
+          load()
+        }}
+      />
+    )
 
   return (
     <PageShell
@@ -308,98 +436,167 @@ export default function AccountsView({ canConfigure = false, configVersion = 0, 
       title={cfg.title}
       subtitle="Multi-tenant B2B parent-child accounting"
       kpis={kpis}
-      primaryAction={!unavailable ? {
-        label: creating ? t('common.close', 'Close') : t('accounts.new', 'New account'),
-        icon: <Plus size={14} />,
-        onClick: () => setCreating((c) => !c),
-      } : undefined}
-      secondaryActions={canConfigure && onConfigure ? [
-        { label: 'Configure', icon: <GearIcon size={13} />, onClick: onConfigure },
-      ] : undefined}
+      primaryAction={
+        !unavailable
+          ? {
+              label: creating ? t('common.close', 'Close') : t('accounts.new', 'New account'),
+              icon: <Plus size={14} />,
+              onClick: () => setCreating((c) => !c),
+            }
+          : undefined
+      }
+      secondaryActions={
+        canConfigure && onConfigure
+          ? [{ label: 'Configure', icon: <GearIcon size={13} />, onClick: onConfigure }]
+          : undefined
+      }
     >
-        {creating && (
-          <div className="rec-form">
-            <label className="field"><span>{t('accounts.holder', 'Holder party')} *</span>
-              <select className="inp inp-md" value={holder} onChange={(e) => setHolder(e.target.value)}>
-                <option value="">{t('common.pick', '— pick —')}</option>
-                {parties.map((p) => <option key={p.id} value={p.id}>{p.name ?? p.id.slice(0, 8)}</option>)}
-              </select>
-            </label>
-            <label className="field"><span>{t('accounts.type', 'Type')}</span>
-              <select className="inp inp-md" value={type} onChange={(e) => setType(e.target.value)}>{TYPES.map((x) => <option key={x} value={x}>{x}</option>)}</select>
-            </label>
-            <label className="field"><span>{t('accounts.currency', 'Currency')}</span><input className="inp inp-md" value={currency} onChange={(e) => setCurrency(e.target.value)} /></label>
-            <label className="field"><span>{t('accounts.cycle', 'Billing cycle')}</span>
-              <select className="inp inp-md" value={cycle} onChange={(e) => setCycle(e.target.value)}>{CYCLES.map((x) => <option key={x} value={x}>{x}</option>)}</select>
-            </label>
-            <div className="rec-form-actions"><Button variant="primary" size="md" onClick={create} disabled={!holder}>{t('common.create', 'Create')}</Button></div>
-          </div>
-        )}
-
-        {error && <ErrorBanner message={error} onRetry={load} />}
-        {list === null && !error && <p className="muted">{t('common.loading', 'Loading…')}</p>}
-        {unavailable && <EmptyState icon={<BuildingIcon size={40} />} title={t('accounts.unavailable', "Accounts aren't available yet")} message={t('accounts.unavailableMsg', 'The accounts layer will appear here once enabled.')} />}
-        {list && !unavailable && list.length === 0 && !error && (
-          <EmptyState icon={<BuildingIcon size={40} />} title={t('accounts.empty', 'No accounts')} message={t('accounts.emptyMsg', 'Create an account against a party to start billing it.')} />
-        )}
-
-        {list && list.length > 0 && (
-          <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
-            <div className="grid-wrap">
-              <table className="grid">
-                <thead>
-                  <tr>
-                    {cfg.columns.map((c) => (
-                      <th
-                        key={c.key}
-                        scope="col"
-                        onClick={() => toggleSort(c.key)}
-                        style={{ cursor: 'pointer', userSelect: 'none' }}
-                      >
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-2)' }}>
-                          {c.label}
-                          {sortKey === c.key
-                            // D18: active sort indicator = azure (interactive cue)
-                            ? (sortDir === 1 ? <ArrowUp size={12} style={{ color: 'var(--gx-interactive)' }} /> : <ArrowDown size={12} style={{ color: 'var(--gx-interactive)' }} />)
-                            : <ChevronsUpDown size={12} style={{ opacity: 0.35 }} />}
-                        </span>
-                      </th>
-                    ))}
-                    {cf.headers()}
-                  </tr>
-                </thead>
-                <tbody>
-                  {pageRows.map((a) => (
-                    <tr
-                      key={a.id}
-                      onClick={() => setDetailId(a.id)}
-                    >
-                      {cfg.columns.map((c) => (
-                        <td key={c.key}>{renderCell(c.key, a)}</td>
-                      ))}
-                      {cf.cells(a.id)}
-                    </tr>
-                  ))}
-                  {pageRows.length === 0 && (
-                    <tr>
-                      <td colSpan={cfg.columns.length + cfg.customFields.length} style={{ textAlign: 'center', padding: 'var(--gx-space-9)', color: 'var(--gx-text-3)' }}>
-                        No matching accounts.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            <Pagination
-              page={page}
-              pageCount={pageCount}
-              pageSize={PAGE_SIZE}
-              total={sorted.length}
-              onChange={setPage}
+      {creating && (
+        <div className="rec-form">
+          <label className="field">
+            <span>{t('accounts.holder', 'Holder party')} *</span>
+            <select
+              className="inp inp-md"
+              value={holder}
+              onChange={(e) => setHolder(e.target.value)}
+            >
+              <option value="">{t('common.pick', '— pick —')}</option>
+              {parties.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name ?? p.id.slice(0, 8)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>{t('accounts.type', 'Type')}</span>
+            <select className="inp inp-md" value={type} onChange={(e) => setType(e.target.value)}>
+              {TYPES.map((x) => (
+                <option key={x} value={x}>
+                  {x}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>{t('accounts.currency', 'Currency')}</span>
+            <input
+              className="inp inp-md"
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
             />
+          </label>
+          <label className="field">
+            <span>{t('accounts.cycle', 'Billing cycle')}</span>
+            <select className="inp inp-md" value={cycle} onChange={(e) => setCycle(e.target.value)}>
+              {CYCLES.map((x) => (
+                <option key={x} value={x}>
+                  {x}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="rec-form-actions">
+            <Button variant="primary" size="md" onClick={create} disabled={!holder}>
+              {t('common.create', 'Create')}
+            </Button>
           </div>
-        )}
+        </div>
+      )}
+
+      {error && <ErrorBanner message={error} onRetry={load} />}
+      {list === null && !error && <p className="muted">{t('common.loading', 'Loading…')}</p>}
+      {unavailable && (
+        <EmptyState
+          icon={<BuildingIcon size={40} />}
+          title={t('accounts.unavailable', "Accounts aren't available yet")}
+          message={t(
+            'accounts.unavailableMsg',
+            'The accounts layer will appear here once enabled.',
+          )}
+        />
+      )}
+      {list && !unavailable && list.length === 0 && !error && (
+        <EmptyState
+          icon={<BuildingIcon size={40} />}
+          title={t('accounts.empty', 'No accounts')}
+          message={t('accounts.emptyMsg', 'Create an account against a party to start billing it.')}
+        />
+      )}
+
+      {list && list.length > 0 && (
+        <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
+          <div className="grid-wrap">
+            <table className="grid">
+              <thead>
+                <tr>
+                  {cfg.columns.map((c) => (
+                    <th
+                      key={c.key}
+                      scope="col"
+                      onClick={() => toggleSort(c.key)}
+                      style={{ cursor: 'pointer', userSelect: 'none' }}
+                    >
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 'var(--gx-space-2)',
+                        }}
+                      >
+                        {c.label}
+                        {sortKey === c.key ? (
+                          // D18: active sort indicator = azure (interactive cue)
+                          sortDir === 1 ? (
+                            <ArrowUp size={12} style={{ color: 'var(--gx-interactive)' }} />
+                          ) : (
+                            <ArrowDown size={12} style={{ color: 'var(--gx-interactive)' }} />
+                          )
+                        ) : (
+                          <ChevronsUpDown size={12} style={{ opacity: 0.35 }} />
+                        )}
+                      </span>
+                    </th>
+                  ))}
+                  {cf.headers()}
+                </tr>
+              </thead>
+              <tbody>
+                {pageRows.map((a) => (
+                  <tr key={a.id} onClick={() => setDetailId(a.id)}>
+                    {cfg.columns.map((c) => (
+                      <td key={c.key}>{renderCell(c.key, a)}</td>
+                    ))}
+                    {cf.cells(a.id)}
+                  </tr>
+                ))}
+                {pageRows.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={cfg.columns.length + cfg.customFields.length}
+                      style={{
+                        textAlign: 'center',
+                        padding: 'var(--gx-space-9)',
+                        color: 'var(--gx-text-3)',
+                      }}
+                    >
+                      No matching accounts.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <Pagination
+            page={page}
+            pageCount={pageCount}
+            pageSize={PAGE_SIZE}
+            total={sorted.length}
+            onChange={setPage}
+          />
+        </div>
+      )}
     </PageShell>
   )
 }
@@ -412,38 +609,70 @@ export default function AccountsView({ canConfigure = false, configVersion = 0, 
 // subscriptions + invoices content unchanged (no restructure).
 // ─────────────────────────────────────────────────────────────────────────────
 type AccountTabKey =
-  | 'overview' | 'timeline' | 'tasks' | 'comments' | 'attachments'
-  | 'approvals' | 'related' | 'communications' | 'audit'
+  | 'overview'
+  | 'timeline'
+  | 'tasks'
+  | 'comments'
+  | 'attachments'
+  | 'approvals'
+  | 'related'
+  | 'communications'
+  | 'audit'
 const ACCOUNT_TAB_ORDER: AccountTabKey[] = [
-  'overview', 'timeline', 'tasks', 'comments', 'attachments',
-  'approvals', 'related', 'communications', 'audit',
+  'overview',
+  'timeline',
+  'tasks',
+  'comments',
+  'attachments',
+  'approvals',
+  'related',
+  'communications',
+  'audit',
 ]
 
 function accountTabLabel(k: AccountTabKey, t: (k: string, fb?: string) => string): string {
   switch (k) {
-    case 'overview':       return t('acct.tab.overview', 'Overview')
-    case 'timeline':       return t('acct.tab.timeline', 'Timeline')
-    case 'tasks':          return t('acct.tab.tasks', 'Tasks')
-    case 'comments':       return t('acct.tab.comments', 'Comments')
-    case 'attachments':    return t('acct.tab.attachments', 'Attachments')
-    case 'approvals':      return t('acct.tab.approvals', 'Approvals')
-    case 'related':        return t('acct.tab.related', 'Related')
-    case 'communications': return t('acct.tab.communications', 'Communications')
-    case 'audit':          return t('acct.tab.audit', 'Audit')
+    case 'overview':
+      return t('acct.tab.overview', 'Overview')
+    case 'timeline':
+      return t('acct.tab.timeline', 'Timeline')
+    case 'tasks':
+      return t('acct.tab.tasks', 'Tasks')
+    case 'comments':
+      return t('acct.tab.comments', 'Comments')
+    case 'attachments':
+      return t('acct.tab.attachments', 'Attachments')
+    case 'approvals':
+      return t('acct.tab.approvals', 'Approvals')
+    case 'related':
+      return t('acct.tab.related', 'Related')
+    case 'communications':
+      return t('acct.tab.communications', 'Communications')
+    case 'audit':
+      return t('acct.tab.audit', 'Audit')
   }
 }
 
 function accountTabIcon(k: AccountTabKey): ReactNode {
   switch (k) {
-    case 'overview':       return <InfoIcon size={13} />
-    case 'timeline':       return <ClockIcon size={13} />
-    case 'tasks':          return <CheckIcon size={13} />
-    case 'comments':       return <MessageIcon size={13} />
-    case 'attachments':    return <PaperclipIcon size={13} />
-    case 'approvals':      return <ShieldIcon size={13} />
-    case 'related':        return <LayersIcon size={13} />
-    case 'communications': return <MailIcon size={13} />
-    case 'audit':          return <ActivityIcon size={13} />
+    case 'overview':
+      return <InfoIcon size={13} />
+    case 'timeline':
+      return <ClockIcon size={13} />
+    case 'tasks':
+      return <CheckIcon size={13} />
+    case 'comments':
+      return <MessageIcon size={13} />
+    case 'attachments':
+      return <PaperclipIcon size={13} />
+    case 'approvals':
+      return <ShieldIcon size={13} />
+    case 'related':
+      return <LayersIcon size={13} />
+    case 'communications':
+      return <MailIcon size={13} />
+    case 'audit':
+      return <ActivityIcon size={13} />
   }
 }
 
@@ -451,7 +680,12 @@ function accountTabIcon(k: AccountTabKey): ReactNode {
 // use the canonical `DetailTab` primitive from `../primitives/DetailTab`
 // (imported below). Wrap the tab strip with `<DetailTabList>` to inherit
 // WCAG-conformant arrow-key navigation (TB-3).
-function AccountTabButton({ active, label, icon, onClick }: {
+function AccountTabButton({
+  active,
+  label,
+  icon,
+  onClick,
+}: {
   active: boolean
   label: string
   icon: ReactNode
@@ -464,7 +698,18 @@ function AccountTabButton({ active, label, icon, onClick }: {
   )
 }
 
-function AccountDetail({ token, id, parties, onBack }: { token: string; id: string; parties: Party[]; canRecompute: boolean; onBack: () => void }) {
+function AccountDetail({
+  token,
+  id,
+  parties,
+  onBack,
+}: {
+  token: string
+  id: string
+  parties: Party[]
+  canRecompute: boolean
+  onBack: () => void
+}) {
   const { t } = useI18n()
   const [acct, setAcct] = useState<Account | null>(null)
   const [error, setError] = useState('')
@@ -474,14 +719,28 @@ function AccountDetail({ token, id, parties, onBack }: { token: string; id: stri
   async function load() {
     setError('')
     const res = await bget<Account>(token, `/api/accounts/${id}`)
-    if (!res.ok) { setError(res.status === 404 ? t('accounts.notFound', 'Account not found') : t('accounts.loadError', 'Failed to load account')); return }
+    if (!res.ok) {
+      setError(
+        res.status === 404
+          ? t('accounts.notFound', 'Account not found')
+          : t('accounts.loadError', 'Failed to load account'),
+      )
+      return
+    }
     setAcct(res.data)
   }
-  useEffect(() => { load() }, [token, id])
+  useEffect(() => {
+    load()
+  }, [token, id])
 
   const subs = acct?.subscriptions ?? []
   const invoices = acct?.invoices ?? []
-  const holderName = acct?.holder_party_name ?? (acct?.holder_party_id ? (parties.find((p) => p.id === acct.holder_party_id)?.name ?? acct.holder_party_id.slice(0, 8)) : '—')
+  const holderName =
+    acct?.holder_party_name ??
+    (acct?.holder_party_id
+      ? (parties.find((p) => p.id === acct.holder_party_id)?.name ??
+        acct.holder_party_id.slice(0, 8))
+      : '—')
 
   return (
     <PageShell
@@ -489,124 +748,203 @@ function AccountDetail({ token, id, parties, onBack }: { token: string; id: stri
       breadcrumb={['Billing', 'Accounts', holderName]}
       icon={<BuildingIcon size={18} />}
       title={holderName}
-      subtitle={acct?.id ? acct.id.slice(0, 8) : undefined}
+      subtitle={acct?.id ? humanRef({ id: acct.id }) : undefined}
       secondaryActions={[
-        { label: t('nav.accounts', 'Accounts'), icon: <ChevronLeftIcon size={13} />, onClick: onBack },
+        {
+          label: t('nav.accounts', 'Accounts'),
+          icon: <ChevronLeftIcon size={13} />,
+          onClick: onBack,
+        },
       ]}
     >
-        {error && <ErrorBanner message={error} onRetry={load} />}
-        {!acct && !error && <p className="muted">{t('common.loading', 'Loading…')}</p>}
+      {error && <ErrorBanner message={error} onRetry={load} />}
+      {!acct && !error && <p className="muted">{t('common.loading', 'Loading…')}</p>}
 
-        {acct && (
-          <>
-            {/* Canonical Object Detail tabs (file 10) — render BEFORE any object-specific tabs.
+      {acct && (
+        <>
+          {/* Canonical Object Detail tabs (file 10) — render BEFORE any object-specific tabs.
                 The bill-meta + subs + invoices content lives inside the Overview tab. */}
-            <div
-              role="tablist"
-              aria-label={t('acct.standardTabs', 'Object Detail tabs')}
-              style={{
-                display: 'flex',
-                gap: 'var(--gx-space-2)',
-                borderBottom: '1px solid var(--gx-border)',
-                marginBottom: 'var(--gx-space-5)',
-                overflowX: 'auto',
-              }}
-            >
-              {ACCOUNT_TAB_ORDER.map((k) => (
-                <AccountTabButton
-                  key={k}
-                  active={tab === k}
-                  label={accountTabLabel(k, t)}
-                  icon={accountTabIcon(k)}
-                  onClick={() => setTab(k)}
-                />
-              ))}
-            </div>
+          <div
+            role="tablist"
+            aria-label={t('acct.standardTabs', 'Object Detail tabs')}
+            style={{
+              display: 'flex',
+              gap: 'var(--gx-space-2)',
+              borderBottom: '1px solid var(--gx-border)',
+              marginBottom: 'var(--gx-space-5)',
+              overflowX: 'auto',
+            }}
+          >
+            {ACCOUNT_TAB_ORDER.map((k) => (
+              <AccountTabButton
+                key={k}
+                active={tab === k}
+                label={accountTabLabel(k, t)}
+                icon={accountTabIcon(k)}
+                onClick={() => setTab(k)}
+              />
+            ))}
+          </div>
 
-            <div role="tabpanel" aria-label={accountTabLabel(tab, t)}>
-              {tab === 'overview' && (
-                <Stack gap="lg">
-                  <Card pad="md">
-                    <SectionHeading icon={<InfoIcon size={14} />} title={t('accounts.summary', 'Summary')} />
-                    <div className="bill-meta">
-                      <div><span className="muted">{t('accounts.type', 'Type')}</span><div>{acct.type ?? '—'}</div></div>
-                      <div><span className="muted">{t('accounts.currency', 'Currency')}</span><div className="mono">{acct.currency ?? '—'}</div></div>
-                      <div><span className="muted">{t('accounts.cycle', 'Cycle')}</span><div>{acct.billing_cycle ?? '—'}</div></div>
-                      <div><span className="muted">{t('common.status', 'Status')}</span>
-                        <div>{acct.status ? <StatusPill variant={mapAccountStatus(acct.status)} label={acct.status} size="sm" /> : <span>—</span>}</div>
+          <div role="tabpanel" aria-label={accountTabLabel(tab, t)}>
+            {tab === 'overview' && (
+              <Stack gap="lg">
+                <Card pad="md">
+                  <SectionHeading
+                    icon={<InfoIcon size={14} />}
+                    title={t('accounts.summary', 'Summary')}
+                  />
+                  <div className="bill-meta">
+                    <div>
+                      <span className="muted">{t('accounts.type', 'Type')}</span>
+                      <div>{acct.type ?? '—'}</div>
+                    </div>
+                    <div>
+                      <span className="muted">{t('accounts.currency', 'Currency')}</span>
+                      <div className="mono">{acct.currency ?? '—'}</div>
+                    </div>
+                    <div>
+                      <span className="muted">{t('accounts.cycle', 'Cycle')}</span>
+                      <div>{acct.billing_cycle ?? '—'}</div>
+                    </div>
+                    <div>
+                      <span className="muted">{t('common.status', 'Status')}</span>
+                      <div>
+                        {acct.status ? (
+                          <StatusPill
+                            variant={mapAccountStatus(acct.status)}
+                            label={acct.status}
+                            size="sm"
+                          />
+                        ) : (
+                          <span>—</span>
+                        )}
                       </div>
                     </div>
-                  </Card>
+                  </div>
+                </Card>
 
-                  <Card pad="md">
-                    <SectionHeading icon={<LayersIcon size={14} />} title={t('nav.subscriptions', 'Subscriptions')} />
-                    {subs.length === 0
-                      ? <EmptyState title={t('accounts.noSubs', 'No subscriptions on this account yet.')} message={t('accounts.noSubs.msg', 'Active subscriptions will appear here once a plan is assigned.')} />
-                      : (
-                        <div className="grid-wrap">
-                          <table className="grid">
-                            <thead><tr>
-                              <th scope="col">{t('subs.plan', 'Plan')}</th>
-                              <th scope="col" className="num">{t('subs.amount', 'Amount')}</th>
-                              <th scope="col">{t('accounts.cycle', 'Cycle')}</th>
-                              <th scope="col">{t('common.status', 'Status')}</th>
-                            </tr></thead>
-                            <tbody>
-                              {subs.map((sx) => (
-                                <tr key={sx.id}>
-                                  <td>{sx.plan_name ?? '—'}</td>
-                                  <td className="num"><span className="mono tnum">{money(sx.amount)}</span></td>
-                                  <td>{sx.cycle ?? '—'}</td>
-                                  <td>{sx.status ? <StatusPill variant={mapBillingStatus(sx.status)} label={sx.status} size="sm" /> : <span>—</span>}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
+                <Card pad="md">
+                  <SectionHeading
+                    icon={<LayersIcon size={14} />}
+                    title={t('nav.subscriptions', 'Subscriptions')}
+                  />
+                  {subs.length === 0 ? (
+                    <EmptyState
+                      title={t('accounts.noSubs', 'No subscriptions on this account yet.')}
+                      message={t(
+                        'accounts.noSubs.msg',
+                        'Active subscriptions will appear here once a plan is assigned.',
                       )}
-                  </Card>
+                    />
+                  ) : (
+                    <div className="grid-wrap">
+                      <table className="grid">
+                        <thead>
+                          <tr>
+                            <th scope="col">{t('subs.plan', 'Plan')}</th>
+                            <th scope="col" className="num">
+                              {t('subs.amount', 'Amount')}
+                            </th>
+                            <th scope="col">{t('accounts.cycle', 'Cycle')}</th>
+                            <th scope="col">{t('common.status', 'Status')}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {subs.map((sx) => (
+                            <tr key={sx.id}>
+                              <td>{sx.plan_name ?? '—'}</td>
+                              <td className="num">
+                                <span className="mono tnum">{money(sx.amount)}</span>
+                              </td>
+                              <td>{sx.cycle ?? '—'}</td>
+                              <td>
+                                {sx.status ? (
+                                  <StatusPill
+                                    variant={mapBillingStatus(sx.status)}
+                                    label={sx.status}
+                                    size="sm"
+                                  />
+                                ) : (
+                                  <span>—</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </Card>
 
-                  <Card pad="md">
-                    <SectionHeading icon={<ReceiptIcon size={14} />} title={t('nav.invoices', 'Invoices')} />
-                    {invoices.length === 0
-                      ? <EmptyState title={t('accounts.noInvoices', 'No invoices on this account yet.')} message={t('accounts.noInvoices.msg', 'Issued invoices will show up here once billing cycles run.')} />
-                      : (
-                        <div className="grid-wrap">
-                          <table className="grid">
-                            <thead><tr>
-                              <th scope="col">{t('invoices.number', 'Invoice')}</th>
-                              <th scope="col">{t('common.status', 'Status')}</th>
-                              <th scope="col" className="num">{t('invoices.total', 'Total')}</th>
-                            </tr></thead>
-                            <tbody>
-                              {invoices.map((inv) => (
-                                <tr key={inv.id}>
-                                  <td><span className="mono">{inv.number ?? inv.id.slice(0, 8)}</span></td>
-                                  <td>{inv.status ? <StatusPill variant={mapBillingStatus(inv.status)} label={inv.status} size="sm" /> : <span>—</span>}</td>
-                                  <td className="num"><span className="mono tnum">{money(inv.total)}</span></td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
+                <Card pad="md">
+                  <SectionHeading
+                    icon={<ReceiptIcon size={14} />}
+                    title={t('nav.invoices', 'Invoices')}
+                  />
+                  {invoices.length === 0 ? (
+                    <EmptyState
+                      title={t('accounts.noInvoices', 'No invoices on this account yet.')}
+                      message={t(
+                        'accounts.noInvoices.msg',
+                        'Issued invoices will show up here once billing cycles run.',
                       )}
-                  </Card>
-                </Stack>
-              )}
-              {/* TB-4 — account detail tabs reuse the canonical
+                    />
+                  ) : (
+                    <div className="grid-wrap">
+                      <table className="grid">
+                        <thead>
+                          <tr>
+                            <th scope="col">{t('invoices.number', 'Invoice')}</th>
+                            <th scope="col">{t('common.status', 'Status')}</th>
+                            <th scope="col" className="num">
+                              {t('invoices.total', 'Total')}
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {invoices.map((inv) => (
+                            <tr key={inv.id}>
+                              <td>
+                                <span className="mono">{inv.number ?? inv.id.slice(0, 8)}</span>
+                              </td>
+                              <td>
+                                {inv.status ? (
+                                  <StatusPill
+                                    variant={mapBillingStatus(inv.status)}
+                                    label={inv.status}
+                                    size="sm"
+                                  />
+                                ) : (
+                                  <span>—</span>
+                                )}
+                              </td>
+                              <td className="num">
+                                <span className="mono tnum">{money(inv.total)}</span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </Card>
+              </Stack>
+            )}
+            {/* TB-4 — account detail tabs reuse the canonical
                   `customer-tabs/*` components. The 8 Account*Tab locals
                   below were deleted (~300 LOC of pure copy-paste). */}
-              {tab === 'timeline'       && <TimelineTab entity="account" id={id} />}
-              {tab === 'tasks'          && <TasksTab entity="account" id={id} />}
-              {tab === 'comments'       && <CommentsTab entity="account" id={id} />}
-              {tab === 'attachments'    && <AttachmentsTab entity="account" id={id} />}
-              {tab === 'approvals'      && <ApprovalsTab entity="account" id={id} />}
-              {tab === 'related'        && <RelatedTab entity="account" id={id} />}
-              {tab === 'communications' && <CommunicationsTab entity="account" id={id} />}
-              {tab === 'audit'          && <AuditTab entity="account" id={id} />}
-            </div>
-          </>
-        )}
+            {tab === 'timeline' && <TimelineTab entity="account" id={id} />}
+            {tab === 'tasks' && <TasksTab entity="account" id={id} />}
+            {tab === 'comments' && <CommentsTab entity="account" id={id} />}
+            {tab === 'attachments' && <AttachmentsTab entity="account" id={id} />}
+            {tab === 'approvals' && <ApprovalsTab entity="account" id={id} />}
+            {tab === 'related' && <RelatedTab entity="account" id={id} />}
+            {tab === 'communications' && <CommunicationsTab entity="account" id={id} />}
+            {tab === 'audit' && <AuditTab entity="account" id={id} />}
+          </div>
+        </>
+      )}
     </PageShell>
   )
 }

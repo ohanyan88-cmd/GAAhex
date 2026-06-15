@@ -4,6 +4,7 @@
 // detail + lines + totals + payments + AllocationPanel content unchanged.
 import { useEffect, useState, type ReactNode } from 'react'
 import { useI18n } from '../../lib/i18n'
+import { humanRef } from '../../lib/humanize'
 import { bget, bpost, openDocument, type Invoice, type Payment } from '../../lib/billing'
 import { money } from '../../lib/money'
 import { fmtDate } from '../../lib/time'
@@ -12,9 +13,19 @@ import { Modal } from '../../components/Modal'
 import { toast } from '../../components/Toast'
 import { ErrorBanner } from '../../components/States'
 import {
-  ReceiptIcon, ChevronLeftIcon, PrinterIcon, CreditCardIcon,
-  InfoIcon, ClockIcon, CheckIcon, MessageIcon, PaperclipIcon,
-  ShieldIcon, LayersIcon, MailIcon, ActivityIcon,
+  ReceiptIcon,
+  ChevronLeftIcon,
+  PrinterIcon,
+  CreditCardIcon,
+  InfoIcon,
+  ClockIcon,
+  CheckIcon,
+  MessageIcon,
+  PaperclipIcon,
+  ShieldIcon,
+  LayersIcon,
+  MailIcon,
+  ActivityIcon,
 } from '../../components/icons'
 import { PageShell, Stack, Card, SectionHeading, Inline } from '../../page-shell'
 import TimelineTab from '../customer-tabs/TimelineTab'
@@ -25,9 +36,7 @@ import ApprovalsTab from '../customer-tabs/ApprovalsTab'
 import RelatedTab from '../customer-tabs/RelatedTab'
 import CommunicationsTab from '../customer-tabs/CommunicationsTab'
 import AuditTab from '../customer-tabs/AuditTab'
-import {
-  INVOICE_TAB_ORDER, invoiceTabLabel, type InvoiceTabKey,
-} from './types'
+import { INVOICE_TAB_ORDER, invoiceTabLabel, type InvoiceTabKey } from './types'
 import { statusPill } from './helpers'
 import { PayOnlineButton } from './PayOnlineButton'
 import { PaymentModal } from './PaymentModal'
@@ -35,7 +44,12 @@ import { AllocationPanel } from './AllocationPanel'
 
 // TB-2 — local InvoiceTabButton delegates to the canonical `DetailTab`
 // primitive (identical recipe across InvoicesView and AccountsView pre-dedupe).
-function InvoiceTabButton({ active, label, icon, onClick }: {
+function InvoiceTabButton({
+  active,
+  label,
+  icon,
+  onClick,
+}: {
   active: boolean
   label: string
   icon: ReactNode
@@ -50,19 +64,36 @@ function InvoiceTabButton({ active, label, icon, onClick }: {
 
 function invoiceTabIcon(k: InvoiceTabKey): ReactNode {
   switch (k) {
-    case 'overview':       return <InfoIcon size={13} />
-    case 'timeline':       return <ClockIcon size={13} />
-    case 'tasks':          return <CheckIcon size={13} />
-    case 'comments':       return <MessageIcon size={13} />
-    case 'attachments':    return <PaperclipIcon size={13} />
-    case 'approvals':      return <ShieldIcon size={13} />
-    case 'related':        return <LayersIcon size={13} />
-    case 'communications': return <MailIcon size={13} />
-    case 'audit':          return <ActivityIcon size={13} />
+    case 'overview':
+      return <InfoIcon size={13} />
+    case 'timeline':
+      return <ClockIcon size={13} />
+    case 'tasks':
+      return <CheckIcon size={13} />
+    case 'comments':
+      return <MessageIcon size={13} />
+    case 'attachments':
+      return <PaperclipIcon size={13} />
+    case 'approvals':
+      return <ShieldIcon size={13} />
+    case 'related':
+      return <LayersIcon size={13} />
+    case 'communications':
+      return <MailIcon size={13} />
+    case 'audit':
+      return <ActivityIcon size={13} />
   }
 }
 
-export function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayment, canAllocatePayment, onBack }: {
+export function InvoiceDetail({
+  token,
+  id,
+  names,
+  canEditInvoice,
+  canCreatePayment,
+  canAllocatePayment,
+  onBack,
+}: {
   token: string
   id: string
   names: Record<string, string>
@@ -82,44 +113,70 @@ export function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayme
   async function load() {
     setError('')
     const res = await bget<Invoice>(token, `/api/invoices/${id}`)
-    if (!res.ok) { setError(res.status === 404 ? t('invoices.detail.notFound', 'Invoice not found') : t('invoices.detail.loadError', 'Failed to load invoice')); return }
+    if (!res.ok) {
+      setError(
+        res.status === 404
+          ? t('invoices.detail.notFound', 'Invoice not found')
+          : t('invoices.detail.loadError', 'Failed to load invoice'),
+      )
+      return
+    }
     setInv(res.data)
     const pr = await bget<Payment[]>(token, `/api/invoices/${id}/payments`)
     if (pr.ok && Array.isArray(pr.data)) setPayments(pr.data)
   }
 
-  useEffect(() => { load() }, [token, id])
+  useEffect(() => {
+    load()
+  }, [token, id])
 
   async function issue() {
     try {
       await bpost(token, `/api/invoices/${id}/issue`)
       toast.success(t('invoices.detail.issued', 'Invoice issued'))
       await load()
-    } catch (e) { toast.error((e as Error).message) }
+    } catch (e) {
+      toast.error((e as Error).message)
+    }
   }
 
   async function voidInvoice() {
-    if (!window.confirm(t('invoices.detail.voidConfirm', 'Void this invoice? This cannot be undone.'))) return
+    if (
+      !window.confirm(t('invoices.detail.voidConfirm', 'Void this invoice? This cannot be undone.'))
+    )
+      return
     try {
       await bpost(token, `/api/invoices/${id}/void`)
       toast.success(t('invoices.detail.voided', 'Invoice voided'))
       await load()
-    } catch (e) { toast.error((e as Error).message) }
+    } catch (e) {
+      toast.error((e as Error).message)
+    }
   }
 
   const lines = inv?.lines ?? []
   const status = (inv?.status ?? '').toUpperCase()
-  const cust = inv?.customer_id ? (names[inv.customer_id] ?? inv.customer_id.slice(0, 8)) : '—'
+  const cust = inv?.customer_id
+    ? (names[inv.customer_id] ?? humanRef({ id: inv.customer_id }))
+    : '—'
 
   return (
     <PageShell
       type="WORKSPACE"
-      breadcrumb={[t('nav.billingRevenue', 'Billing & Revenue'), t('invoices.title', 'Invoices'), inv?.number ?? `Invoice ${id.slice(0, 8)}`]}
+      breadcrumb={[
+        t('nav.billingRevenue', 'Billing & Revenue'),
+        t('invoices.title', 'Invoices'),
+        inv?.number ?? `Invoice ${humanRef({ id })}`,
+      ]}
       icon={<ReceiptIcon size={18} />}
-      title={inv?.number ?? `Invoice ${id.slice(0, 8)}`}
+      title={inv?.number ?? `Invoice ${humanRef({ id })}`}
       subtitle={inv ? `Customer: ${cust}` : undefined}
       secondaryActions={[
-        { label: t('invoices.title', 'Invoices'), icon: <ChevronLeftIcon size={14} />, onClick: onBack },
+        {
+          label: t('invoices.title', 'Invoices'),
+          icon: <ChevronLeftIcon size={14} />,
+          onClick: onBack,
+        },
       ]}
     >
       {error && <ErrorBanner message={error} onRetry={load} />}
@@ -161,38 +218,62 @@ export function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayme
                     action={
                       <Inline gap="sm" align="center">
                         {canEditInvoice && status === 'DRAFT' && (
-                          <Button variant="primary" size="sm" onClick={issue}>{t('invoices.detail.issue', 'Issue')}</Button>
+                          <Button variant="primary" size="sm" onClick={issue}>
+                            {t('invoices.detail.issue', 'Issue')}
+                          </Button>
                         )}
                         {canCreatePayment && (status === 'ISSUED' || status === 'OVERDUE') && (
                           <PayOnlineButton token={token} invoiceId={id} onDone={load} />
                         )}
                         {canCreatePayment && (status === 'ISSUED' || status === 'OVERDUE') && (
-                          <Button variant="primary" size="sm" onClick={() => setPayOpen(true)}>{t('invoices.detail.recordPayment', 'Record payment')}</Button>
+                          <Button variant="primary" size="sm" onClick={() => setPayOpen(true)}>
+                            {t('invoices.detail.recordPayment', 'Record payment')}
+                          </Button>
                         )}
                         {canEditInvoice && (status === 'ISSUED' || status === 'OVERDUE') && (
-                          <Button variant="ghost" size="sm" onClick={voidInvoice}>{t('invoices.detail.void', 'Void')}</Button>
+                          <Button variant="ghost" size="sm" onClick={voidInvoice}>
+                            {t('invoices.detail.void', 'Void')}
+                          </Button>
                         )}
-                        <Button variant="ghost" size="sm"
-            onClick={async () => {
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={async () => {
                             const e = await openDocument(token, `/api/invoices/${id}/document`)
                             if (e) toast.error(e)
                           }}
                         >
-                          <PrinterIcon size={14} /> {t('invoices.detail.printDownload', 'Print / Download')}
+                          <PrinterIcon size={14} />{' '}
+                          {t('invoices.detail.printDownload', 'Print / Download')}
                         </Button>
                       </Inline>
                     }
                   />
                   <div className="bill-meta">
-                    <div><span className="muted">{t('invoices.detail.customer', 'Customer')}</span><div>{cust}</div></div>
-                    <div><span className="muted">{t('common.status', 'Status')}</span><div>{statusPill(inv.status)}</div></div>
-                    <div><span className="muted">{t('invoices.detail.issued', 'Issued')}</span><div className="mono">{fmtDate(inv.issued_at ?? inv.created_at)}</div></div>
-                    <div><span className="muted">{t('invoices.detail.due', 'Due')}</span><div className="mono">{fmtDate(inv.due_at)}</div></div>
+                    <div>
+                      <span className="muted">{t('invoices.detail.customer', 'Customer')}</span>
+                      <div>{cust}</div>
+                    </div>
+                    <div>
+                      <span className="muted">{t('common.status', 'Status')}</span>
+                      <div>{statusPill(inv.status)}</div>
+                    </div>
+                    <div>
+                      <span className="muted">{t('invoices.detail.issued', 'Issued')}</span>
+                      <div className="mono">{fmtDate(inv.issued_at ?? inv.created_at)}</div>
+                    </div>
+                    <div>
+                      <span className="muted">{t('invoices.detail.due', 'Due')}</span>
+                      <div className="mono">{fmtDate(inv.due_at)}</div>
+                    </div>
                   </div>
                 </Card>
 
                 <Card pad="md">
-                  <SectionHeading icon={<LayersIcon size={14} />} title={t('invoices.detail.lineItems', 'Line items')} />
+                  <SectionHeading
+                    icon={<LayersIcon size={14} />}
+                    title={t('invoices.detail.lineItems', 'Line items')}
+                  />
                   <table className="grid bill-lines">
                     <thead>
                       <tr>
@@ -209,25 +290,44 @@ export function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayme
                           <tr key={l.id ?? i}>
                             <td>{l.description ?? '—'}</td>
                             <td className="num">{l.quantity ?? 1}</td>
-                            <td className={`num${negative ? ' amt-neg' : ''}`}>{money(l.unit_amount)}</td>
-                            <td className={`num${negative ? ' amt-neg' : ''}`}>{money(l.line_total)}</td>
+                            <td className={`num${negative ? ' amt-neg' : ''}`}>
+                              {money(l.unit_amount)}
+                            </td>
+                            <td className={`num${negative ? ' amt-neg' : ''}`}>
+                              {money(l.line_total)}
+                            </td>
                           </tr>
                         )
                       })}
                       {lines.length === 0 && (
-                        <tr><td colSpan={4} className="muted">{t('invoices.detail.noLines', 'No line items.')}</td></tr>
+                        <tr>
+                          <td colSpan={4} className="muted">
+                            {t('invoices.detail.noLines', 'No line items.')}
+                          </td>
+                        </tr>
                       )}
                     </tbody>
                   </table>
 
                   <div className="bill-totals">
-                    <div className="bill-total-row"><span>{t('invoices.totals.total', 'Total')}</span><span>{money(inv.total)}</span></div>
+                    <div className="bill-total-row">
+                      <span>{t('invoices.totals.total', 'Total')}</span>
+                      <span>{money(inv.total)}</span>
+                    </div>
                     {inv.balance !== undefined && (
                       <>
-                        <div className="bill-total-row"><span>{t('invoices.totals.paid', 'Paid')}</span><span>{money(inv.paid_total)}</span></div>
+                        <div className="bill-total-row">
+                          <span>{t('invoices.totals.paid', 'Paid')}</span>
+                          <span>{money(inv.paid_total)}</span>
+                        </div>
                         <div className="bill-total-row">
                           <span>{t('invoices.totals.balanceDue', 'Balance due')}</span>
-                          <span style={{ color: (inv.balance ?? 0) > 0 ? 'var(--gx-danger)' : 'var(--gx-success)' }}>
+                          <span
+                            style={{
+                              color:
+                                (inv.balance ?? 0) > 0 ? 'var(--gx-danger)' : 'var(--gx-success)',
+                            }}
+                          >
                             {money(inv.balance)}
                           </span>
                         </div>
@@ -238,7 +338,10 @@ export function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayme
 
                 {payments.length > 0 && (
                   <Card pad="md">
-                    <SectionHeading icon={<CreditCardIcon size={14} />} title={t('invoices.detail.paymentsRecorded', 'Payments recorded')} />
+                    <SectionHeading
+                      icon={<CreditCardIcon size={14} />}
+                      title={t('invoices.detail.paymentsRecorded', 'Payments recorded')}
+                    />
                     <table className="grid">
                       <thead>
                         <tr>
@@ -249,7 +352,7 @@ export function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayme
                         </tr>
                       </thead>
                       <tbody>
-                        {payments.map(p => (
+                        {payments.map((p) => (
                           <tr key={p.id}>
                             <td className="mono">{fmtDate(p.paid_at)}</td>
                             <td style={{ textTransform: 'capitalize' }}>{p.method}</td>
@@ -273,14 +376,14 @@ export function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayme
             {/* TB-4 — invoice detail tabs now reuse the canonical `customer-tabs/*`
                 components (parameterized over entity + id). The 8 Invoice*Tab
                 local copies were deleted — ~250 LOC of pure copy-paste. */}
-            {tab === 'timeline'       && <TimelineTab entity="invoice" id={id} />}
-            {tab === 'tasks'          && <TasksTab entity="invoice" id={id} />}
-            {tab === 'comments'       && <CommentsTab entity="invoice" id={id} />}
-            {tab === 'attachments'    && <AttachmentsTab entity="invoice" id={id} />}
-            {tab === 'approvals'      && <ApprovalsTab entity="invoice" id={id} />}
-            {tab === 'related'        && <RelatedTab entity="invoice" id={id} />}
+            {tab === 'timeline' && <TimelineTab entity="invoice" id={id} />}
+            {tab === 'tasks' && <TasksTab entity="invoice" id={id} />}
+            {tab === 'comments' && <CommentsTab entity="invoice" id={id} />}
+            {tab === 'attachments' && <AttachmentsTab entity="invoice" id={id} />}
+            {tab === 'approvals' && <ApprovalsTab entity="invoice" id={id} />}
+            {tab === 'related' && <RelatedTab entity="invoice" id={id} />}
             {tab === 'communications' && <CommunicationsTab entity="invoice" id={id} />}
-            {tab === 'audit'          && <AuditTab entity="invoice" id={id} />}
+            {tab === 'audit' && <AuditTab entity="invoice" id={id} />}
           </div>
         </>
       )}
@@ -290,7 +393,10 @@ export function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayme
           token={token}
           invoiceId={id}
           onClose={() => setPayOpen(false)}
-          onDone={() => { setPayOpen(false); load() }}
+          onDone={() => {
+            setPayOpen(false)
+            load()
+          }}
         />
       )}
     </PageShell>

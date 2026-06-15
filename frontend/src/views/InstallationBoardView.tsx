@@ -20,8 +20,17 @@ import { bget, bpost } from '../lib/billing'
 import { toast } from '../components/Toast'
 import { Modal } from '../components/Modal'
 import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from '../components/States'
-import { TruckIcon, RefreshIcon, ServerIcon, CheckIcon, PlusIcon, EditIcon, InfoIcon } from '../components/icons'
+import {
+  TruckIcon,
+  RefreshIcon,
+  ServerIcon,
+  CheckIcon,
+  PlusIcon,
+  EditIcon,
+  InfoIcon,
+} from '../components/icons'
 import { timeAgo } from '../lib/time'
+import { humanRef } from '../lib/humanize'
 import { can, type Capabilities, FULL_ACCESS } from '../lib/capabilities'
 import { OBJ } from '../lib/permissions-constants'
 import { Button, StatusPill } from '../primitives'
@@ -88,20 +97,20 @@ type ListResponse = {
 type ColumnKey = 'NONE' | 'RESOURCE_ALLOC' | 'CPE_BOUND' | 'ACTIVATED'
 
 const COLUMNS: { key: ColumnKey; label: string; sub: string; tone: string }[] = [
-  { key: 'NONE',           label: 'Awaiting Resources',  sub: 'Stage 9 · pending',   tone: 'var(--gx-neutral)' },
-  { key: 'RESOURCE_ALLOC', label: 'Resources Allocated', sub: 'Strand + VLAN ready', tone: 'var(--gx-info)' },
-  { key: 'CPE_BOUND',      label: 'CPE Bound',           sub: 'Stage 10 · hardware', tone: 'var(--gx-warning)' },
-  { key: 'ACTIVATED',      label: 'Activated',           sub: 'Stage 11 · live',     tone: 'var(--gx-success)' },
+  { key: 'NONE', label: 'Awaiting Resources', sub: 'Stage 9 · pending', tone: 'var(--gx-neutral)' },
+  {
+    key: 'RESOURCE_ALLOC',
+    label: 'Resources Allocated',
+    sub: 'Strand + VLAN ready',
+    tone: 'var(--gx-info)',
+  },
+  { key: 'CPE_BOUND', label: 'CPE Bound', sub: 'Stage 10 · hardware', tone: 'var(--gx-warning)' },
+  { key: 'ACTIVATED', label: 'Activated', sub: 'Stage 11 · live', tone: 'var(--gx-success)' },
 ]
 
 function columnOf(order: InstallOrder): ColumnKey {
   if (!order.install_substage) return 'NONE'
   return order.install_substage as ColumnKey
-}
-
-function shortId(id: string | null | undefined, n = 8): string {
-  if (!id) return '—'
-  return id.length <= n ? id : id.slice(0, n)
 }
 
 interface ViewProps {
@@ -130,17 +139,33 @@ export default function InstallationBoardView({
   async function load(opts: { silent?: boolean } = {}) {
     if (opts.silent) setReloading(true)
     else setLoading(true)
-    setError(null); setDenied(false); setNotFound(false)
+    setError(null)
+    setDenied(false)
+    setNotFound(false)
     const r = await bget<ListResponse>(token!, `/api/install-board?page=1`)
-    if (r.status === 403) { setDenied(true); setLoading(false); setReloading(false); return }
-    if (r.status === 404) { setNotFound(true); setOrders([]); setLoading(false); setReloading(false); return }
+    if (r.status === 403) {
+      setDenied(true)
+      setLoading(false)
+      setReloading(false)
+      return
+    }
+    if (r.status === 404) {
+      setNotFound(true)
+      setOrders([])
+      setLoading(false)
+      setReloading(false)
+      return
+    }
     if (!r.ok || !r.data) {
       setError(`Failed to load installation board (HTTP ${r.status})`)
-      setLoading(false); setReloading(false); return
+      setLoading(false)
+      setReloading(false)
+      return
     }
     const items = Array.isArray(r.data.items) ? r.data.items : []
     setOrders(items)
-    setLoading(false); setReloading(false)
+    setLoading(false)
+    setReloading(false)
   }
 
   useEffect(() => {
@@ -184,25 +209,28 @@ export default function InstallationBoardView({
   // Client-derived KPIs — count by column.
   const all = orders ?? []
   const byCol: Record<ColumnKey, InstallOrder[]> = {
-    NONE: [], RESOURCE_ALLOC: [], CPE_BOUND: [], ACTIVATED: [],
+    NONE: [],
+    RESOURCE_ALLOC: [],
+    CPE_BOUND: [],
+    ACTIVATED: [],
   }
   for (const o of all) byCol[columnOf(o)].push(o)
 
   const kpis: KPISpec[] = loading
     ? [
-        { label: 'Awaiting',   value: 0, loading: true },
-        { label: 'Allocated',  value: 0, loading: true },
-        { label: 'CPE Bound',  value: 0, loading: true },
-        { label: 'Activated',  value: 0, loading: true },
+        { label: 'Awaiting', value: 0, loading: true },
+        { label: 'Allocated', value: 0, loading: true },
+        { label: 'CPE Bound', value: 0, loading: true },
+        { label: 'Activated', value: 0, loading: true },
       ]
     : all.length === 0
-    ? []
-    : [
-        { label: 'Awaiting',  value: byCol.NONE.length,           subtitle: 'no resources yet' },
-        { label: 'Allocated', value: byCol.RESOURCE_ALLOC.length, subtitle: 'strand + VLAN' },
-        { label: 'CPE Bound', value: byCol.CPE_BOUND.length,      subtitle: 'hardware paired' },
-        { label: 'Activated', value: byCol.ACTIVATED.length,      subtitle: 'service live' },
-      ]
+      ? []
+      : [
+          { label: 'Awaiting', value: byCol.NONE.length, subtitle: 'no resources yet' },
+          { label: 'Allocated', value: byCol.RESOURCE_ALLOC.length, subtitle: 'strand + VLAN' },
+          { label: 'CPE Bound', value: byCol.CPE_BOUND.length, subtitle: 'hardware paired' },
+          { label: 'Activated', value: byCol.ACTIVATED.length, subtitle: 'service live' },
+        ]
 
   if (denied) {
     return <PermissionDenied message="You don't have permission to view the installation board." />
@@ -219,12 +247,21 @@ export default function InstallationBoardView({
       primaryAction={{
         label: reloading ? 'Refreshing…' : 'Refresh',
         icon: <RefreshIcon size={13} />,
-        onClick: () => { void load({ silent: true }) },
+        onClick: () => {
+          void load({ silent: true })
+        },
         disabled: loading || reloading,
       }}
     >
       {loading && <SkeletonRows rows={4} />}
-      {error && <ErrorBanner message={error} onRetry={() => { void load() }} />}
+      {error && (
+        <ErrorBanner
+          message={error}
+          onRetry={() => {
+            void load()
+          }}
+        />
+      )}
       {notFound && !loading && (
         <EmptyState
           icon={<ServerIcon size={40} />}
@@ -248,13 +285,34 @@ export default function InstallationBoardView({
                 <div className="kcol-head">
                   <span
                     style={{
-                      width: 'var(--gx-space-4)', height: 'var(--gx-space-4)', borderRadius: '50%',
-                      background: col.tone, flexShrink: 0,
+                      width: 'var(--gx-space-4)',
+                      height: 'var(--gx-space-4)',
+                      borderRadius: '50%',
+                      background: col.tone,
+                      flexShrink: 0,
                     }}
                   />
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0, flex: 1 }}>
-                    <span style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 'var(--gx-weight-semibold)', color: 'var(--gx-text-1)' }}>{col.label}</span>
-                    <span style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)' }}>{col.sub}</span>
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 1,
+                      minWidth: 0,
+                      flex: 1,
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 'var(--gx-text-sm)',
+                        fontWeight: 'var(--gx-weight-semibold)',
+                        color: 'var(--gx-text-1)',
+                      }}
+                    >
+                      {col.label}
+                    </span>
+                    <span style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)' }}>
+                      {col.sub}
+                    </span>
                   </div>
                   <span className="kcol-count">{items.length}</span>
                 </div>
@@ -304,12 +362,7 @@ export default function InstallationBoardView({
         />
       )}
 
-      {summaryFor && (
-        <InstallSummaryModal
-          order={summaryFor}
-          onClose={() => setSummaryFor(null)}
-        />
-      )}
+      {summaryFor && <InstallSummaryModal order={summaryFor} onClose={() => setSummaryFor(null)} />}
     </PageShell>
   )
 }
@@ -346,46 +399,87 @@ function OrderCard({
       style={{ cursor: 'pointer' }}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen() } }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onOpen()
+        }
+      }}
     >
       <div
         className="mono"
-        style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-link)', marginBottom: 'var(--gx-space-2)' }}
+        style={{
+          fontSize: 'var(--gx-text-11)',
+          color: 'var(--gx-link)',
+          marginBottom: 'var(--gx-space-2)',
+        }}
         title={order.id}
       >
-        {order.number ? order.number : `ord-${shortId(order.id)}`}
+        {order.number ? order.number : humanRef({ id: order.id })}
       </div>
-      <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', marginBottom: 'var(--gx-space-4)' }}>
-        Customer <span className="mono" title={order.customer_id ?? ''}>{shortId(order.customer_id, 8)}</span>
+      <div
+        style={{
+          fontSize: 'var(--gx-text-11)',
+          color: 'var(--gx-text-3)',
+          marginBottom: 'var(--gx-space-4)',
+        }}
+      >
+        Customer{' '}
+        <span className="mono" title={order.customer_id ?? ''}>
+          {order.customer_id ? humanRef({ id: order.customer_id }) : '—'}
+        </span>
       </div>
-      <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', marginBottom: 'var(--gx-space-5)' }}>
+      <div
+        style={{
+          fontSize: 'var(--gx-text-11)',
+          color: 'var(--gx-text-3)',
+          marginBottom: 'var(--gx-space-5)',
+        }}
+      >
         {order.install_substage_at ? timeAgo(order.install_substage_at) : 'no timestamp'}
       </div>
 
-      <div onClick={stop} style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--gx-space-3)', alignItems: 'center' }}>
+      <div
+        onClick={stop}
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 'var(--gx-space-3)',
+          alignItems: 'center',
+        }}
+      >
         {column === 'NONE' && canEdit && (
-          <Button variant="primary" size="sm"
+          <Button
+            variant="primary"
+            size="sm"
             onClick={onAllocate}
             disabled={busy}
-            style={{ fontSize: 'var(--gx-text-11)' }}>
+            style={{ fontSize: 'var(--gx-text-11)' }}
+          >
             <PlusIcon size={11} />
             {busy ? 'Allocating…' : 'Allocate Resources'}
           </Button>
         )}
         {column === 'RESOURCE_ALLOC' && canEdit && (
-          <Button variant="primary" size="sm"
+          <Button
+            variant="primary"
+            size="sm"
             onClick={onBind}
             disabled={busy}
-            style={{ fontSize: 'var(--gx-text-11)' }}>
+            style={{ fontSize: 'var(--gx-text-11)' }}
+          >
             <EditIcon size={11} />
             Bind CPE
           </Button>
         )}
         {column === 'CPE_BOUND' && canEdit && (
-          <Button variant="primary" size="sm"
+          <Button
+            variant="primary"
+            size="sm"
             onClick={onActivate}
             disabled={busy}
-            style={{ fontSize: 'var(--gx-text-11)' }}>
+            style={{ fontSize: 'var(--gx-text-11)' }}
+          >
             <CheckIcon size={11} />
             {busy ? 'Activating…' : 'Activate'}
           </Button>
@@ -405,7 +499,13 @@ function OrderCard({
           </span>
         )}
         {!canEdit && column !== 'ACTIVATED' && (
-          <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', fontStyle: 'italic' }}>
+          <span
+            style={{
+              fontSize: 'var(--gx-text-11)',
+              color: 'var(--gx-text-3)',
+              fontStyle: 'italic',
+            }}
+          >
             Read-only
           </span>
         )}
@@ -439,7 +539,8 @@ function BindCpeModal({
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     if (!canSubmit) return
-    setSaving(true); setErr(null)
+    setSaving(true)
+    setErr(null)
     try {
       await bpost(token!, `/api/install-board/orders/${order.id}/bind-cpe`, {
         mac_address: mac.trim().toLowerCase(),
@@ -465,25 +566,31 @@ function BindCpeModal({
       open
       onClose={onClose}
       title="Bind CPE"
-      subtitle={order.number ? `Order ${order.number}` : `Order ${shortId(order.id, 12)}`}
+      subtitle={order.number ? `Order ${order.number}` : `Order ${humanRef({ id: order.id })}`}
       size="md"
       footer={
         <>
-          <Button variant="ghost" size="md"
-            type="button"  onClick={onClose} disabled={saving}>
+          <Button variant="ghost" size="md" type="button" onClick={onClose} disabled={saving}>
             Cancel
           </Button>
-          <Button variant="primary" size="md"
+          <Button
+            variant="primary"
+            size="md"
             type="submit"
             form="bind-cpe-form"
-            
-            disabled={!canSubmit}>
+            disabled={!canSubmit}
+          >
             {saving ? 'Binding…' : 'Bind CPE'}
           </Button>
         </>
       }
     >
-      <form id="bind-cpe-form" onSubmit={submit} className="rec-form" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-6)' }}>
+      <form
+        id="bind-cpe-form"
+        onSubmit={submit}
+        className="rec-form"
+        style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-6)' }}
+      >
         {err && <ErrorBanner message={err} />}
         <label className="field">
           <span>MAC address *</span>
@@ -509,16 +616,31 @@ function BindCpeModal({
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--gx-space-6)' }}>
           <label className="field">
             <span>Vendor</span>
-            <input className="inp inp-md" value={vendor} onChange={(e) => setVendor(e.target.value)} placeholder="(optional)" />
+            <input
+              className="inp inp-md"
+              value={vendor}
+              onChange={(e) => setVendor(e.target.value)}
+              placeholder="(optional)"
+            />
           </label>
           <label className="field">
             <span>Model</span>
-            <input className="inp inp-md" value={model} onChange={(e) => setModel(e.target.value)} placeholder="(optional)" />
+            <input
+              className="inp inp-md"
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              placeholder="(optional)"
+            />
           </label>
         </div>
         <label className="field">
           <span>Firmware</span>
-          <input className="inp inp-md" value={firmware} onChange={(e) => setFirmware(e.target.value)} placeholder="(optional)" />
+          <input
+            className="inp inp-md"
+            value={firmware}
+            onChange={(e) => setFirmware(e.target.value)}
+            placeholder="(optional)"
+          />
         </label>
       </form>
     </Modal>
@@ -527,30 +649,28 @@ function BindCpeModal({
 
 /* ─── Install Summary Modal ─────────────────────────────────────────────── */
 
-function InstallSummaryModal({
-  order,
-  onClose,
-}: {
-  order: InstallOrder
-  onClose: () => void
-}) {
+function InstallSummaryModal({ order, onClose }: { order: InstallOrder; onClose: () => void }) {
   const { token } = useAuth()
   const [summary, setSummary] = useState<InstallSummary | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let alive = true
-    setSummary(null); setError(null)
-    bget<InstallSummary>(token!, `/api/install-board/orders/${order.id}/install-summary`)
-      .then((r) => {
+    setSummary(null)
+    setError(null)
+    bget<InstallSummary>(token!, `/api/install-board/orders/${order.id}/install-summary`).then(
+      (r) => {
         if (!alive) return
         if (!r.ok || !r.data) {
           setError(`Failed to load install summary (HTTP ${r.status})`)
           return
         }
         setSummary(r.data)
-      })
-    return () => { alive = false }
+      },
+    )
+    return () => {
+      alive = false
+    }
   }, [token, order.id])
 
   const substageVariant = (sub: Substage) => {
@@ -571,11 +691,21 @@ function InstallSummaryModal({
       open
       onClose={onClose}
       title="Installation snapshot"
-      subtitle={order.number ? `Order ${order.number}` : `Order ${shortId(order.id, 12)}`}
+      subtitle={order.number ? `Order ${order.number}` : `Order ${humanRef({ id: order.id })}`}
       size="lg"
       hero={
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', flexWrap: 'wrap' }}>
-          <StatusPill variant={substageVariant(order.install_substage)} label={substageLabel(order.install_substage)} />
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--gx-space-5)',
+            flexWrap: 'wrap',
+          }}
+        >
+          <StatusPill
+            variant={substageVariant(order.install_substage)}
+            label={substageLabel(order.install_substage)}
+          />
           <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>
             Updated {order.install_substage_at ? timeAgo(order.install_substage_at) : '—'}
           </span>
@@ -590,10 +720,20 @@ function InstallSummaryModal({
             title="Order"
             icon={<InfoIcon size={13} />}
             rows={[
-              ['Order ID', <span className="mono" title={summary.order.id}>{shortId(summary.order.id, 12)}</span>],
-              ['Number',   summary.order.number ?? '—'],
-              ['Customer', <span className="mono" title={summary.order.customer_id ?? ''}>{shortId(summary.order.customer_id, 12)}</span>],
-              ['Status',   summary.order.status],
+              [
+                'Order ID',
+                <span className="mono" title={summary.order.id}>
+                  {humanRef({ id: summary.order.id })}
+                </span>,
+              ],
+              ['Number', summary.order.number ?? '—'],
+              [
+                'Customer',
+                <span className="mono" title={summary.order.customer_id ?? ''}>
+                  {summary.order.customer_id ? humanRef({ id: summary.order.customer_id }) : '—'}
+                </span>,
+              ],
+              ['Status', summary.order.status],
               ['Substage', substageLabel(summary.order.install_substage)],
             ]}
           />
@@ -601,36 +741,67 @@ function InstallSummaryModal({
             title="Splitter strand"
             icon={<ServerIcon size={13} />}
             empty={!summary.splitter_strand && 'No strand allocated yet'}
-            rows={summary.splitter_strand ? [
-              ['Strand #',  String(summary.splitter_strand.strand_no)],
-              ['Splitter',  <span className="mono" title={summary.splitter_strand.splitter_record_id}>{shortId(summary.splitter_strand.splitter_record_id, 12)}</span>],
-              ['Status',    summary.splitter_strand.status],
-              ['Allocated', summary.splitter_strand.allocated_at ? timeAgo(summary.splitter_strand.allocated_at) : '—'],
-            ] : []}
+            rows={
+              summary.splitter_strand
+                ? [
+                    ['Strand #', String(summary.splitter_strand.strand_no)],
+                    [
+                      'Splitter',
+                      <span className="mono" title={summary.splitter_strand.splitter_record_id}>
+                        {humanRef({ id: summary.splitter_strand.splitter_record_id })}
+                      </span>,
+                    ],
+                    ['Status', summary.splitter_strand.status],
+                    [
+                      'Allocated',
+                      summary.splitter_strand.allocated_at
+                        ? timeAgo(summary.splitter_strand.allocated_at)
+                        : '—',
+                    ],
+                  ]
+                : []
+            }
           />
           <SummarySection
             title="VLAN assignment"
             icon={<ServerIcon size={13} />}
             empty={!summary.vlan && 'No VLAN assigned yet'}
-            rows={summary.vlan ? [
-              ['VLAN',     summary.vlan.vlan_value != null ? String(summary.vlan.vlan_value) : '—'],
-              ['Purpose',  summary.vlan.purpose ?? '—'],
-              ['Assigned', summary.vlan.assigned_at ? timeAgo(summary.vlan.assigned_at) : '—'],
-            ] : []}
+            rows={
+              summary.vlan
+                ? [
+                    [
+                      'VLAN',
+                      summary.vlan.vlan_value != null ? String(summary.vlan.vlan_value) : '—',
+                    ],
+                    ['Purpose', summary.vlan.purpose ?? '—'],
+                    [
+                      'Assigned',
+                      summary.vlan.assigned_at ? timeAgo(summary.vlan.assigned_at) : '—',
+                    ],
+                  ]
+                : []
+            }
           />
           <SummarySection
             title="CPE binding"
             icon={<ServerIcon size={13} />}
             empty={!summary.cpe && 'No CPE bound yet'}
-            rows={summary.cpe ? [
-              ['MAC',         <span className="mono">{summary.cpe.mac_address}</span>],
-              ['Serial',      <span className="mono">{summary.cpe.serial}</span>],
-              ['Vendor',      summary.cpe.vendor ?? '—'],
-              ['Model',       summary.cpe.model ?? '—'],
-              ['Firmware',    summary.cpe.firmware ?? '—'],
-              ['Status',      summary.cpe.status],
-              ['Provisioned', summary.cpe.provisioned_at ? timeAgo(summary.cpe.provisioned_at) : '—'],
-            ] : []}
+            rows={
+              summary.cpe
+                ? [
+                    ['MAC', <span className="mono">{summary.cpe.mac_address}</span>],
+                    ['Serial', <span className="mono">{summary.cpe.serial}</span>],
+                    ['Vendor', summary.cpe.vendor ?? '—'],
+                    ['Model', summary.cpe.model ?? '—'],
+                    ['Firmware', summary.cpe.firmware ?? '—'],
+                    ['Status', summary.cpe.status],
+                    [
+                      'Provisioned',
+                      summary.cpe.provisioned_at ? timeAgo(summary.cpe.provisioned_at) : '—',
+                    ],
+                  ]
+                : []
+            }
           />
         </div>
       )}
@@ -651,33 +822,45 @@ function SummarySection({
 }) {
   return (
     <section>
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)',
-        fontSize: 'var(--gx-text-11)', fontWeight: 'var(--gx-weight-semibold)', textTransform: 'uppercase',
-        letterSpacing: '0.06em', color: 'var(--gx-text-3)',
-        marginBottom: 'var(--gx-space-3)',
-      }}>
-        {icon}<span>{title}</span>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 'var(--gx-space-3)',
+          fontSize: 'var(--gx-text-11)',
+          fontWeight: 'var(--gx-weight-semibold)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.06em',
+          color: 'var(--gx-text-3)',
+          marginBottom: 'var(--gx-space-3)',
+        }}
+      >
+        {icon}
+        <span>{title}</span>
       </div>
       {empty ? (
-        <div style={{
-          padding: 'var(--gx-space-4)',
-          fontSize: 'var(--gx-text-sm)',
-          color: 'var(--gx-text-3)',
-          background: 'var(--gx-surface-2)',
-          border: '1px dashed var(--gx-border)',
-          borderRadius: 'var(--gx-radius-sm)',
-        }}>
+        <div
+          style={{
+            padding: 'var(--gx-space-4)',
+            fontSize: 'var(--gx-text-sm)',
+            color: 'var(--gx-text-3)',
+            background: 'var(--gx-surface-2)',
+            border: '1px dashed var(--gx-border)',
+            borderRadius: 'var(--gx-radius-sm)',
+          }}
+        >
           {empty}
         </div>
       ) : (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '140px 1fr',
-          rowGap: 'var(--gx-space-3)',
-          columnGap: 'var(--gx-space-4)',
-          fontSize: 'var(--gx-text-sm)',
-        }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '140px 1fr',
+            rowGap: 'var(--gx-space-3)',
+            columnGap: 'var(--gx-space-4)',
+            fontSize: 'var(--gx-text-sm)',
+          }}
+        >
           {rows.map(([k, v], i) => (
             <div key={i} style={{ display: 'contents' }}>
               <div style={{ color: 'var(--gx-text-3)' }}>{k}</div>
