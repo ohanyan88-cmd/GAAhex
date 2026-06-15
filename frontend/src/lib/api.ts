@@ -1,7 +1,8 @@
 import { BASE } from './config'
-import { authH } from './billing'  // AC-1 — canonical Bearer-header factory
+import { bfetch } from './billing' // AC — single low-level client; every call below funnels through it (401 everywhere)
 
 export async function login(email: string, password: string): Promise<string> {
+  // Pre-auth: no token + a login-401 is the credential check itself, not a session expiry — keep it raw.
   const r = await fetch(`${BASE}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -12,13 +13,13 @@ export async function login(email: string, password: string): Promise<string> {
 }
 
 export async function me(token: string) {
-  const r = await fetch(`${BASE}/auth/me`, { headers: authH(token) })
+  const r = await bfetch(token, '/auth/me')
   if (!r.ok) throw new Error('Auth failed')
   return r.json()
 }
 
-export async function orgTree() {
-  const r = await fetch(`${BASE}/org-tree`)
+export async function orgTree(token: string) {
+  const r = await bfetch(token, '/org-tree')
   if (!r.ok) throw new Error('Failed to load org tree')
   return r.json()
 }
@@ -46,10 +47,15 @@ export class OrgWriteError extends Error {
   }
 }
 
-async function orgWrite(token: string, path: string, method: 'POST' | 'PATCH' | 'DELETE', body?: unknown) {
-  const r = await fetch(`${BASE}/api/org/${path}`, {
+async function orgWrite(
+  token: string,
+  path: string,
+  method: 'POST' | 'PATCH' | 'DELETE',
+  body?: unknown,
+) {
+  const r = await bfetch(token, `/api/org/${path}`, {
     method,
-    headers: { ...authH(token), ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}) },
+    headers: body !== undefined ? { 'Content-Type': 'application/json' } : {},
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
   if (!r.ok) {
@@ -70,28 +76,35 @@ export async function renameOrgNode(token: string, id: string, name: string): Pr
   return orgWrite(token, `nodes/${id}`, 'PATCH', { name })
 }
 
-export async function moveOrgNode(token: string, id: string, parent_id: string | null): Promise<OrgNodeOut> {
+export async function moveOrgNode(
+  token: string,
+  id: string,
+  parent_id: string | null,
+): Promise<OrgNodeOut> {
   return orgWrite(token, `nodes/${id}`, 'PATCH', { parent_id })
 }
 
-export async function deleteOrgNode(token: string, id: string): Promise<{ ok: boolean; id: string }> {
+export async function deleteOrgNode(
+  token: string,
+  id: string,
+): Promise<{ ok: boolean; id: string }> {
   return orgWrite(token, `nodes/${id}`, 'DELETE')
 }
 
 export async function getEntities(token: string) {
-  const r = await fetch(`${BASE}/meta/entities`, { headers: authH(token) })
+  const r = await bfetch(token, '/meta/entities')
   if (!r.ok) throw new Error('Failed to load entities')
   return r.json()
 }
 
 export async function getEntityDef(token: string, slug: string) {
-  const r = await fetch(`${BASE}/meta/entities/${slug}`, { headers: authH(token) })
+  const r = await bfetch(token, `/meta/entities/${slug}`)
   if (!r.ok) throw new Error('Failed to load entity definition')
   return r.json()
 }
 
 export async function listRecords(token: string, slug: string) {
-  const r = await fetch(`${BASE}/api/${slug}`, { headers: authH(token) })
+  const r = await bfetch(token, `/api/${slug}`)
   if (!r.ok) throw new Error('Failed to load records')
   return r.json()
 }
@@ -101,9 +114,14 @@ export async function listRecordsPaged(
   token: string,
   slug: string,
   params: URLSearchParams,
-): Promise<{ rows: Record<string, unknown>[]; total: number | null; status: number; response: Response }> {
+): Promise<{
+  rows: Record<string, unknown>[]
+  total: number | null
+  status: number
+  response: Response
+}> {
   const qs = params.toString()
-  const r = await fetch(`${BASE}/api/${slug}${qs ? `?${qs}` : ''}`, { headers: authH(token) })
+  const r = await bfetch(token, `/api/${slug}${qs ? `?${qs}` : ''}`)
   const totalRaw = r.headers.get('X-Total-Count')
   const total = totalRaw !== null ? parseInt(totalRaw, 10) : null
   const rows = r.ok ? await r.json() : []
@@ -112,7 +130,7 @@ export async function listRecordsPaged(
 
 export async function healthCheck(): Promise<'ok' | 'error'> {
   try {
-    const r = await fetch(`${BASE}/api/health`)
+    const r = await bfetch(null, '/api/health')
     return r.ok ? 'ok' : 'error'
   } catch {
     return 'error'
@@ -120,9 +138,9 @@ export async function healthCheck(): Promise<'ok' | 'error'> {
 }
 
 export async function createRecord(token: string, slug: string, data: Record<string, unknown>) {
-  const r = await fetch(`${BASE}/api/${slug}`, {
+  const r = await bfetch(token, `/api/${slug}`, {
     method: 'POST',
-    headers: { ...authH(token), 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
   if (!r.ok) {
@@ -134,14 +152,18 @@ export async function createRecord(token: string, slug: string, data: Record<str
 
 // Upload files to a record's attachments (one multipart POST per file — the endpoint takes a
 // single `file`). `entityKey` is the entity key (e.g. "lead"), not the route slug.
-export async function uploadAttachments(token: string, entityKey: string, recordId: string, files: File[]) {
+export async function uploadAttachments(
+  token: string,
+  entityKey: string,
+  recordId: string,
+  files: File[],
+) {
   for (const f of files) {
     const fd = new FormData()
     fd.append('file', f, f.name)
-    const r = await fetch(`${BASE}/api/${entityKey}/${recordId}/attachments`, {
+    const r = await bfetch(token, `/api/${entityKey}/${recordId}/attachments`, {
       method: 'POST',
-      headers: authH(token),   // no Content-Type — the browser sets the multipart boundary
-      body: fd,
+      body: fd, // no Content-Type — the browser sets the multipart boundary
     })
     if (!r.ok) {
       const e = await r.json().catch(() => ({ detail: 'Attachment upload failed' }))
@@ -156,9 +178,9 @@ export async function generateContractDocx(
   token: string,
   values: Record<string, any>,
 ): Promise<Blob> {
-  const r = await fetch(`${BASE}/api/leads/contract-docx`, {
+  const r = await bfetch(token, '/api/leads/contract-docx', {
     method: 'POST',
-    headers: { ...authH(token), 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ values }),
   })
   if (!r.ok) throw new Error('Contract generation failed')
@@ -166,9 +188,9 @@ export async function generateContractDocx(
 }
 
 export async function createEntity(token: string, def: Record<string, unknown>) {
-  const r = await fetch(`${BASE}/meta/entities`, {
+  const r = await bfetch(token, '/meta/entities', {
     method: 'POST',
-    headers: { ...authH(token), 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(def),
   })
   if (!r.ok) {
@@ -179,9 +201,9 @@ export async function createEntity(token: string, def: Record<string, unknown>) 
 }
 
 export async function transitionRecord(token: string, slug: string, id: string, to: string) {
-  const r = await fetch(`${BASE}/api/${slug}/${id}/transition`, {
+  const r = await bfetch(token, `/api/${slug}/${id}/transition`, {
     method: 'POST',
-    headers: { ...authH(token), 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ to }),
   })
   if (!r.ok) {
@@ -224,10 +246,12 @@ export type SearchGroup = {
 }
 
 /** Full /api/search response (A27). */
-export type SearchResponse = {
-  groups?: SearchGroup[]
-  facets?: SearchFacets
-} | SearchGroup[]  // older array-only format for backward compat
+export type SearchResponse =
+  | {
+      groups?: SearchGroup[]
+      facets?: SearchFacets
+    }
+  | SearchGroup[] // older array-only format for backward compat
 
 /** GET /api/search — degrades to [] on 404.
  *  A27 returns facets only on the opt-in envelope (?view=hits), as a FLAT hit list with facet
@@ -242,7 +266,7 @@ export async function crossSearch(
   const params = new URLSearchParams({ q, view: 'hits', facets: 'true' })
   if (entity) params.set('entity', entity)
   if (status) params.set('status', status)
-  const r = await fetch(`${BASE}/api/search?${params}`, { headers: authH(token) })
+  const r = await bfetch(token, `/api/search?${params}`)
   if (!r.ok) return { groups: [], facets: null }
   const data = await r.json()
   // Old array-only format: already grouped, no facets.
@@ -286,7 +310,11 @@ export async function crossSearch(
   const toBuckets = (m: unknown): SearchFacet[] | undefined => {
     if (!m) return undefined
     if (Array.isArray(m)) return m as SearchFacet[]
-    return Object.entries(m as Record<string, number>).map(([key, count]) => ({ key, label: key, count }))
+    return Object.entries(m as Record<string, number>).map(([key, count]) => ({
+      key,
+      label: key,
+      count,
+    }))
   }
   const rf = obj.facets
   const facets: SearchFacets | null = rf
@@ -297,7 +325,7 @@ export async function crossSearch(
 
 /** GET /api/search/suggest?q= — degrades to [] on 404. */
 export async function searchSuggest(token: string, q: string): Promise<string[]> {
-  const r = await fetch(`${BASE}/api/search/suggest?q=${encodeURIComponent(q)}`, { headers: authH(token) })
+  const r = await bfetch(token, `/api/search/suggest?q=${encodeURIComponent(q)}`)
   if (!r.ok) return []
   const data = await r.json()
   return Array.isArray(data) ? data : (data.suggestions ?? [])
@@ -308,7 +336,7 @@ export type RecentSearch = { id?: string; query: string; ran_at?: string }
 
 /** GET /api/saved-searches — degrades gracefully on 404 (returns null = feature unavailable). */
 export async function getSavedSearches(token: string): Promise<SavedSearch[] | null> {
-  const r = await fetch(`${BASE}/api/saved-searches`, { headers: authH(token) })
+  const r = await bfetch(token, '/api/saved-searches')
   if (r.status === 404) return null
   if (!r.ok) return []
   const data = await r.json()
@@ -316,10 +344,14 @@ export async function getSavedSearches(token: string): Promise<SavedSearch[] | n
 }
 
 /** POST /api/saved-searches — save a query. Returns null on 404 (unavailable). */
-export async function saveSearch(token: string, name: string, query: string): Promise<SavedSearch | null> {
-  const r = await fetch(`${BASE}/api/saved-searches`, {
+export async function saveSearch(
+  token: string,
+  name: string,
+  query: string,
+): Promise<SavedSearch | null> {
+  const r = await bfetch(token, '/api/saved-searches', {
     method: 'POST',
-    headers: { ...authH(token), 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, query }),
   })
   if (r.status === 404) return null
@@ -329,7 +361,7 @@ export async function saveSearch(token: string, name: string, query: string): Pr
 
 /** GET /api/recent-searches — degrades gracefully on 404 (returns null = feature unavailable). */
 export async function getRecentSearches(token: string): Promise<RecentSearch[] | null> {
-  const r = await fetch(`${BASE}/api/recent-searches`, { headers: authH(token) })
+  const r = await bfetch(token, '/api/recent-searches')
   if (r.status === 404) return null
   if (!r.ok) return []
   const data = await r.json()

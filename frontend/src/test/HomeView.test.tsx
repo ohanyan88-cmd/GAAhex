@@ -3,14 +3,19 @@
  * Mocks: useAuth (no real token), fetch (no network), embedded sub-views.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import HomeView from '../views/HomeView'
+import { FULL_ACCESS } from '../lib/capabilities'
 
 // ── Mock dependencies ──────────────────────────────────────────────────────
 
 vi.mock('../context/AuthContext', () => ({
-  useAuth: () => ({ user: { id: 'u1', name: 'Test User', email: 'test@example.com', avatar_url: null }, token: 'tok', setUser: vi.fn() }),
+  useAuth: () => ({
+    user: { id: 'u1', name: 'Test User', email: 'test@example.com', avatar_url: null },
+    token: 'tok',
+    setUser: vi.fn(),
+  }),
 }))
 
 vi.mock('../lib/config', () => ({ BASE: 'http://localhost' }))
@@ -19,7 +24,11 @@ vi.mock('../lib/config', () => ({ BASE: 'http://localhost' }))
 vi.mock('../views/AskGaaexView', () => ({ default: () => <div data-testid="ask-view" /> }))
 vi.mock('../views/MessagesView', () => ({ default: () => <div data-testid="messages-view" /> }))
 vi.mock('../views/CalendarView', () => ({ default: () => <div data-testid="calendar-view" /> }))
-vi.mock('../views/ProfileView', () => ({ default: ({ initialSection }: { initialSection: string }) => <div data-testid={`profile-${initialSection}`} /> }))
+vi.mock('../views/ProfileView', () => ({
+  default: ({ initialSection }: { initialSection: string }) => (
+    <div data-testid={`profile-${initialSection}`} />
+  ),
+}))
 
 // Silence fetch so workspace data calls don't leak into test output.
 beforeEach(() => {
@@ -30,11 +39,7 @@ beforeEach(() => {
 
 describe('HomeView tab switching', () => {
   function mount() {
-    return render(
-      <HomeView
-        capabilities={{}}
-      />
-    )
+    return render(<HomeView capabilities={FULL_ACCESS} />)
   }
 
   it('renders Workspace tab by default', () => {
@@ -70,7 +75,7 @@ describe('HomeView tab switching', () => {
     mount()
     await userEvent.click(screen.getByRole('tab', { name: /ask me/i }))
     await userEvent.click(screen.getByRole('tab', { name: /workspace/i }))
-    // Workspace layout zone should be visible
-    expect(screen.getByText(/ME/)).toBeInTheDocument()
+    // Workspace layout zone (the role-personalized widget grid) should be visible.
+    expect(document.querySelector('.ws-grid')).toBeInTheDocument()
   })
 })

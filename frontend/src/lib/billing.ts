@@ -37,8 +37,8 @@ export type Subscription = {
   customer_id?: string | null
   owner_node_id?: string | null
   plan_name?: string
-  amount?: number          // luma
-  cycle?: string           // monthly | yearly
+  amount?: number // luma
+  cycle?: string // monthly | yearly
   status?: SubscriptionStatus | null
   started_at?: string | null
   next_invoice_at?: string | null
@@ -50,8 +50,8 @@ export type InvoiceLine = {
   id?: string
   description?: string
   quantity?: number
-  unit_amount?: number     // luma (negative ⇒ discount line)
-  line_total?: number      // luma
+  unit_amount?: number // luma (negative ⇒ discount line)
+  line_total?: number // luma
   [k: string]: any
 }
 
@@ -62,9 +62,9 @@ export type Invoice = {
   status?: InvoiceStatus | null
   period_start?: string | null
   period_end?: string | null
-  total?: number           // luma
-  paid_total?: number      // luma — sum of recorded payments
-  balance?: number         // luma — total minus paid_total
+  total?: number // luma
+  paid_total?: number // luma — sum of recorded payments
+  balance?: number // luma — total minus paid_total
   issued_at?: string | null
   due_at?: string | null
   created_at?: string | null
@@ -75,7 +75,7 @@ export type Invoice = {
 export type Payment = {
   id: string
   invoice_id: string
-  amount: number           // luma
+  amount: number // luma
   method: PaymentMethodKind
   paid_at: string | null
   note: string | null
@@ -84,7 +84,7 @@ export type Payment = {
 
 export type Party = {
   id: string
-  type?: string                 // individual | organization | carrier
+  type?: string // individual | organization | carrier
   name?: string
   parent_party_id?: string | null
   parent_name?: string | null
@@ -98,7 +98,7 @@ export type Product = {
   key?: string
   name?: string
   description?: string | null
-  default_amount?: number   // luma
+  default_amount?: number // luma
   cycle?: string
   active?: boolean
   created_at?: string | null
@@ -110,9 +110,13 @@ export type Fetched<T> = { status: number; ok: boolean; data: T | null }
 // GET that never throws — returns status so callers can tell 404 (degrade) from real errors.
 export async function bget<T = any>(token: string, path: string): Promise<Fetched<T>> {
   const r = await fetch(`${BASE}${path}`, { headers: authH(token) })
-  intercept401(r.status)  // AC-3
+  intercept401(r.status) // AC-3
   let data: any = null
-  try { data = await r.json() } catch { /* empty/non-json body */ }
+  try {
+    data = await r.json()
+  } catch {
+    /* empty/non-json body */
+  }
   return { status: r.status, ok: r.ok, data }
 }
 
@@ -123,31 +127,78 @@ async function send<T = any>(token: string, method: string, path: string, body?:
     headers: { ...authH(token), 'Content-Type': 'application/json' },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
-  intercept401(r.status)  // AC-3
+  intercept401(r.status) // AC-3
   let data: any = null
-  try { data = await r.json() } catch { /* ignore */ }
+  try {
+    data = await r.json()
+  } catch {
+    /* ignore */
+  }
   if (!r.ok) {
     const d = data?.detail
-    const err = new Error(typeof d === 'string' ? d : d ? JSON.stringify(d) : `Request failed (${r.status})`) as Error & { status?: number }
+    const err = new Error(
+      typeof d === 'string' ? d : d ? JSON.stringify(d) : `Request failed (${r.status})`,
+    ) as Error & { status?: number }
     err.status = r.status
     throw err
   }
   return data as T
 }
-export const bpost = <T = any>(token: string, path: string, body?: any) => send<T>(token, 'POST', path, body)
-export const bpatch = <T = any>(token: string, path: string, body?: any) => send<T>(token, 'PATCH', path, body)
-export const bput = <T = any>(token: string, path: string, body?: any) => send<T>(token, 'PUT', path, body)
+export const bpost = <T = any>(token: string, path: string, body?: any) =>
+  send<T>(token, 'POST', path, body)
+export const bpatch = <T = any>(token: string, path: string, body?: any) =>
+  send<T>(token, 'PATCH', path, body)
+export const bput = <T = any>(token: string, path: string, body?: any) =>
+  send<T>(token, 'PUT', path, body)
 export const bdel = <T = any>(token: string, path: string) => send<T>(token, 'DELETE', path)
+
+// AC — single low-level auth'd fetch returning the raw Response, for the cases the typed helpers
+// can't cover: reading response headers (X-Total-Count), blobs, FormData, or per-call 404→null
+// branching. Funnels through intercept401 like every other helper, so 401 handling is universal.
+// `lib/api.ts` routes ALL its calls through this, so there is one client surface, not two.
+export async function bfetch(
+  token: string | null,
+  path: string,
+  init?: RequestInit,
+): Promise<Response> {
+  const headers = { ...(token ? authH(token) : {}), ...(init?.headers ?? {}) }
+  const r = await fetch(`${BASE}${path}`, { ...init, headers })
+  intercept401(r.status) // AC-3
+  return r
+}
+
+// Opt-in snake_case → camelCase key mapper for the data seam (standard §12 camelCase wire). NOT applied
+// blanket — that would break the many snake_case consumers; pages opt in as they migrate (Phase 6 tracer).
+function toCamel(s: string): string {
+  return s.replace(/_+([a-z0-9])/g, (_m, c: string) => c.toUpperCase())
+}
+export function camelKeys<T = any>(input: unknown): T {
+  if (Array.isArray(input)) return input.map((v) => camelKeys(v)) as unknown as T
+  if (input && typeof input === 'object' && (input as object).constructor === Object) {
+    const out: Record<string, unknown> = {}
+    for (const k of Object.keys(input as Record<string, unknown>)) {
+      out[toCamel(k)] = camelKeys((input as Record<string, unknown>)[k])
+    }
+    return out as T
+  }
+  return input as T
+}
 
 // Multipart file upload — no Content-Type override; browser sets multipart/form-data + boundary.
 export async function bupload<T = any>(token: string, path: string, form: FormData): Promise<T> {
   const r = await fetch(`${BASE}${path}`, { method: 'POST', headers: authH(token), body: form })
   intercept401(r.status)
   let data: any = null
-  try { data = await r.json() } catch { /* non-json body */ }
+  try {
+    data = await r.json()
+  } catch {
+    /* non-json body */
+  }
   if (!r.ok) {
     const d = data?.detail
-    const err = new Error(typeof d === 'string' ? d : d ? JSON.stringify(d) : `Upload failed (${r.status})`) as Error & { status?: number }
+    const err = new Error(
+      typeof d === 'string' ? d : d ? JSON.stringify(d) : `Upload failed (${r.status})`,
+    ) as Error & { status?: number }
     err.status = r.status
     throw err
   }
@@ -161,11 +212,23 @@ export async function openDocument(token: string, path: string): Promise<string 
   const win = window.open('', '_blank')
   try {
     const r = await fetch(`${BASE}${path}`, { headers: authH(token) })
-    if (!r.ok) throw new Error(r.status === 404 ? 'Document not available' : r.status === 403 ? 'Not allowed' : `Failed (${r.status})`)
+    if (!r.ok)
+      throw new Error(
+        r.status === 404
+          ? 'Document not available'
+          : r.status === 403
+            ? 'Not allowed'
+            : `Failed (${r.status})`,
+      )
     const blob = await r.blob()
     const url = URL.createObjectURL(blob)
     if (win) win.location.href = url
-    else { const a = document.createElement('a'); a.href = url; a.target = '_blank'; a.click() }   // popup blocked → fallback
+    else {
+      const a = document.createElement('a')
+      a.href = url
+      a.target = '_blank'
+      a.click()
+    } // popup blocked → fallback
     setTimeout(() => URL.revokeObjectURL(url), 60000)
     return null
   } catch (e) {
@@ -186,7 +249,9 @@ export async function loadCustomers(token: string): Promise<Record<string, strin
 // Customer options [{id,label}] for pickers (sorted by label). Empty if unavailable.
 export async function loadCustomerOptions(token: string): Promise<{ id: string; label: string }[]> {
   const map = await loadCustomers(token)
-  return Object.entries(map).map(([id, label]) => ({ id, label })).sort((a, b) => a.label.localeCompare(b.label))
+  return Object.entries(map)
+    .map(([id, label]) => ({ id, label }))
+    .sort((a, b) => a.label.localeCompare(b.label))
 }
 
 // Active products for pickers/catalog. Empty if unavailable.

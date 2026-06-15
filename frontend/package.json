@@ -8,8 +8,23 @@
     "build": "vite build",
     "preview": "vite preview",
     "test:unit": "vitest run --config vitest.config.ts",
+    "test": "vitest run --config vitest.config.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "gate:lint-changed": "node scripts/lint-changed.mjs",
+    "gate": "npm run typecheck && npm run test && npm run gate:lint-changed",
+    "precommit": "lint-staged",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "prepare": "cd .. && git config core.hooksPath .husky"
+  },
+  "lint-staged": {
+    "**/*.{ts,tsx}": [
+      "node node_modules/eslint/bin/eslint.js --fix",
+      "node node_modules/prettier/bin/prettier.cjs --write"
+    ]
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^2.4.0",
@@ -26,6 +41,7 @@
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^5.2.1",
+    "@eslint/js": "^9.39.4",
     "@storybook/addon-a11y": "^10.4.1",
     "@storybook/addon-docs": "^10.4.1",
     "@storybook/addon-mcp": "^0.6.0",
@@ -41,12 +57,20 @@
     "@vitest/browser-playwright": "^4.1.7",
     "@vitest/coverage-v8": "^4.1.7",
     "autoprefixer": "^10.5.0",
+    "eslint": "^9.39.4",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.3",
+    "husky": "^9.1.7",
     "jsdom": "^29.1.1",
+    "lint-staged": "^17.0.7",
     "playwright": "^1.60.0",
     "postcss": "^8.5.15",
+    "prettier": "^3.8.4",
     "storybook": "^10.4.1",
     "tailwindcss": "^3.4.19",
     "typescript": "^5.6.3",
+    "typescript-eslint": "^8.61.0",
     "vite": "^6.0.7",
     "vitest": "^4.1.7"
   }

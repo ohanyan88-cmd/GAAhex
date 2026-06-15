@@ -1,3 +1,5 @@
+import { localeTag } from './i18n'
+
 // Compact relative-time formatter for comments/messages timestamps.
 export function timeAgo(iso: string | null): string {
   if (!iso) return ''
@@ -11,18 +13,16 @@ export function timeAgo(iso: string | null): string {
   if (h < 24) return `${h}h ago`
   const d = Math.floor(h / 24)
   if (d < 7) return `${d}d ago`
-  return new Date(iso).toLocaleDateString()
+  return new Date(iso).toLocaleDateString(localeTag())
 }
-
 
 // DF-4 — canonical date formatter. Was redefined privately in 15 view files.
 // Returns "—" for null/empty/invalid so callers don't need to guard.
 export function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '—'
   const d = new Date(iso)
-  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString()
+  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString(localeTag())
 }
-
 
 // DF-5 — canonical date+time formatter. Was redefined privately in 6
 // `views/customer-tabs/*.tsx` files plus a few outliers. Returns "—" for
@@ -30,5 +30,5 @@ export function fmtDate(iso: string | null | undefined): string {
 export function fmtDateTime(iso: string | null | undefined): string {
   if (!iso) return '—'
   const d = new Date(iso)
-  return isNaN(d.getTime()) ? '—' : d.toLocaleString()
+  return isNaN(d.getTime()) ? '—' : d.toLocaleString(localeTag())
 }

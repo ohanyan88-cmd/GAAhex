@@ -1,6 +1,14 @@
 import { Button } from './primitives'
 import { createContext, useContext, useEffect, useState } from 'react'
-import { Routes, Route, Navigate, useNavigate, useLocation, useParams, useSearchParams } from 'react-router-dom'
+import {
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+  useLocation,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom'
 import { login, me, getEntities, orgTree } from './lib/api'
 import ErrorBoundary from './components/ErrorBoundary'
 import EntityView from './views/EntityView'
@@ -55,7 +63,18 @@ import { NAV_SECTIONS, type NavItemDef, type NavSectionDef } from './lib/nav-con
 import { loadDynamicNav } from './lib/nav-loader'
 import { useI18n, initI18n } from './lib/i18n'
 import { RowsIcon, ChevronRightIcon, ServerIcon } from './components/icons'
-import { PanelLeft, LogIn, Shield, Eye, EyeOff, Sun, Moon, Mail, MessageCircle, Calendar } from 'lucide-react'
+import {
+  PanelLeft,
+  LogIn,
+  Shield,
+  Eye,
+  EyeOff,
+  Sun,
+  Moon,
+  Mail,
+  MessageCircle,
+  Calendar,
+} from 'lucide-react'
 import { fetchCapabilities, FULL_ACCESS, type Capabilities } from './lib/capabilities'
 import { useAuth } from './context/AuthContext'
 import SecurityModal from './modals/SecurityModal'
@@ -63,15 +82,28 @@ import { ShortcutsModal, DocsModal, WhatsNewModal } from './modals/SupportModals
 
 type Me = { email: string; name: string; can_configure?: boolean; avatar_url?: string | null }
 type Entity = { key: string; label: string; label_plural: string; route_slug: string }
-type OrgNode = { id: string; type: string; name: string; path: string; code?: string; parent_id?: string | null }
+type OrgNode = {
+  id: string
+  type: string
+  name: string
+  path: string
+  code?: string
+  parent_id?: string | null
+}
 
 // Entity slugs that have dedicated nav-config items; others surface as extra Records
 const BUILTIN_ENTITY_SLUGS = new Set(['customers', 'contacts', 'tickets', 'users'])
 
 // ─── AppShellContext ──────────────────────────────────────────────────────────
 // Non-auth App state shared with route-level adapters that can't read App scope.
-interface AppShellContextValue { canConfigure: boolean; pageConfigVersion: number }
-const AppShellContext = createContext<AppShellContextValue>({ canConfigure: false, pageConfigVersion: 0 })
+interface AppShellContextValue {
+  canConfigure: boolean
+  pageConfigVersion: number
+}
+const AppShellContext = createContext<AppShellContextValue>({
+  canConfigure: false,
+  pageConfigVersion: 0,
+})
 
 // ─── Route adapters ───────────────────────────────────────────────────────────
 // These are module-level because they call useParams()/useSearchParams().
@@ -107,7 +139,9 @@ function CustomerRouteAdapter() {
       canConfigure={canConfigure}
       capabilities={capabilities}
       onOpenInvoices={(initialStatus) =>
-        navigate(initialStatus ? `/invoices?status=${encodeURIComponent(initialStatus)}` : '/invoices')
+        navigate(
+          initialStatus ? `/invoices?status=${encodeURIComponent(initialStatus)}` : '/invoices',
+        )
       }
     />
   )
@@ -121,15 +155,15 @@ function StudioRouteAdapter() {
     <StudioShell
       canConfigure={canConfigure}
       route={{
-        group:  searchParams.get('group')  ?? undefined,
+        group: searchParams.get('group') ?? undefined,
         module: searchParams.get('module') ?? undefined,
-        leaf:   searchParams.get('leaf')   ?? undefined,
+        leaf: searchParams.get('leaf') ?? undefined,
       }}
       onRoute={(r: StudioRoute) => {
         const p = new URLSearchParams()
-        if (r.group)  p.set('group', r.group)
+        if (r.group) p.set('group', r.group)
         if (r.module) p.set('module', r.module)
-        if (r.leaf)   p.set('leaf', r.leaf)
+        if (r.leaf) p.set('leaf', r.leaf)
         setSearchParams(p)
       }}
       onBack={() => navigate(-1)}
@@ -188,8 +222,17 @@ function ModuleRouteAdapter() {
 
 export default function App() {
   const {
-    token, user, capabilities, entities, orgNodes,
-    setToken, setUser, setCapabilities, setEntities, setOrgNodes, clearAuth,
+    token,
+    user,
+    capabilities,
+    entities,
+    orgNodes,
+    setToken,
+    setUser,
+    setCapabilities,
+    setEntities,
+    setOrgNodes,
+    clearAuth,
   } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -201,7 +244,9 @@ export default function App() {
 
   const canConfigure = !!user?.can_configure
 
-  function openCustomer(id: string) { navigate(`/customer/${id}`) }
+  function openCustomer(id: string) {
+    navigate(`/customer/${id}`)
+  }
 
   const [email, setEmail] = useState('admin@demo.isp')
   const [password, setPassword] = useState('admin123')
@@ -209,7 +254,9 @@ export default function App() {
   const [error, setError] = useState('')
   const [navOpen, setNavOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
-  const [accountModal, setAccountModal] = useState<'security' | 'shortcuts' | 'docs' | 'whatsnew' | null>(null)
+  const [accountModal, setAccountModal] = useState<
+    'security' | 'shortcuts' | 'docs' | 'whatsnew' | null
+  >(null)
   const { t, lang, setLang } = useI18n()
 
   const [navSections, setNavSections] = useState<NavSectionDef[]>(NAV_SECTIONS)
@@ -223,17 +270,20 @@ export default function App() {
     // mirrors SPEC §1 exactly (9 groups, 71 items, [O]/[V] flags) AND carries
     // the viewType wiring that the dynamic loader can't yet generate. Re-enable
     // once /api/nav rows carry per-module viewType metadata.
-    // eslint-disable-next-line no-console
+
     console.info('[nav] source=static (SPEC §1 layout)')
-    void loadDynamicNav  // keep import live so tree-shaker doesn't remove the file
-    return () => { /* noop */ }
+    void loadDynamicNav // keep import live so tree-shaker doesn't remove the file
+    return () => {
+      /* noop */
+    }
   }, [token])
 
   function toggleSection(id: string, e: React.MouseEvent) {
     e.stopPropagation()
     setOpenSections((prev) => {
       const next = new Set(prev)
-      if (next.has(id)) next.delete(id); else next.add(id)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
       return next
     })
   }
@@ -250,7 +300,9 @@ export default function App() {
     }
     if (item.viewType === 'coming-soon') {
       const a = item.viewArgs!
-      navigate(`/coming-soon/${a.id}?title=${encodeURIComponent(a.title)}&parent=${encodeURIComponent(a.parent)}`)
+      navigate(
+        `/coming-soon/${a.id}?title=${encodeURIComponent(a.title)}&parent=${encodeURIComponent(a.parent)}`,
+      )
       return
     }
     navigate(item.viewType === 'home' ? '/' : `/${item.viewType}`)
@@ -265,10 +317,12 @@ export default function App() {
     return p === `/${item.viewType}`
   }
 
-  useEffect(() => { initI18n(token) }, [token])
+  useEffect(() => {
+    initI18n(token)
+  }, [token])
 
-  const [theme, setTheme] = useState<'dark' | 'light'>(
-    () => (localStorage.getItem('gaahex-theme') === 'light' ? 'light' : 'dark'),
+  const [theme, setTheme] = useState<'dark' | 'light'>(() =>
+    localStorage.getItem('gaahex-theme') === 'light' ? 'light' : 'dark',
   )
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
@@ -289,7 +343,10 @@ export default function App() {
   // `gaahex:auth-401`; clearAuth() clears every piece of session state and
   // re-renders the login screen via the `if (!token)` gate below.
   useEffect(() => {
-    const onAuth401 = () => { clearAuth(); navigate('/') }
+    const onAuth401 = () => {
+      clearAuth()
+      navigate('/')
+    }
     window.addEventListener('gaahex:auth-401', onAuth401)
     return () => window.removeEventListener('gaahex:auth-401', onAuth401)
   }, [clearAuth, navigate])
@@ -302,8 +359,10 @@ export default function App() {
       setToken(t)
       setUser(await me(t))
       setEntities(await getEntities(t))
-      setOrgNodes((await orgTree()).nodes)
-      fetchCapabilities(t).then(setCapabilities).catch(() => setCapabilities(FULL_ACCESS))
+      setOrgNodes((await orgTree(t)).nodes)
+      fetchCapabilities(t)
+        .then(setCapabilities)
+        .catch(() => setCapabilities(FULL_ACCESS))
     } catch (err) {
       setError((err as Error).message)
     }
@@ -320,49 +379,103 @@ export default function App() {
     return (
       <div className="login-wrap">
         <div className="login-brand" data-theme="dark">
-          <img src="/logo/GAAhex-logo-reversed.svg" alt="GAAhex" style={{ height: 102, position: 'relative', zIndex: 1 }} />
+          <img
+            src="/logo/GAAhex-logo-reversed.svg"
+            alt="GAAhex"
+            style={{ height: 102, position: 'relative', zIndex: 1 }}
+          />
           <div style={{ position: 'relative', zIndex: 1 }}>
-            <div className="gx-eyebrow" style={{ marginBottom: 14 }}>THE OPERATING SYSTEM FOR ISPs</div>
-            <h1 style={{ fontFamily: 'var(--gx-font-display)', fontSize: 40, fontWeight: 600, lineHeight: 1.08, letterSpacing: '-.03em', margin: 0, maxWidth: 420 }}>
-              Every department.<br />Every role.<br /><span style={{ color: 'var(--gx-gold)' }}>One system.</span>
+            <div className="gx-eyebrow" style={{ marginBottom: 14 }}>
+              THE OPERATING SYSTEM FOR ISPs
+            </div>
+            <h1
+              style={{
+                fontFamily: 'var(--gx-font-display)',
+                fontSize: 40,
+                fontWeight: 600,
+                lineHeight: 1.08,
+                letterSpacing: '-.03em',
+                margin: 0,
+                maxWidth: 420,
+              }}
+            >
+              Every department.
+              <br />
+              Every role.
+              <br />
+              <span style={{ color: 'var(--gx-gold)' }}>One system.</span>
             </h1>
-            <ul style={{
-              listStyle: 'none', padding: 0, margin: '22px 0 0',
-              display: 'flex', flexDirection: 'column', gap: 6,
-              fontFamily: 'var(--gx-font-display)',
-              fontSize: 18, fontWeight: 500,
-              color: 'var(--gx-text-1)',
-              letterSpacing: '-.01em',
-            }}>
+            <ul
+              style={{
+                listStyle: 'none',
+                padding: 0,
+                margin: '22px 0 0',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 6,
+                fontFamily: 'var(--gx-font-display)',
+                fontSize: 18,
+                fontWeight: 500,
+                color: 'var(--gx-text-1)',
+                letterSpacing: '-.01em',
+              }}
+            >
               {['CRM', 'Billing', 'Network', 'Field Ops', 'Finance & More'].map((m) => (
                 <li key={m} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{
-                    display: 'inline-block',
-                    width: 4, height: 4,
-                    background: 'var(--gx-gold)',
-                    borderRadius: 'var(--gx-radius-full)',
-                  }} />
+                  <span
+                    style={{
+                      display: 'inline-block',
+                      width: 4,
+                      height: 4,
+                      background: 'var(--gx-gold)',
+                      borderRadius: 'var(--gx-radius-full)',
+                    }}
+                  />
                   {m}
                 </li>
               ))}
             </ul>
           </div>
-          <p style={{
-            color: 'var(--gx-text-2)',
-            fontSize: 14, lineHeight: 1.6, maxWidth: 380,
-            margin: 0,
-            position: 'relative', zIndex: 1,
-          }}>
-            Configurable modules and workflows<br />built for ISPs.
+          <p
+            style={{
+              color: 'var(--gx-text-2)',
+              fontSize: 14,
+              lineHeight: 1.6,
+              maxWidth: 380,
+              margin: 0,
+              position: 'relative',
+              zIndex: 1,
+            }}
+          >
+            Configurable modules and workflows
+            <br />
+            built for ISPs.
           </p>
         </div>
         <div className="login-card">
           <form className="login-form fade" onSubmit={handleLogin}>
-            <h2 style={{ fontFamily: 'var(--gx-font-display)', fontSize: 24, fontWeight: 600, margin: '0 0 6px', letterSpacing: '-.02em' }}>{t('auth.signin', 'Sign in')}</h2>
-            <p className="hint" style={{ margin: '0 0 24px' }}>Welcome back. Use your tenant credentials.</p>
+            <h2
+              style={{
+                fontFamily: 'var(--gx-font-display)',
+                fontSize: 24,
+                fontWeight: 600,
+                margin: '0 0 6px',
+                letterSpacing: '-.02em',
+              }}
+            >
+              {t('auth.signin', 'Sign in')}
+            </h2>
+            <p className="hint" style={{ margin: '0 0 24px' }}>
+              Welcome back. Use your tenant credentials.
+            </p>
             <label className="field" style={{ marginBottom: 14 }}>
               <span>{t('auth.email', 'Email')}</span>
-              <input className={'inp' + (error ? ' inp-error' : '')} value={email} onChange={(e) => setEmail(e.target.value)} aria-label={t('auth.email', 'Email')} />
+              <input
+                className={'inp' + (error ? ' inp-error' : '')}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                aria-label={t('auth.email', 'Email')}
+              />
             </label>
             <label className="field" style={{ marginBottom: 8 }}>
               <span>{t('auth.password', 'Password')}</span>
@@ -378,8 +491,16 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setShowPassword((s) => !s)}
-                  aria-label={showPassword ? t('auth.hidePassword', 'Hide password') : t('auth.showPassword', 'Show password')}
-                  title={showPassword ? t('auth.hidePassword', 'Hide password') : t('auth.showPassword', 'Show password')}
+                  aria-label={
+                    showPassword
+                      ? t('auth.hidePassword', 'Hide password')
+                      : t('auth.showPassword', 'Show password')
+                  }
+                  title={
+                    showPassword
+                      ? t('auth.hidePassword', 'Hide password')
+                      : t('auth.showPassword', 'Show password')
+                  }
                   tabIndex={-1}
                   style={{
                     position: 'absolute',
@@ -400,23 +521,67 @@ export default function App() {
                 </button>
               </div>
             </label>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '10px 0 22px' }}>
-              <label style={{ display: 'flex', gap: 7, alignItems: 'center', fontSize: 12.5, color: 'var(--gx-text-2)' }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                margin: '10px 0 22px',
+              }}
+            >
+              <label
+                style={{
+                  display: 'flex',
+                  gap: 7,
+                  alignItems: 'center',
+                  fontSize: 12.5,
+                  color: 'var(--gx-text-2)',
+                }}
+              >
                 <input type="checkbox" defaultChecked /> Remember me
               </label>
-              <a className="btn-link" style={{ fontSize: 12.5, cursor: 'pointer' }}>Forgot password?</a>
+              <a className="btn-link" style={{ fontSize: 12.5, cursor: 'pointer' }}>
+                Forgot password?
+              </a>
             </div>
-            {error && <p className="err" style={{ marginTop: -10, marginBottom: 14, color: 'var(--gx-danger-fg)', fontSize: 12.5 }}>{error}</p>}
-            <Button variant="primary" size="lg"
-            style={{ width: '100%' }} type="submit"><LogIn size={16} />{t('auth.signin', 'Sign in')}</Button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)', margin: '22px 0' }}>
+            {error && (
+              <p
+                className="err"
+                style={{
+                  marginTop: -10,
+                  marginBottom: 14,
+                  color: 'var(--gx-danger-fg)',
+                  fontSize: 12.5,
+                }}
+              >
+                {error}
+              </p>
+            )}
+            <Button variant="primary" size="lg" style={{ width: '100%' }} type="submit">
+              <LogIn size={16} />
+              {t('auth.signin', 'Sign in')}
+            </Button>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--gx-space-4)',
+                margin: '22px 0',
+              }}
+            >
               <div style={{ flex: 1, height: 1, background: 'var(--gx-border)' }} />
-              <span className="hint" style={{ fontSize: 11 }}>or</span>
+              <span className="hint" style={{ fontSize: 11 }}>
+                or
+              </span>
               <div style={{ flex: 1, height: 1, background: 'var(--gx-border)' }} />
             </div>
-            <Button variant="secondary" size="lg"
-            style={{ width: '100%' }} type="button"><Shield size={16} />Continue with SSO</Button>
-            <p className="hint" style={{ marginTop: 18, fontSize: 11, textAlign: 'center' }}>demo: admin@demo.isp / admin123</p>
+            <Button variant="secondary" size="lg" style={{ width: '100%' }} type="button">
+              <Shield size={16} />
+              Continue with SSO
+            </Button>
+            <p className="hint" style={{ marginTop: 18, fontSize: 11, textAlign: 'center' }}>
+              demo: admin@demo.isp / admin123
+            </p>
           </form>
         </div>
       </div>
@@ -428,7 +593,9 @@ export default function App() {
   return (
     <AppShellContext.Provider value={{ canConfigure, pageConfigVersion }}>
       <div className={'app' + (collapsed ? ' collapsed' : '') + (navOpen ? ' navopen' : '')}>
-        <a href="#main-content" className="skip-link">Skip to content</a>
+        <a href="#main-content" className="skip-link">
+          Skip to content
+        </a>
         {navOpen && (
           <div
             className="nav-scrim"
@@ -436,7 +603,9 @@ export default function App() {
             tabIndex={-1}
             aria-label="Close navigation"
             onClick={() => setNavOpen(false)}
-            onKeyDown={(e) => { if (e.key === 'Escape') setNavOpen(false) }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') setNavOpen(false)
+            }}
           />
         )}
         <aside className="sb" data-theme="dark">
@@ -449,100 +618,111 @@ export default function App() {
           </div>
 
           <div className="sb-scroll">
-            {navSections.filter((sec) => !sec.adminOnly || canConfigure).map((sec) => {
-              const isOpen = openSections.has(sec.id)
-              if (sec.standalone) {
-                const synth: NavItemDef = { id: sec.id, label: sec.label, icon: sec.icon, viewType: sec.viewType }
+            {navSections
+              .filter((sec) => !sec.adminOnly || canConfigure)
+              .map((sec) => {
+                const isOpen = openSections.has(sec.id)
+                if (sec.standalone) {
+                  const synth: NavItemDef = {
+                    id: sec.id,
+                    label: sec.label,
+                    icon: sec.icon,
+                    viewType: sec.viewType,
+                  }
+                  return (
+                    <div key={sec.id} className="sb-sec">
+                      <button
+                        className={'sb-sec-btn' + (isItemActive(synth) ? ' on' : '')}
+                        onClick={(e) => navItemClick(synth, e)}
+                      >
+                        <sec.icon size={16} />
+                        <span>{sec.label}</span>
+                      </button>
+                    </div>
+                  )
+                }
                 return (
                   <div key={sec.id} className="sb-sec">
                     <button
-                      className={'sb-sec-btn' + (isItemActive(synth) ? ' on' : '')}
-                      onClick={(e) => navItemClick(synth, e)}
+                      className={'sb-sec-btn' + (isOpen ? ' open' : '')}
+                      onClick={(e) => toggleSection(sec.id, e)}
+                      aria-expanded={isOpen}
                     >
                       <sec.icon size={16} />
                       <span>{sec.label}</span>
+                      <ChevronRightIcon size={14} className="chev" />
                     </button>
+                    {isOpen && (
+                      <>
+                        {sec.items.length > 0 && (
+                          <div className="sb-items">
+                            {sec.items.map((item) => (
+                              <button
+                                key={item.id}
+                                className={'sb-item' + (isItemActive(item) ? ' on' : '')}
+                                onClick={(e) => navItemClick(item, e)}
+                              >
+                                <span className="ic">
+                                  <item.icon size={15} />
+                                </span>
+                                <span>{item.label}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        {sec.subsections?.map((sub) => {
+                          const isAdminRecords =
+                            sec.id === 'admin_panel' && sub.id === 'admin_records'
+                          const items: NavItemDef[] = isAdminRecords
+                            ? extraEntities.map((en) => ({
+                                id: `extra-${en.key}`,
+                                label: en.label_plural,
+                                icon: RowsIcon,
+                                viewType: 'entity',
+                                viewArgs: { slug: en.route_slug },
+                              }))
+                            : sub.items
+                          if (items.length === 0) return null
+                          const subKey = `${sec.id}/${sub.id}`
+                          const subOpen = openSections.has(subKey)
+                          return (
+                            <div key={sub.id} className="sb-sec" style={{ paddingLeft: 8 }}>
+                              <button
+                                className={'sb-sec-btn' + (subOpen ? ' open' : '')}
+                                onClick={(e) => toggleSection(subKey, e)}
+                                aria-expanded={subOpen}
+                                style={{ fontSize: 12, opacity: 0.85 }}
+                              >
+                                <sub.icon size={14} />
+                                <span>{sub.label}</span>
+                                <ChevronRightIcon size={12} className="chev" />
+                              </button>
+                              {subOpen && (
+                                <div className="sb-items">
+                                  {items.map((item) => (
+                                    <button
+                                      key={item.id}
+                                      className={'sb-item' + (isItemActive(item) ? ' on' : '')}
+                                      onClick={(e) => navItemClick(item, e)}
+                                    >
+                                      <span className="ic">
+                                        <item.icon size={15} />
+                                      </span>
+                                      <span>{item.label}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </>
+                    )}
                   </div>
                 )
-              }
-              return (
-                <div key={sec.id} className="sb-sec">
-                  <button
-                    className={'sb-sec-btn' + (isOpen ? ' open' : '')}
-                    onClick={(e) => toggleSection(sec.id, e)}
-                    aria-expanded={isOpen}
-                  >
-                    <sec.icon size={16} />
-                    <span>{sec.label}</span>
-                    <ChevronRightIcon size={14} className="chev" />
-                  </button>
-                  {isOpen && (
-                    <>
-                      {sec.items.length > 0 && (
-                        <div className="sb-items">
-                          {sec.items.map((item) => (
-                            <button
-                              key={item.id}
-                              className={'sb-item' + (isItemActive(item) ? ' on' : '')}
-                              onClick={(e) => navItemClick(item, e)}
-                            >
-                              <span className="ic"><item.icon size={15} /></span>
-                              <span>{item.label}</span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-
-                      {sec.subsections?.map((sub) => {
-                        const isAdminRecords = sec.id === 'admin_panel' && sub.id === 'admin_records'
-                        const items: NavItemDef[] = isAdminRecords
-                          ? extraEntities.map((en) => ({
-                              id: `extra-${en.key}`,
-                              label: en.label_plural,
-                              icon: RowsIcon,
-                              viewType: 'entity',
-                              viewArgs: { slug: en.route_slug },
-                            }))
-                          : sub.items
-                        if (items.length === 0) return null
-                        const subKey = `${sec.id}/${sub.id}`
-                        const subOpen = openSections.has(subKey)
-                        return (
-                          <div key={sub.id} className="sb-sec" style={{ paddingLeft: 8 }}>
-                            <button
-                              className={'sb-sec-btn' + (subOpen ? ' open' : '')}
-                              onClick={(e) => toggleSection(subKey, e)}
-                              aria-expanded={subOpen}
-                              style={{ fontSize: 12, opacity: 0.85 }}
-                            >
-                              <sub.icon size={14} />
-                              <span>{sub.label}</span>
-                              <ChevronRightIcon size={12} className="chev" />
-                            </button>
-                            {subOpen && (
-                              <div className="sb-items">
-                                {items.map((item) => (
-                                  <button
-                                    key={item.id}
-                                    className={'sb-item' + (isItemActive(item) ? ' on' : '')}
-                                    onClick={(e) => navItemClick(item, e)}
-                                  >
-                                    <span className="ic"><item.icon size={15} /></span>
-                                    <span>{item.label}</span>
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </>
-                  )}
-                </div>
-              )
-            })}
+              })}
           </div>
-
         </aside>
 
         <div className="main">
@@ -609,8 +789,16 @@ export default function App() {
               <LangMenu />
               <button
                 className="tb-icon"
-                aria-label={theme === 'dark' ? t('common.themeLight', 'Light theme') : t('common.themeDark', 'Dark theme')}
-                title={theme === 'dark' ? t('common.themeLight', 'Light theme') : t('common.themeDark', 'Dark theme')}
+                aria-label={
+                  theme === 'dark'
+                    ? t('common.themeLight', 'Light theme')
+                    : t('common.themeDark', 'Dark theme')
+                }
+                title={
+                  theme === 'dark'
+                    ? t('common.themeLight', 'Light theme')
+                    : t('common.themeDark', 'Dark theme')
+                }
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               >
                 {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
@@ -620,78 +808,237 @@ export default function App() {
             <span className="spacer" />
             <OrgIdentity />
 
-            {user && (
-              <UserMenu
-                user={user}
-                onSignOut={logout}
-              />
-            )}
+            {user && <UserMenu user={user} onSignOut={logout} />}
           </header>
 
           <main id="main-content" className="view">
             <ErrorBoundary>
               <Routes>
-                <Route path="/"                   element={<HomeView capabilities={capabilities} onNavigate={(type, id) => {
-                  if (type === 'workitems') navigate('/workitems')
-                  else if (type === 'mytasks') navigate('/mytasks')
-                  else if (type === 'my-approvals') navigate('/my-approvals')
-                  else if (type === 'helpdesk') navigate(id ? `/helpdesk?ticket=${encodeURIComponent(id)}` : '/helpdesk')
-                  else if (type === 'entity' && id) navigate(`/entity/${id}`)
-                }} />} />
-                <Route path="/org"                element={<OrgPage />} />
-                <Route path="/projects"           element={<ComingSoonView title="Projects" parent="Projects" id="projects" />} />
-                <Route path="/dashboards"         element={<DashboardView configVersion={pageConfigVersion} canConfigure={canConfigure} capabilities={capabilities} onNavigate={(target) => {
-                  if (target.type === 'subscriptions') navigate('/subscriptions')
-                  else if (target.type === 'invoices') navigate('/invoices')
-                  else if (target.type === 'helpdesk') navigate('/helpdesk')
-                  else if (target.type === 'workitems') navigate('/workitems')
-                }} />} />
-                <Route path="/lead-pipeline"      element={<PipelineView onOpenCustomer={openCustomer} canConfigure={canConfigure} capabilities={capabilities} />} />
-                <Route path="/ask"                element={<AskGaaexView />} />
-                <Route path="/messages"           element={<MessagesView capabilities={capabilities} />} />
-                <Route path="/mail"               element={<MailRouteAdapter />} />
-                <Route path="/channels"           element={<ChannelsView />} />
-                <Route path="/notifications"      element={<NotificationsView />} />
-                <Route path="/profile"            element={<ProfileView />} />
-                <Route path="/activity-feed"      element={<ActivityFeedView onNavigate={(target) => {
-                  if (target.type === 'helpdesk') navigate(`/helpdesk?ticket=${encodeURIComponent(target.openTicketId ?? '')}`)
-                  else if (target.type === 'entity') navigate(`/entity/${target.slug}`)
-                }} />} />
-                <Route path="/activity"           element={<Navigate to="/activity-feed" replace />} />
-                <Route path="/my-approvals"       element={<MyApprovalsView />} />
-                <Route path="/team-workspace"     element={<TeamWorkspaceView />} />
-                <Route path="/network-inventory"  element={<NetworkInventoryView canConfigure={canConfigure} capabilities={capabilities} />} />
-                <Route path="/dispatch-board"     element={<DispatchBoardView />} />
-                <Route path="/installation-board" element={<InstallationBoardView canConfigure={canConfigure} capabilities={capabilities} />} />
-                <Route path="/coverage-gis"       element={<CoverageView />} />
-                <Route path="/noc-dashboard"      element={<NocDashboardView canConfigure={canConfigure} capabilities={capabilities} />} />
-                <Route path="/saved-views"        element={<SavedViewsView onOpenEntity={(slug) => navigate(`/entity/${slug}`)} />} />
-                <Route path="/payments"           element={<PaymentsView canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
-                <Route path="/payment-methods"    element={<PaymentMethodsView canConfigure={canConfigure} capabilities={capabilities} />} />
-                <Route path="/gateway"            element={<PaymentGatewayView canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
-                <Route path="/subscriptions"      element={<SubscriptionsView canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
-                <Route path="/tariff-plans"       element={<TariffPlansView canConfigure={canConfigure} capabilities={capabilities} />} />
-                <Route path="/webhooks"           element={<WebhooksView canConfigure={canConfigure} configVersion={pageConfigVersion} onConfigure={() => setCfgPageKey('webhooks')} />} />
-                <Route path="/services"           element={<ServicesView canConfigure={canConfigure} configVersion={pageConfigVersion} capabilities={capabilities} />} />
-                <Route path="/usage"              element={<UsageView canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
-                <Route path="/accounts"           element={<AccountsView canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
-                <Route path="/workitems"          element={<WorkItemsView canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
-                <Route path="/mytasks"            element={<MyTasksView canConfigure={canConfigure} onNavigate={(t) => { if (t === 'home') navigate('/') }} />} />
-                <Route path="/customer-tasks"     element={<CustomerTasksView />} />
-                <Route path="/calendar"           element={<CalendarView configVersion={pageConfigVersion} canConfigure={canConfigure} />} />
-                <Route path="/settings"           element={<SettingsView />} />
-                <Route path="/reports"            element={<ReportsView configVersion={pageConfigVersion} canConfigure={canConfigure} capabilities={capabilities} />} />
-                <Route path="/revenue-assurance"  element={<RevenueAssuranceView configVersion={pageConfigVersion} canConfigure={canConfigure} capabilities={capabilities} />} />
-                <Route path="/collections"        element={<CollectionsView canConfigure={canConfigure} capabilities={capabilities} />} />
+                <Route
+                  path="/"
+                  element={
+                    <HomeView
+                      capabilities={capabilities}
+                      onNavigate={(type, id) => {
+                        if (type === 'workitems') navigate('/workitems')
+                        else if (type === 'mytasks') navigate('/mytasks')
+                        else if (type === 'my-approvals') navigate('/my-approvals')
+                        else if (type === 'helpdesk')
+                          navigate(id ? `/helpdesk?ticket=${encodeURIComponent(id)}` : '/helpdesk')
+                        else if (type === 'entity' && id) navigate(`/entity/${id}`)
+                      }}
+                    />
+                  }
+                />
+                <Route path="/org" element={<OrgPage />} />
+                <Route
+                  path="/projects"
+                  element={<ComingSoonView title="Projects" parent="Projects" id="projects" />}
+                />
+                <Route
+                  path="/dashboards"
+                  element={
+                    <DashboardView
+                      configVersion={pageConfigVersion}
+                      canConfigure={canConfigure}
+                      capabilities={capabilities}
+                      onNavigate={(target) => {
+                        if (target.type === 'subscriptions') navigate('/subscriptions')
+                        else if (target.type === 'invoices') navigate('/invoices')
+                        else if (target.type === 'helpdesk') navigate('/helpdesk')
+                        else if (target.type === 'workitems') navigate('/workitems')
+                      }}
+                    />
+                  }
+                />
+                <Route
+                  path="/lead-pipeline"
+                  element={
+                    <PipelineView
+                      onOpenCustomer={openCustomer}
+                      canConfigure={canConfigure}
+                      capabilities={capabilities}
+                    />
+                  }
+                />
+                <Route path="/ask" element={<AskGaaexView />} />
+                <Route path="/messages" element={<MessagesView capabilities={capabilities} />} />
+                <Route path="/mail" element={<MailRouteAdapter />} />
+                <Route path="/channels" element={<ChannelsView />} />
+                <Route path="/notifications" element={<NotificationsView />} />
+                <Route path="/profile" element={<ProfileView />} />
+                <Route
+                  path="/activity-feed"
+                  element={
+                    <ActivityFeedView
+                      onNavigate={(target) => {
+                        if (target.type === 'helpdesk')
+                          navigate(
+                            `/helpdesk?ticket=${encodeURIComponent(target.openTicketId ?? '')}`,
+                          )
+                        else if (target.type === 'entity') navigate(`/entity/${target.slug}`)
+                      }}
+                    />
+                  }
+                />
+                <Route path="/activity" element={<Navigate to="/activity-feed" replace />} />
+                <Route path="/my-approvals" element={<MyApprovalsView />} />
+                <Route path="/team-workspace" element={<TeamWorkspaceView />} />
+                <Route
+                  path="/network-inventory"
+                  element={
+                    <NetworkInventoryView canConfigure={canConfigure} capabilities={capabilities} />
+                  }
+                />
+                <Route path="/dispatch-board" element={<DispatchBoardView />} />
+                <Route
+                  path="/installation-board"
+                  element={
+                    <InstallationBoardView
+                      canConfigure={canConfigure}
+                      capabilities={capabilities}
+                    />
+                  }
+                />
+                <Route path="/coverage-gis" element={<CoverageView />} />
+                <Route
+                  path="/noc-dashboard"
+                  element={
+                    <NocDashboardView canConfigure={canConfigure} capabilities={capabilities} />
+                  }
+                />
+                <Route
+                  path="/saved-views"
+                  element={<SavedViewsView onOpenEntity={(slug) => navigate(`/entity/${slug}`)} />}
+                />
+                <Route
+                  path="/payments"
+                  element={
+                    <PaymentsView canConfigure={canConfigure} configVersion={pageConfigVersion} />
+                  }
+                />
+                <Route
+                  path="/payment-methods"
+                  element={
+                    <PaymentMethodsView canConfigure={canConfigure} capabilities={capabilities} />
+                  }
+                />
+                <Route
+                  path="/gateway"
+                  element={
+                    <PaymentGatewayView
+                      canConfigure={canConfigure}
+                      configVersion={pageConfigVersion}
+                    />
+                  }
+                />
+                <Route
+                  path="/subscriptions"
+                  element={
+                    <SubscriptionsView
+                      canConfigure={canConfigure}
+                      configVersion={pageConfigVersion}
+                    />
+                  }
+                />
+                <Route
+                  path="/tariff-plans"
+                  element={
+                    <TariffPlansView canConfigure={canConfigure} capabilities={capabilities} />
+                  }
+                />
+                <Route
+                  path="/webhooks"
+                  element={
+                    <WebhooksView
+                      canConfigure={canConfigure}
+                      configVersion={pageConfigVersion}
+                      onConfigure={() => setCfgPageKey('webhooks')}
+                    />
+                  }
+                />
+                <Route
+                  path="/services"
+                  element={
+                    <ServicesView
+                      canConfigure={canConfigure}
+                      configVersion={pageConfigVersion}
+                      capabilities={capabilities}
+                    />
+                  }
+                />
+                <Route
+                  path="/usage"
+                  element={
+                    <UsageView canConfigure={canConfigure} configVersion={pageConfigVersion} />
+                  }
+                />
+                <Route
+                  path="/accounts"
+                  element={
+                    <AccountsView canConfigure={canConfigure} configVersion={pageConfigVersion} />
+                  }
+                />
+                <Route
+                  path="/workitems"
+                  element={
+                    <WorkItemsView canConfigure={canConfigure} configVersion={pageConfigVersion} />
+                  }
+                />
+                <Route
+                  path="/mytasks"
+                  element={
+                    <MyTasksView
+                      canConfigure={canConfigure}
+                      onNavigate={(t) => {
+                        if (t === 'home') navigate('/')
+                      }}
+                    />
+                  }
+                />
+                <Route path="/customer-tasks" element={<CustomerTasksView />} />
+                <Route
+                  path="/calendar"
+                  element={
+                    <CalendarView configVersion={pageConfigVersion} canConfigure={canConfigure} />
+                  }
+                />
+                <Route path="/settings" element={<SettingsView />} />
+                <Route
+                  path="/reports"
+                  element={
+                    <ReportsView
+                      configVersion={pageConfigVersion}
+                      canConfigure={canConfigure}
+                      capabilities={capabilities}
+                    />
+                  }
+                />
+                <Route
+                  path="/revenue-assurance"
+                  element={
+                    <RevenueAssuranceView
+                      configVersion={pageConfigVersion}
+                      canConfigure={canConfigure}
+                      capabilities={capabilities}
+                    />
+                  }
+                />
+                <Route
+                  path="/collections"
+                  element={
+                    <CollectionsView canConfigure={canConfigure} capabilities={capabilities} />
+                  }
+                />
                 {/* Param-bearing routes use module-level adapters */}
-                <Route path="/invoices"           element={<InvoicesRouteAdapter />} />
-                <Route path="/helpdesk"           element={<HelpdeskRouteAdapter />} />
-                <Route path="/entity/:slug"       element={<EntityRouteAdapter />} />
-                <Route path="/customer/:id"       element={<CustomerRouteAdapter />} />
-                <Route path="/studio"             element={<StudioRouteAdapter />} />
-                <Route path="/coming-soon/:id"    element={<ComingSoonRouteAdapter />} />
-                <Route path="/module/:id"         element={<ModuleRouteAdapter />} />
-                <Route path="*"                   element={<Navigate to="/" replace />} />
+                <Route path="/invoices" element={<InvoicesRouteAdapter />} />
+                <Route path="/helpdesk" element={<HelpdeskRouteAdapter />} />
+                <Route path="/entity/:slug" element={<EntityRouteAdapter />} />
+                <Route path="/customer/:id" element={<CustomerRouteAdapter />} />
+                <Route path="/studio" element={<StudioRouteAdapter />} />
+                <Route path="/coming-soon/:id" element={<ComingSoonRouteAdapter />} />
+                <Route path="/module/:id" element={<ModuleRouteAdapter />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </ErrorBoundary>
           </main>
@@ -718,10 +1065,7 @@ export default function App() {
           />
         )}
 
-        <SecurityModal
-          open={accountModal === 'security'}
-          onClose={() => setAccountModal(null)}
-        />
+        <SecurityModal open={accountModal === 'security'} onClose={() => setAccountModal(null)} />
         <ShortcutsModal open={accountModal === 'shortcuts'} onClose={() => setAccountModal(null)} />
         <DocsModal open={accountModal === 'docs'} onClose={() => setAccountModal(null)} />
         <WhatsNewModal open={accountModal === 'whatsnew'} onClose={() => setAccountModal(null)} />
@@ -741,20 +1085,30 @@ function ModuleStubView({ moduleId, moduleLabel }: { moduleId: string; moduleLab
           <span style={{ color: 'var(--gx-text-1)' }}>{moduleLabel}</span>
         </div>
         <div className="view-head">
-          <div className="view-icon"><ServerIcon size={20} /></div>
+          <div className="view-icon">
+            <ServerIcon size={20} />
+          </div>
           <div className="view-title-wrap">
             <h2>{moduleLabel}</h2>
             <span className="view-sub">Coming soon</span>
           </div>
         </div>
-        <div style={{
-          marginTop: 60, padding: '40px 20px', textAlign: 'center',
-          background: 'var(--gx-surface)',
-          border: '1px solid var(--gx-border)',
-          borderRadius: 'var(--gx-radius-lg)',
-          maxWidth: 540, marginLeft: 'auto', marginRight: 'auto',
-        }}>
-          <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--gx-text-1)', marginBottom: 8 }}>
+        <div
+          style={{
+            marginTop: 60,
+            padding: '40px 20px',
+            textAlign: 'center',
+            background: 'var(--gx-surface)',
+            border: '1px solid var(--gx-border)',
+            borderRadius: 'var(--gx-radius-lg)',
+            maxWidth: 540,
+            marginLeft: 'auto',
+            marginRight: 'auto',
+          }}
+        >
+          <div
+            style={{ fontSize: 16, fontWeight: 600, color: 'var(--gx-text-1)', marginBottom: 8 }}
+          >
             {moduleLabel}
           </div>
           <div style={{ fontSize: 13, color: 'var(--gx-text-3)' }}>

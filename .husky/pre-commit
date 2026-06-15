@@ -1,0 +1,7 @@
+#!/bin/sh
+# RATCHET pre-commit — lint + format only the STAGED frontend files (lint-staged).
+# Auto-fixes what it can; blocks the commit on genuine errors (e.g. no-debugger,
+# rules-of-hooks). Legacy files are untouched unless staged. Run via `npm run` so the
+# local eslint/prettier bins resolve correctly (incl. Windows).
+cd "$(dirname "$0")/../frontend" || exit 1
+npm run precommit
