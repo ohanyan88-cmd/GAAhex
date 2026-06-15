@@ -18,15 +18,25 @@ import { CheckIcon, GearIcon, InboxIcon } from '../components/icons'
 import { Plus } from 'lucide-react'
 import {
   listWorkItems,
-  type WorkItem, type WorkItemPriority, type WorkItemStatus,
+  type WorkItem,
+  type WorkItemPriority,
+  type WorkItemStatus,
 } from '../lib/workitems'
 import { listUsers, type User } from '../lib/users'
 import { loadCustomers } from '../lib/billing'
 import { WORKITEM_OPEN, WORKITEM_ALL } from '../lib/status-constants'
 import { DetailTab, DetailTabList } from '../primitives'
-import { PageShell, type KPISpec, type FiltersSpec, type PrimaryAction, type SecondaryAction, type ViewSwitcher } from '../page-shell'
+import {
+  PageShell,
+  type KPISpec,
+  type FiltersSpec,
+  type PrimaryAction,
+  type SecondaryAction,
+  type ViewSwitcher,
+} from '../page-shell'
 import MyTaskDetailModal from './mytasks/MyTaskDetailModal'
 import MyTaskCreateModal from './mytasks/MyTaskCreateModal'
+import { useModalParam } from '../lib/useModalParam'
 import { statusLabel } from './mytasks/helpers'
 import { MY_TASKS_COLUMNS, PRIORITIES } from './mytasks/types'
 import type { ViewMode, LoadState } from './mytasks/types'
@@ -52,13 +62,16 @@ export default function MyTasksView({
   const [sortKey, setSortKey] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<1 | -1>(1)
 
-  const [detailId, setDetailId] = useState<string | null>(null)
+  const [detailId, setDetailId] = useModalParam('task') // §7 — URL-addressable: ?task=<id>
   const [createOpen, setCreateOpen] = useState(false)
 
   async function loadData() {
     setState({ kind: 'loading' })
     const res = await listWorkItems(token!, { mine: true })
-    if (res.status === 403) { setState({ kind: 'forbidden' }); return }
+    if (res.status === 403) {
+      setState({ kind: 'forbidden' })
+      return
+    }
     if (!res.ok) {
       console.error('[mytasks] listWorkItems failed', res.status)
       setState({ kind: 'error' })
@@ -67,15 +80,21 @@ export default function MyTasksView({
     setState({ kind: 'ok', items: Array.isArray(res.data) ? res.data : [] })
   }
 
-  useEffect(() => { loadData() }, [token])
+  useEffect(() => {
+    loadData()
+  }, [token])
 
   useEffect(() => {
-    (async () => {
+    ;(async () => {
       const res = await listUsers(token!)
       if (res.ok && Array.isArray(res.data)) setUsers(res.data)
     })()
     ;(async () => {
-      try { setCustomerNames(await loadCustomers(token!)) } catch { /* hide-if-missing */ }
+      try {
+        setCustomerNames(await loadCustomers(token!))
+      } catch {
+        /* hide-if-missing */
+      }
     })()
   }, [token])
 
@@ -83,7 +102,9 @@ export default function MyTasksView({
 
   const items = state.kind === 'ok' ? state.items : []
 
-  const openCount = items.filter((i) => i.status && (WORKITEM_OPEN as readonly string[]).includes(i.status)).length
+  const openCount = items.filter(
+    (i) => i.status && (WORKITEM_OPEN as readonly string[]).includes(i.status),
+  ).length
   const overdueCount = items.filter((i) => {
     if (!i.due_at) return false
     if (i.status && (i.status === 'DONE' || i.status === 'CANCELLED')) return false
@@ -108,14 +129,22 @@ export default function MyTasksView({
     if (!sortKey) return filtered
     const get = (it: WorkItem): string => {
       switch (sortKey) {
-        case 'title': return it.title ?? ''
-        case 'kind': return it.kind ?? ''
-        case 'status': return it.status ?? ''
-        case 'priority': return it.priority ?? ''
-        case 'due': return it.due_at ?? ''
-        case 'scheduled': return it.scheduled_at ?? ''
-        case 'assignee': return it.assigned_user_id ?? ''
-        default: return ''
+        case 'title':
+          return it.title ?? ''
+        case 'kind':
+          return it.kind ?? ''
+        case 'status':
+          return it.status ?? ''
+        case 'priority':
+          return it.priority ?? ''
+        case 'due':
+          return it.due_at ?? ''
+        case 'scheduled':
+          return it.scheduled_at ?? ''
+        case 'assignee':
+          return it.assigned_user_id ?? ''
+        default:
+          return ''
       }
     }
     return [...filtered].sort((a, b) => get(a).localeCompare(get(b)) * sortDir)
@@ -123,32 +152,47 @@ export default function MyTasksView({
 
   function toggleSort(k: string) {
     if (sortKey === k) setSortDir((d) => (d === 1 ? -1 : 1))
-    else { setSortKey(k); setSortDir(1) }
+    else {
+      setSortKey(k)
+      setSortDir(1)
+    }
   }
 
   const handleStatusChange = makeStatusChangeHandler(token!, loadData)
 
   // ── PageShell specs ────────────────────────────────────────────────────────
 
-  const subtitle: string | undefined = state.kind === 'ok'
-    ? (overdueCount > 0 ? `${openCount} open · ${overdueCount} overdue` : `${openCount} open`)
-    : 'Personal execution bench'
+  const subtitle: string | undefined =
+    state.kind === 'ok'
+      ? overdueCount > 0
+        ? `${openCount} open · ${overdueCount} overdue`
+        : `${openCount} open`
+      : 'Personal execution bench'
 
-  const kpiSpec: KPISpec[] | undefined = state.kind === 'ok'
-    ? (() => {
-        const pendingCount = items.filter((i) => i.status === 'TODO').length
-        const doneCount = items.filter((i) => i.status === 'DONE').length
-        return [
-          { label: t('mytasks.kpi.open', 'Open'),    value: openCount },
-          { label: t('mytasks.kpi.pending', 'Pending'), value: pendingCount },
-          { label: t('mytasks.kpi.done', 'Done'),    value: doneCount },
-          { label: t('mytasks.kpi.overdue', 'Overdue'), value: overdueCount, danger: overdueCount > 0 },
-        ]
-      })()
-    : undefined
+  const kpiSpec: KPISpec[] | undefined =
+    state.kind === 'ok'
+      ? (() => {
+          const pendingCount = items.filter((i) => i.status === 'TODO').length
+          const doneCount = items.filter((i) => i.status === 'DONE').length
+          return [
+            { label: t('mytasks.kpi.open', 'Open'), value: openCount },
+            { label: t('mytasks.kpi.pending', 'Pending'), value: pendingCount },
+            { label: t('mytasks.kpi.done', 'Done'), value: doneCount },
+            {
+              label: t('mytasks.kpi.overdue', 'Overdue'),
+              value: overdueCount,
+              danger: overdueCount > 0,
+            },
+          ]
+        })()
+      : undefined
 
   const filtersSpec: FiltersSpec = {
-    search: { value: query, onChange: setQuery, placeholder: t('mytasks.searchPlaceholder', 'Search my tasks') },
+    search: {
+      value: query,
+      onChange: setQuery,
+      placeholder: t('mytasks.searchPlaceholder', 'Search my tasks'),
+    },
     quick: [
       {
         label: t('common.status', 'Status'),
@@ -178,7 +222,13 @@ export default function MyTasksView({
   }
   const secondaryActions: SecondaryAction[] | undefined =
     canConfigure && onConfigure
-      ? [{ label: t('common.configure', 'Configure'), icon: <GearIcon size={13} />, onClick: onConfigure }]
+      ? [
+          {
+            label: t('common.configure', 'Configure'),
+            icon: <GearIcon size={13} />,
+            onClick: onConfigure,
+          },
+        ]
       : undefined
 
   const viewSwitcher: ViewSwitcher = {
@@ -203,36 +253,43 @@ export default function MyTasksView({
     )
   }
 
-  const body = state.kind === 'error' ? null : state.kind === 'loading' ? (
-    <SkeletonRows rows={6} />
-  ) : sorted.length === 0 ? (
-    <EmptyState
-      icon={<InboxIcon size={40} />}
-      title={items.length === 0 ? t('mytasks.emptyTitle', 'No tasks assigned to you') : t('mytasks.noMatchTitle', 'No tasks match your filters')}
-      message={items.length === 0
-        ? t('mytasks.emptyMessage', 'Tasks assigned to you will appear here.')
-        : t('mytasks.noMatchMessage', 'Try clearing search or filters.')}
-    />
-  ) : mode === 'table' ? (
-    <WorkItemsTable
-      items={sorted}
-      columns={MY_TASKS_COLUMNS}
-      users={users}
-      customerNames={customerNames}
-      sortKey={sortKey}
-      sortDir={sortDir}
-      onSortChange={toggleSort}
-      onRowClick={(item) => setDetailId(item.id)}
-      onStatusChange={handleStatusChange}
-    />
-  ) : (
-    <WorkItemsBoard
-      items={sorted}
-      users={users}
-      onRowClick={(item) => setDetailId(item.id)}
-      onStatusChange={handleStatusChange}
-    />
-  )
+  const body =
+    state.kind === 'error' ? null : state.kind === 'loading' ? (
+      <SkeletonRows rows={6} />
+    ) : sorted.length === 0 ? (
+      <EmptyState
+        icon={<InboxIcon size={40} />}
+        title={
+          items.length === 0
+            ? t('mytasks.emptyTitle', 'No tasks assigned to you')
+            : t('mytasks.noMatchTitle', 'No tasks match your filters')
+        }
+        message={
+          items.length === 0
+            ? t('mytasks.emptyMessage', 'Tasks assigned to you will appear here.')
+            : t('mytasks.noMatchMessage', 'Try clearing search or filters.')
+        }
+      />
+    ) : mode === 'table' ? (
+      <WorkItemsTable
+        items={sorted}
+        columns={MY_TASKS_COLUMNS}
+        users={users}
+        customerNames={customerNames}
+        sortKey={sortKey}
+        sortDir={sortDir}
+        onSortChange={toggleSort}
+        onRowClick={(item) => setDetailId(item.id)}
+        onStatusChange={handleStatusChange}
+      />
+    ) : (
+      <WorkItemsBoard
+        items={sorted}
+        users={users}
+        onRowClick={(item) => setDetailId(item.id)}
+        onStatusChange={handleStatusChange}
+      />
+    )
 
   return (
     <>
@@ -245,8 +302,12 @@ export default function MyTasksView({
         kpis={kpiSpec}
         pageTabs={
           <DetailTabList ariaLabel="My Day sections">
-            <DetailTab active={false} onSelect={() => onNavigate?.('home')}>{t('tab.overview', 'Overview')}</DetailTab>
-            <DetailTab active onSelect={() => {}}>{t('mytasks.tab.work', 'Work')}</DetailTab>
+            <DetailTab active={false} onSelect={() => onNavigate?.('home')}>
+              {t('tab.overview', 'Overview')}
+            </DetailTab>
+            <DetailTab active onSelect={() => {}}>
+              {t('mytasks.tab.work', 'Work')}
+            </DetailTab>
           </DetailTabList>
         }
         views={viewSwitcher}
@@ -262,14 +323,20 @@ export default function MyTasksView({
           id={detailId}
           users={users}
           customerNames={customerNames}
-          onClose={() => { setDetailId(null); loadData() }}
+          onClose={() => {
+            setDetailId(null)
+            loadData()
+          }}
         />
       )}
 
       {createOpen && (
         <MyTaskCreateModal
           onClose={() => setCreateOpen(false)}
-          onDone={() => { setCreateOpen(false); loadData() }}
+          onDone={() => {
+            setCreateOpen(false)
+            loadData()
+          }}
         />
       )}
     </>

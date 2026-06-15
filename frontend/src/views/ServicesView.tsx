@@ -15,6 +15,7 @@ import { StatusPill, Button, Pagination } from '../primitives'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 import { OBJ } from '../lib/permissions-constants'
 import { humanizeStatus, humanRef } from '../lib/humanize'
+import { useModalParam } from '../lib/useModalParam'
 import { SERVICE_ALL, getStatusTone, type PillVariant } from '../lib/status-constants'
 
 // Services UI (A14 /api/services) — list + RecordDrawer detail with resources + lifecycle.
@@ -102,7 +103,7 @@ export default function ServicesView({
   const [error, setError] = useState('')
   const [unavailable, setUnavailable] = useState(false)
   const [denied, setDenied] = useState(false)
-  const [detailId, setDetailId] = useState<string | null>(null)
+  const [detailId, setDetailId] = useModalParam('service') // §7 — URL-addressable: ?service=<id>
   const [createOpen, setCreateOpen] = useState(false)
 
   const page = usePageConfig(token!, 'services', configVersion)

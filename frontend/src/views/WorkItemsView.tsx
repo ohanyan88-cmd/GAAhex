@@ -1,9 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
-import {
-  listWorkItems,
-  type WorkItem, type WorkItemFilters,
-} from '../lib/workitems'
+import { listWorkItems, type WorkItem, type WorkItemFilters } from '../lib/workitems'
 import { listUsers, type User } from '../lib/users'
 import { loadCustomers } from '../lib/billing'
 import { resolveUserDisplay } from '../components/UserPicker'
@@ -17,6 +14,7 @@ import ErrorBoundary from '../components/ErrorBoundary'
 import { PageShell } from '../page-shell'
 import type { KPISpec } from '../page-shell'
 import { useI18n } from '../lib/i18n'
+import { useModalParam } from '../lib/useModalParam'
 import WorkItemDetailModal from './workitems/WorkItemDetailModal'
 import CreateWorkItemModal from './workitems/CreateWorkItemModal'
 import { KINDS } from './workitems/types'
@@ -35,7 +33,11 @@ export default function WorkItemsView({
   const { t } = useI18n()
   const cfg = usePageConfig(token!, 'workitems', configVersion)
   const [items, setItems] = useState<WorkItem[] | null>(null)
-  const cf = useCustomFields('workitems', cfg.customFields, (items ?? []).map((item) => item.id))
+  const cf = useCustomFields(
+    'workitems',
+    cfg.customFields,
+    (items ?? []).map((item) => item.id),
+  )
   const [allItems, setAllItems] = useState<WorkItem[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [customerNames, setCustomerNames] = useState<Record<string, string>>({})
@@ -44,7 +46,7 @@ export default function WorkItemsView({
 
   const [tab, setTab] = useState<Tab>('active')
   const [kindFilter, setKindFilter] = useState('')
-  const [detailId, setDetailId] = useState<string | null>(null)
+  const [detailId, setDetailId] = useModalParam('item') // §7 — URL-addressable: /workitems?item=<id>
   const [createOpen, setCreateOpen] = useState(false)
 
   const [query, setQuery] = useState('')
@@ -54,7 +56,8 @@ export default function WorkItemsView({
   const PAGE_SIZE = 25
 
   // Suppress unused prop warning — canConfigure/onConfigure reserved for future toolbar
-  void canConfigure; void onConfigure
+  void canConfigure
+  void onConfigure
 
   async function loadUsers() {
     const res = await listUsers(token!)
@@ -71,8 +74,18 @@ export default function WorkItemsView({
     if (kindFilter) filters.kind = kindFilter
 
     const res = await listWorkItems(token!, filters)
-    if (res.status === 404) { setUnavailable(true); setItems([]); setAllItems([]); return }
-    if (!res.ok) { setError(t('workitems.loadError', 'Failed to load work items')); setItems([]); setAllItems([]); return }
+    if (res.status === 404) {
+      setUnavailable(true)
+      setItems([])
+      setAllItems([])
+      return
+    }
+    if (!res.ok) {
+      setError(t('workitems.loadError', 'Failed to load work items'))
+      setItems([])
+      setAllItems([])
+      return
+    }
     let list = Array.isArray(res.data) ? res.data : []
 
     setAllItems(list)
@@ -85,9 +98,15 @@ export default function WorkItemsView({
     setCustomerNames(await loadCustomers(token!))
   }
 
-  useEffect(() => { loadUsers() }, [token])
-  useEffect(() => { loadData() }, [token, tab, kindFilter])
-  useEffect(() => { setPage(1) }, [tab, kindFilter, query, sortKey, sortDir])
+  useEffect(() => {
+    loadUsers()
+  }, [token])
+  useEffect(() => {
+    loadData()
+  }, [token, tab, kindFilter])
+  useEffect(() => {
+    setPage(1)
+  }, [tab, kindFilter, query, sortKey, sortDir])
 
   const custName = (item: WorkItem) =>
     item.customer_id ? (customerNames[item.customer_id] ?? item.customer_id.slice(0, 8)) : '—'
@@ -104,11 +123,16 @@ export default function WorkItemsView({
     if (!q) return list
     return list.filter((item) => {
       const fields = [
-        item.title ?? '', item.id ?? '', item.kind ?? '',
-        item.status ?? '', item.priority ?? '',
+        item.title ?? '',
+        item.id ?? '',
+        item.kind ?? '',
+        item.status ?? '',
+        item.priority ?? '',
         custName(item),
         resolveUserDisplay(item.assigned_user_id, users) ?? '',
-      ].join(' ').toLowerCase()
+      ]
+        .join(' ')
+        .toLowerCase()
       return fields.includes(q)
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -120,19 +144,29 @@ export default function WorkItemsView({
     const dir = sortDir
     const get = (item: WorkItem): string | number => {
       switch (k) {
-        case 'title': return item.title ?? ''
-        case 'kind': return item.kind ?? ''
-        case 'customer': return custName(item)
-        case 'status': return item.status ?? ''
-        case 'priority': return item.priority ?? ''
-        case 'assignee': return resolveUserDisplay(item.assigned_user_id, users) ?? ''
-        case 'due': return item.due_at ?? ''
-        case 'scheduled': return item.scheduled_at ?? ''
-        default: return ''
+        case 'title':
+          return item.title ?? ''
+        case 'kind':
+          return item.kind ?? ''
+        case 'customer':
+          return custName(item)
+        case 'status':
+          return item.status ?? ''
+        case 'priority':
+          return item.priority ?? ''
+        case 'assignee':
+          return resolveUserDisplay(item.assigned_user_id, users) ?? ''
+        case 'due':
+          return item.due_at ?? ''
+        case 'scheduled':
+          return item.scheduled_at ?? ''
+        default:
+          return ''
       }
     }
     return [...filtered].sort((a, b) => {
-      const x = get(a), y = get(b)
+      const x = get(a),
+        y = get(b)
       if (typeof x === 'number' && typeof y === 'number') return (x - y) * dir
       return String(x).localeCompare(String(y)) * dir
     })
@@ -144,15 +178,32 @@ export default function WorkItemsView({
 
   function toggleSort(k: string) {
     if (sortKey === k) setSortDir((d) => (d === 1 ? -1 : 1))
-    else { setSortKey(k); setSortDir(1) }
+    else {
+      setSortKey(k)
+      setSortDir(1)
+    }
   }
 
-  const kpis: KPISpec[] = allItems.length > 0 ? [
-    { label: t('workitems.kpiTodo', 'TODO'),        value: allItems.filter(i => i.status === 'TODO').length },
-    { label: t('workitems.kpiInProgress', 'In Progress'), value: inProgressCount, warning: inProgressCount > 0 },
-    { label: t('workitems.kpiBlocked', 'Blocked'),     value: blockedCount,     danger: blockedCount > 0 },
-    { label: t('workitems.kpiDone', 'Done'),        value: doneCount },
-  ] : []
+  const kpis: KPISpec[] =
+    allItems.length > 0
+      ? [
+          {
+            label: t('workitems.kpiTodo', 'TODO'),
+            value: allItems.filter((i) => i.status === 'TODO').length,
+          },
+          {
+            label: t('workitems.kpiInProgress', 'In Progress'),
+            value: inProgressCount,
+            warning: inProgressCount > 0,
+          },
+          {
+            label: t('workitems.kpiBlocked', 'Blocked'),
+            value: blockedCount,
+            danger: blockedCount > 0,
+          },
+          { label: t('workitems.kpiDone', 'Done'), value: doneCount },
+        ]
+      : []
 
   if (unavailable) {
     return (
@@ -166,7 +217,10 @@ export default function WorkItemsView({
         <EmptyState
           icon={<InboxIcon size={40} />}
           title={t('workitems.unavailableTitle', "Work Items aren't available yet")}
-          message={t('workitems.unavailableMsg', 'This service will appear here once the work items module is enabled.')}
+          message={t(
+            'workitems.unavailableMsg',
+            'This service will appear here once the work items module is enabled.',
+          )}
         />
       </PageShell>
     )
@@ -180,15 +234,20 @@ export default function WorkItemsView({
       title={t('workitems.title', 'Work Items')}
       subtitle={t('workitems.subtitle', 'Field operations work queue')}
       kpis={kpis.length > 0 ? kpis : undefined}
-      primaryAction={{ label: t('workitems.newItem', 'New work item'), onClick: () => setCreateOpen(true) }}
+      primaryAction={{
+        label: t('workitems.newItem', 'New work item'),
+        onClick: () => setCreateOpen(true),
+      }}
     >
       {/* Tabs */}
       <div className="tabs">
-        {([
-          ['active', t('workitems.tabActive', 'Active'), activeCount],
-          ['all', t('workitems.tabAll', 'All'), allCount],
-          ['mine', t('workitems.tabMine', 'Mine'), null],
-        ] as [Tab, string, number | null][]).map(([tabKey, label, count]) => (
+        {(
+          [
+            ['active', t('workitems.tabActive', 'Active'), activeCount],
+            ['all', t('workitems.tabAll', 'All'), allCount],
+            ['mine', t('workitems.tabMine', 'Mine'), null],
+          ] as [Tab, string, number | null][]
+        ).map(([tabKey, label, count]) => (
           <button
             key={tabKey}
             className={'tab' + (tab === tabKey ? ' on' : '')}
@@ -202,7 +261,9 @@ export default function WorkItemsView({
 
       {error && <ErrorBanner message={error} onRetry={loadData} />}
       <ErrorBoundary onReset={loadData}>
-        {items === null && !error && <SkeletonRows label={t('workitems.loading', 'Loading work items…')} />}
+        {items === null && !error && (
+          <SkeletonRows label={t('workitems.loading', 'Loading work items…')} />
+        )}
         {items && items.length === 0 && !error && (
           <EmptyState
             icon={<InboxIcon size={40} />}
@@ -218,14 +279,24 @@ export default function WorkItemsView({
 
         {items && items.length > 0 && (
           <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
-            <div className="toolbar" style={{ padding: 'var(--gx-space-6) var(--gx-space-7)', margin: 0 }}>
+            <div
+              className="toolbar"
+              style={{ padding: 'var(--gx-space-6) var(--gx-space-7)', margin: 0 }}
+            >
               <div className="tb-search" style={{ width: 280 }}>
                 <SearchIcon size={14} />
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder={t('workitems.searchPlaceholder', 'Search work items')}
-                  style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 'var(--gx-text-13)' }}
+                  style={{
+                    flex: 1,
+                    background: 'none',
+                    border: 'none',
+                    outline: 'none',
+                    color: 'var(--gx-text-1)',
+                    fontSize: 'var(--gx-text-13)',
+                  }}
                 />
               </div>
               <select
@@ -237,7 +308,9 @@ export default function WorkItemsView({
               >
                 <option value="">{t('workitems.allKinds', 'All kinds')}</option>
                 {KINDS.map((k) => (
-                  <option key={k} value={k}>{k.charAt(0).toUpperCase() + k.slice(1)}</option>
+                  <option key={k} value={k}>
+                    {k.charAt(0).toUpperCase() + k.slice(1)}
+                  </option>
                 ))}
               </select>
               <span className="spacer" />
@@ -274,14 +347,20 @@ export default function WorkItemsView({
           id={detailId}
           users={users}
           customerNames={customerNames}
-          onClose={() => { setDetailId(null); loadData() }}
+          onClose={() => {
+            setDetailId(null)
+            loadData()
+          }}
         />
       )}
 
       {createOpen && (
         <CreateWorkItemModal
           onClose={() => setCreateOpen(false)}
-          onDone={() => { setCreateOpen(false); loadData() }}
+          onDone={() => {
+            setCreateOpen(false)
+            loadData()
+          }}
         />
       )}
     </PageShell>
