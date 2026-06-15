@@ -2,8 +2,9 @@
 
 Tests must never call a real LLM. We pin the gateway to the no-provider path (`_active_provider =
 "none"`) so every assertion exercises the rule-based / extractive fallback — no network, no hang.
-(See the REPORT: this repo's backend/.env actually sets AI_PROVIDER=gemini with a live key, so
-without this guard the AI endpoints would hit a real provider.)
+This guard holds even if a developer sets a live provider in their gitignored backend/.env: the
+shipped default has AI OFF (`ai_provider` defaults to "none"). The REAL provider path is still
+validated end-to-end below via a mocked transport (no network, no key) so enablement is proven.
 """
 
 import pytest
@@ -88,3 +89,73 @@ async def test_ai_summarize_endpoint(client, admin):
                           json={"fields": {"name": "Acme Telecom", "status": "ACTIVE"}})
     assert r.status_code == 200
     assert isinstance(r.json()["summary"], str) and r.json()["summary"].strip()
+
+
+# ===================== REAL provider path (mocked transport — no network, no key) =====================
+# Validates that the moment a provider is configured (e.g. Gemini free tier on a demo org), the
+# gateway leaves the deterministic stub and round-trips a real chat-completions call correctly —
+# proven here deterministically so enablement is validated BEFORE any live key is dropped in .env.
+
+class _FakeResp:
+    def __init__(self, payload):
+        self._payload = payload
+
+    def raise_for_status(self):
+        return None
+
+    def json(self):
+        return self._payload
+
+
+class _FakeClient:
+    """Minimal async-context httpx stand-in: captures the outbound request, returns a canned body."""
+    def __init__(self, payload, capture):
+        self._payload = payload
+        self._capture = capture
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
+
+    async def post(self, url, headers=None, json=None):
+        self._capture.update(url=url, headers=headers, json=json)
+        return _FakeResp(self._payload)
+
+
+async def test_openai_compatible_path_calls_and_parses(monkeypatch):
+    """OpenAI-compatible (gemini/openai/groq) path: configure a provider, mock the transport, and
+    assert complete() POSTs an OpenAI-shaped chat request and returns the model's content — NOT the
+    deterministic stub."""
+    import app.utils.http_client as hc
+    capture: dict = {}
+    payload = {"choices": [{"message": {"content": "MODEL SAYS HI"}}]}
+    monkeypatch.setattr(hc, "get_async_client", lambda **kw: _FakeClient(payload, capture))
+    monkeypatch.setattr(ai.settings, "ai_provider", "gemini")
+    monkeypatch.setattr(ai.settings, "ai_api_key", "test-key")
+    monkeypatch.setattr(ai.settings, "ai_model", None)
+    monkeypatch.setattr(ai.settings, "ai_base_url", None)
+    ai.configure_ai()                       # activates gemini deterministically (independent of .env)
+    try:
+        assert ai.active_provider() == "gemini"
+        out = await ai.complete("Summarize: foo", system="be brief")
+        assert out == "MODEL SAYS HI"                                   # real content, not the stub
+        assert capture["url"].endswith("/chat/completions")
+        assert capture["headers"]["Authorization"] == "Bearer test-key"
+        assert capture["json"]["messages"][0] == {"role": "system", "content": "be brief"}
+        assert capture["json"]["messages"][-1]["content"] == "Summarize: foo"
+    finally:
+        ai._active_provider = "none"                                    # don't leak into other tests
+
+
+async def test_provider_error_falls_back_to_stub(monkeypatch):
+    """Fail-soft: a configured provider that RAISES must fall back to the deterministic stub and
+    never propagate the error to the caller."""
+    async def _boom(prompt, system):
+        raise RuntimeError("provider down")
+
+    monkeypatch.setitem(ai._PROVIDERS, "boom", _boom)
+    monkeypatch.setattr(ai, "_active_provider", "boom")
+    out = await ai.complete("- a: 1\n- b: 2")
+    assert out.startswith("Summary —")                                 # extractive stub, no exception
