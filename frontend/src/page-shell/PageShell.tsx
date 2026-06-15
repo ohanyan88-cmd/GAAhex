@@ -11,7 +11,7 @@
 //   ├────────────────┼──────────────────────────────────────────────────────┤
 //   │ A · Header     │ Always.                                               │
 //   │ B · KPIBar     │ `kpis` non-empty AND type ≠ 'PLACEHOLDER'.            │
-//   │ C · ActionBar  │ Any of {views, primaryAction, secondaryActions} AND   │
+//   │ C · CommandBar │ Any of {views, primaryAction, secondaryActions} AND   │
 //   │                │ type ≠ 'PLACEHOLDER'.                                 │
 //   │ D · FilterBar  │ `filters` provided AND has content.                   │
 //   │ E · Workspace  │ Always — wraps `children`. If type === 'PLACEHOLDER'  │
@@ -22,16 +22,14 @@ import './styles.css'
 import { isValidElement, type ReactNode } from 'react'
 import { PageHeader } from './PageHeader'
 import { KPIBar } from './KPIBar'
-import { ActionBar } from './ActionBar'
+import { GxCommandBar } from '../components/CommandBar/gx-CommandBar'
 import { FilterBar } from './FilterBar'
 import { ContextPanel } from './ContextPanel'
 import { EmptyState } from './EmptyState'
 import { HexScatter } from './HexScatter'
 import type { PageShellProps, ContextPanelSpec } from './types'
 
-function normalizeContextPanel(
-  value: PageShellProps['contextPanel'],
-): ContextPanelSpec | null {
+function normalizeContextPanel(value: PageShellProps['contextPanel']): ContextPanelSpec | null {
   if (value == null || value === false) return null
   // If it's a ReactNode (element / string / number / array), wrap it.
   if (
@@ -72,11 +70,13 @@ export function PageShell({
 
   // Zone visibility resolution (see header doc-comment above).
   const showKPIs = !isPlaceholder && !!kpis && kpis.length > 0
-  // Primary + secondary actions now live in the header (Zone A). The ActionBar
-  // (Zone C) is only for the view switcher; it shows only when `views` is present.
-  const showActions = !isPlaceholder && !!views
-  const headerPrimary = isPlaceholder ? undefined : primaryAction
-  const headerSecondary = isPlaceholder ? undefined : secondaryActions
+  // EN: Zone C (CommandBar) shows when views OR any action is present, and not a placeholder.
+  //     Actions moved out of PageHeader (Zone A) into CommandBar (Zone C) — Ph1d.
+  // HY: Zone C (CommandBar) erệum é, erb views kam actions kan, ev PLACEHOLDER chi:
+  //     Actions-ə PageHeader-ic (Zone A) teɡhafoxvec CommandBar (Zone C) — Ph1d:
+  const showActions =
+    !isPlaceholder &&
+    (!!views || !!primaryAction || (!!secondaryActions && secondaryActions.length > 0))
   // search now lives in the header (Zone A); the FilterBar (Zone D) is for quick /
   // advanced / saved-view filters only.
   const showFilters =
@@ -117,12 +117,12 @@ export function PageShell({
         description={description}
         statusSummary={statusSummary}
         pageTabs={pageTabs}
-        primaryAction={headerPrimary}
-        secondaryActions={headerSecondary}
         search={filters?.search}
       />
       {showKPIs && <KPIBar kpis={kpis!} />}
-      {showActions && <ActionBar views={views} />}
+      {showActions && (
+        <GxCommandBar views={views} primary={primaryAction} secondary={secondaryActions} />
+      )}
       {showFilters && <FilterBar filters={filters!} />}
       <div className="ps-body">
         <div className={wrapperCls} data-page-type={cssPageType}>

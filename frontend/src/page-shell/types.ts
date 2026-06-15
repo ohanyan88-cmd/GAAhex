@@ -15,14 +15,14 @@ import type { ReactNode } from 'react'
 // PageType — canonical UPPER_SNAKE per standard 14 (Central Enum Registry, E19)
 // and standard 10 (Page Type Standard). One of exactly 8 values.
 export type PageType =
-  | 'WORKSPACE'      // mixed dashboard / home / overview layout
-  | 'REGISTRY'       // list/table-centric (Customers, Products, Tariffs)
-  | 'PIPELINE'       // kanban / stage progression (Leads, Sales)
-  | 'OPERATIONS'     // map + queue + status (Dispatch, NOC)
-  | 'ANALYTICS'      // charts + cards grid (Reports, Insights)
-  | 'COMMUNICATION'  // 3-pane list/thread/context (Inbox, Helpdesk)
-  | 'CONFIGURATION'  // flexible settings/admin
-  | 'PLACEHOLDER'    // coming-soon / stub state (no KPIs, no actions)
+  | 'WORKSPACE' // mixed dashboard / home / overview layout
+  | 'REGISTRY' // list/table-centric (Customers, Products, Tariffs)
+  | 'PIPELINE' // kanban / stage progression (Leads, Sales)
+  | 'OPERATIONS' // map + queue + status (Dispatch, NOC)
+  | 'ANALYTICS' // charts + cards grid (Reports, Insights)
+  | 'COMMUNICATION' // 3-pane list/thread/context (Inbox, Helpdesk)
+  | 'CONFIGURATION' // flexible settings/admin
+  | 'PLACEHOLDER' // coming-soon / stub state (no KPIs, no actions)
 
 /* ─── Status summary chip ────────────────────────────────────────────────── */
 
@@ -94,6 +94,15 @@ export interface SecondaryAction {
   /** When present, the button opens a small popover menu (anchored below it) instead
    *  of firing onClick — e.g. the Download button's format picker. */
   menu?: { label: string; icon?: ReactNode; onClick: () => void }[]
+}
+
+/** EN: Bulk action — shown in CommandBar only when rows are selected (selectionCount > 0).
+ *  HY: Bulk action — erևum é CommandBar-um miain erb tarikner@ əntrvac en (selectionCount > 0): */
+export interface BulkAction {
+  label: string
+  onClick: () => void
+  icon?: ReactNode
+  disabled?: boolean
 }
 
 export type ViewKind = 'table' | 'board' | 'calendar' | 'map' | 'timeline' | 'gallery'

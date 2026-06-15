@@ -310,6 +310,15 @@
   gap: var(--gx-space-3);
 }
 
+/* EN: Bulk mode — selection count badge shown to the left of bulk action buttons.
+   HY: Bulk mode — əntrutyuni vavach, erệum é bulk action buttons-i dzaxin: */
+.ps-actions-selection {
+  font-size: var(--gx-font-sm);
+  color: var(--gx-text-2);
+  padding: 0 var(--gx-space-4);
+  white-space: nowrap;
+}
+
 /* ─── Zone D · FilterBar ─────────────────────────────────────────────────── */
 
 .ps-filters {

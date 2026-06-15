@@ -5,14 +5,16 @@
 //   import { PageShell, EmptyState } from '@/page-shell'
 //   import type { PageType, KPISpec, FiltersSpec } from '@/page-shell'
 //
-// Individual zone components (PageHeader, KPIBar, ActionBar, FilterBar,
-// ContextPanel) are also exported for advanced cases where a page needs to
-// recompose a zone outside the orchestrator. For 95% of pages the top-level
-// `PageShell` composition is enough.
+// EN: Individual zone components (PageHeader, KPIBar, GxCommandBar, FilterBar,
+//     ContextPanel) are also exported for advanced cases where a page needs to
+//     recompose a zone outside the orchestrator. For 95% of pages the top-level
+//     `PageShell` composition is enough.
+// HY: Zone components-ə naeєv export en advanced case-eri hamar, erb page-ə
+//     zone-ə verjaskazmum é orchestrator-ic durs: 95%-i hamar PageShell-ə bavaran é:
 export { PageShell } from './PageShell'
 export { PageHeader } from './PageHeader'
 export { KPIBar } from './KPIBar'
-export { ActionBar } from './ActionBar'
+export { GxCommandBar } from '../components/CommandBar/gx-CommandBar'
 export { FilterBar } from './FilterBar'
 export { ContextPanel } from './ContextPanel'
 export { EmptyState } from './EmptyState'
@@ -31,6 +33,7 @@ export type {
   KPISpec,
   PrimaryAction,
   SecondaryAction,
+  BulkAction,
   ViewKind,
   ViewSwitcher,
   SearchFilter,
