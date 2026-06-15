@@ -1,0 +1,1014 @@
+/* ============================================================================
+   Workspace (Phase 2) — gx-WorkspaceGrid zone layout + gx-Widget card chrome
+   + the eight workspace leaf widgets.
+   EN: Role-driven operating center. Body zones: KPI strip · focus band ·
+       pipeline spine · 2-col working zone · team strip.
+       Tokens only — zero raw hex/px. Dark control-room · Aurora-Glass · UPPERCASE
+       micro-labels · gold apex-only · reduced-motion respected.
+   HY: Role-driven operating center։ Body zone-եր՝ KPI strip · focus band ·
+       pipeline spine · 2-սյունակ working zone · team strip։
+       Միայն token — ոչ մի raw hex/px։ Dark control-room · Aurora-Glass · UPPERCASE
+       micro-label · gold միայն գագաթ · reduced-motion հարգված։
+   ============================================================================ */
+
+/* ── zone layout ─────────────────────────────────────────────────────────── */
+.gx-ws {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gx-space-8);
+}
+.gx-ws-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--gx-space-6);
+}
+.gx-ws-work {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gx-space-8);
+  align-items: start;
+}
+.gx-ws-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gx-space-8);
+  min-width: 0;
+}
+@media (max-width: 900px) {
+  .gx-ws-work {
+    grid-template-columns: 1fr;
+  }
+  .gx-ws-kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 560px) {
+  .gx-ws-kpis {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── top meta strip: date · spacer · sample marker · role switcher ───────── */
+.gx-ws-top {
+  display: flex;
+  align-items: center;
+  gap: var(--gx-space-5);
+  flex-wrap: wrap;
+}
+.gx-ws-date {
+  font-size: var(--gx-text-sm);
+  color: var(--gx-text-3);
+  font-variant-numeric: tabular-nums;
+}
+.gx-ws-top-spacer {
+  flex: 1;
+}
+.gx-ws-sample {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gx-space-2);
+  padding: var(--gx-space-1) var(--gx-space-3);
+  font-size: var(--gx-text-11);
+  font-weight: var(--gx-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--gx-tracking-wide);
+  color: var(--gx-warning-fg);
+  background: var(--gx-warning-soft);
+  border-radius: var(--gx-radius-full);
+}
+.gx-ws-role {
+  appearance: none;
+  -webkit-appearance: none;
+  font: inherit;
+  font-size: var(--gx-text-sm);
+  font-weight: var(--gx-weight-medium);
+  color: var(--gx-text-1);
+  background: var(--gx-glass);
+  border: var(--gx-border-1) solid var(--gx-border);
+  border-radius: var(--gx-radius-full);
+  padding: var(--gx-space-2) var(--gx-space-6);
+  cursor: pointer;
+}
+.gx-ws-role:hover {
+  border-color: var(--gx-border-strong);
+}
+.gx-ws-role:focus-visible {
+  outline: var(--gx-border-2) solid var(--gx-focus-ring);
+  outline-offset: var(--gx-space-1);
+}
+
+/* ── page-level state (the single workspace fetch) ───────────────────────── */
+.gx-ws-page-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gx-space-5);
+  padding: var(--gx-space-9);
+  color: var(--gx-text-3);
+  text-align: center;
+}
+
+/* ── gx-Widget card chrome ───────────────────────────────────────────────── */
+.gx-widget {
+  display: flex;
+  flex-direction: column;
+  background: var(--gx-glass);
+  border: var(--gx-border-1) solid var(--gx-glass-border);
+  border-radius: var(--gx-radius-lg);
+  backdrop-filter: blur(var(--gx-glass-blur));
+  overflow: hidden;
+}
+.gx-widget-full {
+  grid-column: 1 / -1;
+}
+.gx-widget-head {
+  display: flex;
+  align-items: center;
+  gap: var(--gx-space-3);
+  padding: var(--gx-space-5) var(--gx-space-6);
+  border-bottom: var(--gx-border-1) solid var(--gx-divider);
+}
+.gx-widget-icon {
+  display: inline-flex;
+  color: var(--gx-text-3);
+}
+.gx-widget-title {
+  margin: 0;
+  font-size: var(--gx-text-sm);
+  font-weight: var(--gx-weight-semibold);
+  letter-spacing: var(--gx-tracking-wide);
+  text-transform: uppercase;
+  color: var(--gx-text-2);
+}
+.gx-widget-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--gx-space-8);
+  padding: 0 var(--gx-space-2);
+  font-size: var(--gx-text-11);
+  font-weight: var(--gx-weight-semibold);
+  color: var(--gx-text-2);
+  background: var(--gx-neutral-soft);
+  border-radius: var(--gx-radius-full);
+}
+.gx-widget-head-spacer {
+  flex: 1;
+}
+.gx-widget-btn,
+.gx-widget-link,
+.gx-widget-retry {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gx-space-2);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--gx-interactive);
+  font-size: var(--gx-text-xs);
+  font-weight: var(--gx-weight-medium);
+  border-radius: var(--gx-radius-sm);
+  padding: var(--gx-space-1) var(--gx-space-2);
+}
+.gx-widget-btn {
+  color: var(--gx-text-3);
+}
+.gx-widget-btn:hover,
+.gx-widget-link:hover,
+.gx-widget-retry:hover {
+  color: var(--gx-interactive-hover);
+}
+.gx-widget-btn:focus-visible,
+.gx-widget-link:focus-visible,
+.gx-widget-retry:focus-visible {
+  outline: var(--gx-border-2) solid var(--gx-focus-ring);
+  outline-offset: var(--gx-space-1);
+}
+.gx-widget-body {
+  padding: var(--gx-space-5) var(--gx-space-6);
+}
+
+/* ── shared widget states ────────────────────────────────────────────────── */
+.gx-widget-state {
+  padding: var(--gx-space-9) var(--gx-space-6);
+  text-align: center;
+  font-size: var(--gx-text-base);
+  color: var(--gx-text-3);
+}
+.gx-widget-state-error {
+  color: var(--gx-danger-fg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gx-space-3);
+  align-items: center;
+}
+.gx-widget-retry {
+  color: var(--gx-interactive);
+}
+.gx-widget-skel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gx-space-3);
+}
+.gx-widget-skel-row {
+  height: var(--gx-space-8);
+  border-radius: var(--gx-radius-sm);
+  background: var(--gx-skeleton);
+}
+
+/* ── focus band (AI daily summary) ───────────────────────────────────────── */
+.gx-ws-focus {
+  display: flex;
+  align-items: center;
+  gap: var(--gx-space-5);
+  padding: var(--gx-space-6) var(--gx-space-8);
+  background: var(--gx-focus-wash);
+  border: var(--gx-border-1) solid var(--gx-glass-border);
+  border-radius: var(--gx-radius-lg);
+}
+
+/* ── shared: critical pulse (leaf widgets opt in via .gx-pulse) ──────────── */
+@media (prefers-reduced-motion: no-preference) {
+  .gx-pulse {
+    animation: gx-ws-pulse var(--gx-dur-moderate) ease-in-out infinite alternate;
+  }
+}
+@keyframes gx-ws-pulse {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.5;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   LEAF WIDGETS — appended from the Phase 2 fleet (each tokens-only, namespaced).
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ── gx-FocusBand — inner elements of the AI daily-summary band ─────────────
+   EN: Lives inside the existing .gx-ws-focus chrome (do NOT redefine it). Only
+       the inner element classes here: azure accent icon · summary text · Ask pill.
+   HY: Ապրում է եղած .gx-ws-focus chrome-ի ներսում (չվերասահմանել): Միայն ներքին
+       element-ների class-երը՝ azure icon · ամփոփ տեքստ · Ask pill: */
+.gx-focus-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  color: var(--gx-interactive); /* §2 azure live-signal */
+}
+.gx-focus-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--gx-text-md);
+  line-height: var(--gx-leading-snug);
+  color: var(--gx-text-1);
+}
+/* Ask pill — azure filled, right-aligned (the .gx-ws-focus flex gap spaces it). */
+.gx-focus-ask {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  height: var(--gx-space-9); /* 40 → compact pill height from spacing scale */
+  padding: 0 var(--gx-space-7);
+  border: var(--gx-border-1) solid transparent;
+  border-radius: var(--gx-radius-full);
+  background: var(--gx-interactive);
+  color: var(--gx-on-primary);
+  font-size: var(--gx-text-base);
+  font-weight: var(--gx-weight-semibold);
+  letter-spacing: var(--gx-tracking-wide);
+  cursor: pointer;
+}
+.gx-focus-ask:hover {
+  background: var(--gx-interactive-hover);
+}
+.gx-focus-ask:active {
+  background: var(--gx-interactive-active);
+}
+.gx-focus-ask:focus-visible {
+  outline: var(--gx-border-2) solid var(--gx-focus-ring);
+  outline-offset: var(--gx-space-1);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .gx-focus-ask {
+    transition: background var(--gx-dur-fast) var(--gx-ease-standard);
+  }
+}
+
+/* ── gx-PipelineSpine — 13-stage distribution spine ──────────────────────────
+   EN: Flex row of equal-width slots (longest-wins: flex:1 1 0 + min-width:0).
+       Each slot stacks count (top, tabular) · track+bar (middle, fixed height,
+       bar grows from the bottom by --gx-pipe-fill) · label (bottom, truncated).
+   HY: Հավասար լայնքի slot-երի flex row (longest-wins՝ flex:1 1 0 + min-width:0)։ */
+.gx-pipe {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--gx-space-3);
+  width: 100%;
+}
+.gx-pipe-stage {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gx-space-3);
+  padding: 0;
+  border: none;
+  background: transparent;
+  text-align: center;
+}
+.gx-pipe-stage-btn {
+  cursor: pointer;
+  border-radius: var(--gx-radius-md);
+  transition: background var(--gx-dur-fast) var(--gx-ease-standard);
+}
+.gx-pipe-stage-btn:hover {
+  background: var(--gx-glass);
+}
+.gx-pipe-stage-btn:focus-visible {
+  outline: var(--gx-border-2) solid var(--gx-focus-ring);
+  outline-offset: var(--gx-space-1);
+}
+.gx-pipe-count {
+  font-size: var(--gx-text-sm);
+  font-weight: var(--gx-weight-semibold);
+  line-height: var(--gx-leading-tight);
+  color: var(--gx-text-2);
+  font-variant-numeric: tabular-nums;
+}
+.gx-pipe-track {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  height: var(--gx-space-9);
+  background: var(--gx-chart-track);
+  border-radius: var(--gx-radius-sm);
+  overflow: hidden;
+}
+.gx-pipe-bar {
+  display: block;
+  width: 100%;
+  height: var(--gx-pipe-fill, 0%);
+  min-height: var(--gx-border-2);
+  border-radius: var(--gx-radius-sm);
+  align-self: flex-end;
+}
+.gx-pipe-bar-default {
+  background: var(--gx-chart-default);
+}
+.gx-pipe-bar-active {
+  background: var(--gx-chart-active);
+}
+.gx-pipe-bar-peak {
+  background: var(--gx-chart-peak);
+}
+.gx-pipe-label {
+  width: 100%;
+  font-size: var(--gx-text-11);
+  font-weight: var(--gx-weight-medium);
+  line-height: var(--gx-leading-tight);
+  color: var(--gx-text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .gx-pipe-bar {
+    transition: height var(--gx-dur-moderate) var(--gx-ease-standard);
+  }
+}
+
+/* ── gx-GoalRing — weekly-goal SVG progress ring ───────────────────────────
+   EN: Tokens-only. Ring scales via the SVG viewBox; arc is azure, flips to gold at 100%+.
+   HY: Միայն token-եր։ Ring-ը scale է viewBox-ով. azure աղեղ, 100%+-ին gold։ */
+.gx-ring {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gx-space-6);
+  padding-block: var(--gx-space-4);
+}
+.gx-ring-figure {
+  position: relative;
+  width: 100%;
+  max-width: var(--gx-kpi-col-min);
+  aspect-ratio: 1 / 1;
+}
+.gx-ring-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  transform-origin: center;
+}
+.gx-ring-track {
+  stroke: var(--gx-chart-track);
+}
+.gx-ring-arc {
+  stroke: var(--gx-chart-active);
+}
+.gx-ring-met .gx-ring-arc {
+  stroke: var(--gx-chart-peak);
+}
+.gx-ring-met .gx-ring-pct {
+  color: var(--gx-gold);
+}
+.gx-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gx-space-2);
+  text-align: center;
+  pointer-events: none;
+}
+.gx-ring-pct {
+  font-family: var(--gx-font-display);
+  font-size: var(--gx-text-3xl);
+  font-weight: var(--gx-weight-semibold);
+  line-height: var(--gx-leading-tight);
+  color: var(--gx-text-1);
+  font-variant-numeric: tabular-nums;
+}
+.gx-ring-sub {
+  font-size: var(--gx-text-xs);
+  color: var(--gx-text-3);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--gx-tracking-wide);
+}
+.gx-ring-label {
+  margin: 0;
+  font-size: var(--gx-text-sm);
+  font-weight: var(--gx-weight-medium);
+  color: var(--gx-text-2);
+  text-align: center;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .gx-ring-arc {
+    stroke-dashoffset: calc(var(--gx-ring-circ) - var(--gx-ring-dash));
+    animation: gx-ring-sweep var(--gx-dur-moderate) var(--gx-ease-standard);
+  }
+  @keyframes gx-ring-sweep {
+    from {
+      stroke-dashoffset: var(--gx-ring-circ);
+    }
+    to {
+      stroke-dashoffset: calc(var(--gx-ring-circ) - var(--gx-ring-dash));
+    }
+  }
+}
+
+/* ── gx-QueueWidget — priority lead queue rows ──────────────────────────────
+   EN: avatar · name (flex/ellipsis) · source chip · next-action · score (fixed col).
+   HY: avatar · անուն · source chip · հաջորդ քայլ · միավոր (ֆիքս սյունակ)։ */
+.gx-queue-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gx-space-2);
+}
+.gx-queue-row {
+  display: grid;
+  grid-template-columns: var(--gx-avatar-xs) minmax(0, 1fr) auto minmax(0, 1.2fr) minmax(
+      var(--gx-space-9),
+      auto
+    );
+  align-items: center;
+  gap: var(--gx-space-5);
+  width: 100%;
+  padding: var(--gx-space-3) var(--gx-space-4);
+  border-radius: var(--gx-radius-md);
+  text-align: left;
+  font-size: var(--gx-text-base);
+  color: var(--gx-text-2);
+}
+.gx-queue-row-btn {
+  background: transparent;
+  border: var(--gx-border-1) solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--gx-text-2);
+}
+.gx-queue-row-btn:hover {
+  background: var(--gx-hover);
+  border-color: var(--gx-border-subtle);
+}
+.gx-queue-row-btn:focus-visible {
+  outline: var(--gx-border-2) solid var(--gx-focus-ring);
+  outline-offset: var(--gx-space-1);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .gx-queue-row-btn {
+    transition:
+      background var(--gx-dur-fast) var(--gx-ease-standard),
+      border-color var(--gx-dur-fast) var(--gx-ease-standard);
+  }
+}
+.gx-queue-avatar {
+  width: var(--gx-avatar-xs);
+  height: var(--gx-avatar-xs);
+  border-radius: var(--gx-radius-full);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gx-interactive-soft);
+  color: var(--gx-interactive);
+  font-size: var(--gx-text-10);
+  font-weight: var(--gx-weight-semibold);
+  letter-spacing: var(--gx-tracking-wide);
+  flex: none;
+}
+.gx-queue-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: var(--gx-weight-medium);
+  color: var(--gx-text-1);
+}
+.gx-queue-next {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--gx-text-sm);
+  color: var(--gx-text-3);
+}
+.gx-queue-score {
+  justify-self: end;
+  text-align: right;
+  font-size: var(--gx-text-base);
+  font-weight: var(--gx-weight-semibold);
+  color: var(--gx-text-1);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── gx-CallsTimeline — today's calls as a vertical timeline ──────────────────
+   EN: Vertical connector line behind centered dots; done dots use --gx-success.
+       Time column fixed-width mono/tabular so rows align (§4 longest-wins).
+   HY: Ուղղահայաց connector գիծ կետերի հետևում; done կետերը՝ --gx-success: */
+.gx-calls-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.gx-calls-row {
+  margin: 0;
+  padding: 0;
+}
+.gx-calls-row-static,
+.gx-calls-btn {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto auto;
+  align-items: center;
+  column-gap: var(--gx-space-5);
+  width: 100%;
+  padding: var(--gx-space-4) var(--gx-space-3);
+  text-align: left;
+}
+.gx-calls-btn {
+  background: transparent;
+  border: var(--gx-border-1) solid transparent;
+  border-radius: var(--gx-radius-md);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.gx-calls-btn:hover {
+  background: var(--gx-hover);
+}
+.gx-calls-btn:focus-visible {
+  outline: var(--gx-border-2) solid var(--gx-focus-ring);
+  outline-offset: var(--gx-space-1);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .gx-calls-btn {
+    transition:
+      background-color var(--gx-dur-quick) var(--gx-ease-standard),
+      border-color var(--gx-dur-quick) var(--gx-ease-standard);
+  }
+}
+.gx-calls-time {
+  min-width: var(--gx-space-9);
+  font-family: var(--gx-font-mono);
+  font-size: var(--gx-text-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--gx-text-3);
+  letter-spacing: var(--gx-tracking-tight);
+}
+.gx-calls-rail {
+  position: relative;
+  align-self: stretch;
+  width: var(--gx-space-6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.gx-calls-rail::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: var(--gx-border-2);
+  transform: translateX(-50%);
+  background: var(--gx-divider);
+}
+.gx-calls-row:first-child .gx-calls-rail::before {
+  top: 50%;
+}
+.gx-calls-row:last-child .gx-calls-rail::before {
+  bottom: 50%;
+}
+.gx-calls-dot {
+  position: relative;
+  z-index: 1;
+  width: var(--gx-space-5);
+  height: var(--gx-space-5);
+  border-radius: var(--gx-radius-full);
+  background: var(--gx-surface);
+  border: var(--gx-border-2) solid var(--gx-interactive);
+  box-sizing: border-box;
+}
+.gx-calls-dot.is-done {
+  background: var(--gx-success);
+  border-color: var(--gx-success);
+}
+.gx-calls-name {
+  min-width: 0;
+  font-family: var(--gx-font-sans);
+  font-size: var(--gx-text-base);
+  font-weight: var(--gx-weight-medium);
+  color: var(--gx-text-1);
+  line-height: var(--gx-leading-snug);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gx-calls-name.is-done {
+  color: var(--gx-text-3);
+  text-decoration: line-through;
+  font-weight: var(--gx-weight-regular);
+}
+.gx-calls-kind {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gx-text-3);
+}
+.gx-calls-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gx-success);
+}
+
+/* ── gx-DealsWidget — "Deals Waiting" action cards ─────────────────────────
+   EN: Each <li> is a deal card: name + value (tabular, fixed col); meta = stage
+       chip · "waiting for: …" · age · optional azure "Open" button.
+   HY: Ամեն <li> deal card է՝ անուն + արժեք; meta = stage chip · "waiting for" · age · Open: */
+.gx-deal-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gx-space-4);
+}
+.gx-deal-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gx-space-3);
+  padding: var(--gx-space-5) var(--gx-space-6);
+  background: var(--gx-surface);
+  border: var(--gx-border-1) solid var(--gx-border-subtle);
+  border-radius: var(--gx-radius-md);
+}
+.gx-deal-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gx-space-4);
+}
+.gx-deal-name {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--gx-text-md);
+  font-weight: var(--gx-weight-semibold);
+  color: var(--gx-text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gx-deal-value {
+  flex: none;
+  min-width: var(--gx-space-18);
+  text-align: right;
+  font-size: var(--gx-text-md);
+  font-weight: var(--gx-weight-semibold);
+  color: var(--gx-text-1);
+  font-variant-numeric: tabular-nums;
+}
+.gx-deal-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--gx-space-3);
+  flex-wrap: wrap;
+}
+.gx-deal-waiting {
+  font-size: var(--gx-text-sm);
+  line-height: var(--gx-leading-snug);
+  color: var(--gx-text-3);
+  min-width: 0;
+}
+.gx-deal-waiting-val {
+  color: var(--gx-text-2);
+}
+.gx-deal-spacer {
+  flex: 1;
+}
+.gx-deal-age {
+  flex: none;
+  font-size: var(--gx-text-xs);
+  color: var(--gx-text-3);
+  font-variant-numeric: tabular-nums;
+}
+.gx-deal-open {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--gx-space-2) var(--gx-space-4);
+  border: var(--gx-border-1) solid var(--gx-interactive);
+  border-radius: var(--gx-radius-sm);
+  background: var(--gx-interactive);
+  color: var(--gx-on-primary);
+  font-size: var(--gx-text-xs);
+  font-weight: var(--gx-weight-medium);
+  cursor: pointer;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .gx-deal-open {
+    transition:
+      background var(--gx-dur-fast) var(--gx-ease-standard),
+      border-color var(--gx-dur-fast) var(--gx-ease-standard);
+  }
+}
+.gx-deal-open:hover {
+  background: var(--gx-interactive-hover);
+  border-color: var(--gx-interactive-hover);
+}
+.gx-deal-open:active {
+  background: var(--gx-interactive-active);
+  border-color: var(--gx-interactive-active);
+}
+.gx-deal-open:focus-visible {
+  outline: var(--gx-border-2) solid var(--gx-focus-ring);
+  outline-offset: var(--gx-space-1);
+}
+
+/* ── gx-AlertList — workspace alerts (semantic dot · text · relative time) ──
+   EN: Dot colour injected per-row via --gx-alert-dot-color. .gx-pulse (critical)
+       is the SHARED foundation class — not redefined here.
+   HY: Կետի գույնը per-row --gx-alert-dot-color-ով։ .gx-pulse-ը ընդհանուր է։ */
+.gx-alert-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gx-space-1);
+}
+.gx-alert-row-li {
+  list-style: none;
+}
+.gx-alert-row {
+  display: flex;
+  align-items: center;
+  gap: var(--gx-space-4);
+  width: 100%;
+  padding: var(--gx-space-3) var(--gx-space-4);
+  border-radius: var(--gx-radius-sm);
+}
+.gx-alert-row-btn {
+  border: none;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  transition: background-color var(--gx-dur-fast) var(--gx-ease-standard);
+}
+.gx-alert-row-btn:hover {
+  background: var(--gx-hover);
+}
+.gx-alert-row-btn:focus-visible {
+  outline: var(--gx-border-2) solid var(--gx-focus-ring);
+  outline-offset: calc(-1 * var(--gx-border-1));
+}
+.gx-alert-dot {
+  flex: 0 0 auto;
+  width: var(--gx-space-4);
+  height: var(--gx-space-4);
+  border-radius: var(--gx-radius-full);
+  background: var(--gx-alert-dot-color, var(--gx-neutral));
+}
+.gx-alert-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--gx-text-base);
+  color: var(--gx-text-1);
+}
+.gx-alert-time {
+  flex: 0 0 auto;
+  font-size: var(--gx-text-xs);
+  color: var(--gx-text-3);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ── gx-Standings — full-width team standings strip (ranked, #1 gold) ────────
+   EN: Ranked rows; longest-wins aligned numeric columns + performance bar.
+   HY: Վարկանիշով տողեր; longest-wins թվային սյունակներ + performance bar: */
+.gx-stand-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gx-space-2);
+}
+.gx-stand-row-wrap {
+  margin: 0;
+  padding: 0;
+}
+.gx-stand-row {
+  display: grid;
+  grid-template-columns:
+    var(--gx-avatar-xs)
+    var(--gx-avatar-xs)
+    minmax(0, 1fr)
+    var(--gx-space-9)
+    calc(var(--gx-space-9) + var(--gx-space-9))
+    minmax(var(--gx-space-9), 40%);
+  align-items: center;
+  gap: var(--gx-space-6);
+  width: 100%;
+  padding: var(--gx-space-4) var(--gx-space-5);
+  border: var(--gx-border-1) solid transparent;
+  border-radius: var(--gx-radius-md);
+  background: transparent;
+  text-align: left;
+  font-family: var(--gx-font-sans);
+  color: var(--gx-text-1);
+}
+.gx-stand-row-interactive {
+  cursor: pointer;
+  transition:
+    background-color var(--gx-dur-quick) var(--gx-ease-standard),
+    border-color var(--gx-dur-quick) var(--gx-ease-standard);
+}
+@media (prefers-reduced-motion: reduce) {
+  .gx-stand-row-interactive {
+    transition: none;
+  }
+}
+.gx-stand-row-interactive:hover {
+  background: var(--gx-hover);
+  border-color: var(--gx-border-subtle);
+}
+.gx-stand-row-interactive:focus-visible {
+  outline: var(--gx-border-2) solid var(--gx-focus-ring);
+  outline-offset: var(--gx-border-2);
+}
+.gx-stand-row-peak {
+  border-color: var(--gx-gold-soft);
+  background: var(--gx-gold-soft);
+}
+.gx-stand-row-interactive.gx-stand-row-peak:hover {
+  border-color: var(--gx-gold);
+}
+.gx-stand-rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--gx-avatar-xs);
+  height: var(--gx-avatar-xs);
+  border-radius: var(--gx-radius-full);
+  font-family: var(--gx-font-mono);
+  font-size: var(--gx-text-sm);
+  font-weight: var(--gx-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--gx-text-3);
+  border: var(--gx-border-1) solid var(--gx-border-subtle);
+}
+.gx-stand-rank-peak {
+  color: var(--gx-text-on-gold);
+  background: var(--gx-chart-peak);
+  border-color: var(--gx-gold);
+}
+.gx-stand-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--gx-avatar-xs);
+  height: var(--gx-avatar-xs);
+  border-radius: var(--gx-radius-full);
+  background: var(--gx-surface-2);
+  color: var(--gx-text-2);
+  font-size: var(--gx-text-10);
+  font-weight: var(--gx-weight-semibold);
+  letter-spacing: var(--gx-tracking-wide);
+}
+.gx-stand-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--gx-text-base);
+  font-weight: var(--gx-weight-medium);
+  color: var(--gx-text-1);
+}
+.gx-stand-metric {
+  text-align: right;
+  font-size: var(--gx-text-sm);
+  color: var(--gx-text-2);
+  font-variant-numeric: tabular-nums;
+}
+.gx-stand-conv {
+  color: var(--gx-text-2);
+}
+.gx-stand-rev {
+  color: var(--gx-text-1);
+  font-weight: var(--gx-weight-medium);
+}
+.gx-stand-bar {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: var(--gx-kpi-bar-h);
+  border-radius: var(--gx-radius-full);
+  background: var(--gx-chart-track);
+  overflow: hidden;
+}
+.gx-stand-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--gx-radius-full);
+  background: var(--gx-chart-default);
+  transition: width var(--gx-dur-moderate) var(--gx-ease-standard);
+}
+.gx-stand-bar-fill-peak {
+  background: var(--gx-chart-peak);
+}
+@media (prefers-reduced-motion: reduce) {
+  .gx-stand-bar-fill {
+    transition: none;
+  }
+}
+@media (max-width: 768px) {
+  .gx-stand-row {
+    grid-template-columns:
+      var(--gx-avatar-xs)
+      var(--gx-avatar-xs)
+      minmax(0, 1fr)
+      var(--gx-space-9)
+      calc(var(--gx-space-9) + var(--gx-space-9));
+  }
+  .gx-stand-bar {
+    display: none;
+  }
+}
+
+/* ── gx-Sparkline — KPI trend line (azure; gold = the single Revenue accent) ──
+   EN: Stroke colour is tokenized here (never inline). Azure live-signal default;
+       gold variant for the one signature tile. Fills its KPI-tile chart slot.
+   HY: Stroke-ի գույնը token է այստեղ (ոչ inline)։ Լռելյայն azure; gold՝ Revenue-ի համար։ */
+.gx-spark {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.gx-spark polyline {
+  stroke: var(--gx-chart-active);
+  stroke-width: var(--gx-border-2);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.gx-spark-gold polyline {
+  stroke: var(--gx-chart-peak);
+}
