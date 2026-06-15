@@ -8,7 +8,7 @@ Append-only log of reviewer↔executor rulings. One line per decision: `date · 
 - **Plan:** Architecture redesign LOCKED → Phase 1 (Shell+gx) → Phase 2 (Workspace) → Phase 3 (CRM→Leads).
 - ✅ **Ph0** lock-in · ✅ **Ph1** brand-align/tokens (`06f9ed28`) · ✅ **Ph2** components (`8e67e609`) · ✅ **Ph3** i18n/formatters/gate
 - ✅ **Ph1a** nav rewire (`1e8ec1c9`) · ✅ **Ph1b** ASK ME → header · ✅ **Ph1c** gx-AppShell (`00b89605`)
-- ⏳ **Ph1d** gx-CommandBar · ⬜ **Ph1e** gx-StatusBadge
+- ✅ **Ph1d** gx-CommandBar (`394deaa8`) · ✅ **Ph1e** gx-StatusBadge (`92e95092`)
 - **Push:** held — commits only, no push until owner says.
 
 ---
