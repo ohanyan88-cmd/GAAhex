@@ -2,8 +2,12 @@ import { Button } from '../primitives'
 import { useState } from 'react'
 import { Modal } from '../components/Modal'
 import {
-  CalendarIcon, ChevronLeftIcon, ChevronRightIcon,
-  PlusIcon, CloseIcon, CheckIcon,
+  CalendarIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  PlusIcon,
+  CloseIcon,
+  CheckIcon,
 } from '../components/icons'
 import { usePageConfig } from '../lib/pageConfig'
 import { PageShell } from '../page-shell'
@@ -14,18 +18,42 @@ import { BASE } from '../lib/config'
 import { CALENDAR_EVENTS } from '../lib/pagination'
 
 type CalEvent = {
-  id: string; title: string; start_at: string; end_at: string | null
-  all_day: boolean; color: string | null; calendar_id: string | null
-  description: string | null; location: string | null; created_at: string | null
+  id: string
+  title: string
+  start_at: string
+  end_at: string | null
+  all_day: boolean
+  color: string | null
+  calendar_id: string | null
+  description: string | null
+  location: string | null
+  created_at: string | null
 }
 type Cal = { id: string; name: string; color: string; is_shared: boolean }
 
 const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ]
 const DAY_HEADERS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-const SWATCH_COLORS = ['var(--viz-1)', 'var(--viz-2)', 'var(--viz-3)', 'var(--viz-7)', 'var(--viz-5)', 'var(--viz-8)']
+const SWATCH_COLORS = [
+  'var(--viz-1)',
+  'var(--viz-2)',
+  'var(--viz-3)',
+  'var(--viz-7)',
+  'var(--viz-5)',
+  'var(--viz-8)',
+]
 
 function buildGrid(year: number, month: number): (Date | null)[][] {
   const first = new Date(year, month, 1)
@@ -56,7 +84,17 @@ function todayStr(): string {
 
 // P1 note: CalendarView has no `.view-head`/ViewHead surface today, so the Configure
 // gear isn't rendered here yet — props are accepted so App.tsx can wire it uniformly.
-export default function CalendarView({ configVersion = 0, canConfigure: _canConfigure = false, onConfigure: _onConfigure, embedded = false }: { configVersion?: number; canConfigure?: boolean; onConfigure?: () => void; embedded?: boolean }) {
+export default function CalendarView({
+  configVersion = 0,
+  canConfigure: _canConfigure = false,
+  onConfigure: _onConfigure,
+  embedded = false,
+}: {
+  configVersion?: number
+  canConfigure?: boolean
+  onConfigure?: () => void
+  embedded?: boolean
+}) {
   const { token } = useAuth()
   const cfg = usePageConfig(token!, 'calendar', configVersion)
   const [year, setYear] = useState(() => new Date().getFullYear())
@@ -72,28 +110,42 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
     return mon
   })
   // ── Canonical data fetching via useFetch ─────────────────────────────────
-  const { data: cals, loading: calsLoading, refetch: refetchCals } = useFetch<Cal[]>(`${BASE}/api/calendar/calendars`)
+  const {
+    data: cals,
+    loading: calsLoading,
+    refetch: refetchCals,
+  } = useFetch<Cal[]>(`${BASE}/api/calendar/calendars`)
 
   const eventsUrl = (() => {
     let startStr: string, endStr: string
     if (calView === 'week') {
       startStr = isoDate(weekStart)
-      const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 6)
+      const weekEnd = new Date(weekStart)
+      weekEnd.setDate(weekStart.getDate() + 6)
       endStr = isoDate(weekEnd)
     } else {
       const first = new Date(year, month, 1)
       const last = new Date(year, month + 1, 0)
-      startStr = isoDate(first); endStr = isoDate(last)
+      startStr = isoDate(first)
+      endStr = isoDate(last)
     }
     return `${BASE}/api/calendar/events?start=${startStr}&end=${endStr}&limit=${CALENDAR_EVENTS}`
   })()
-  const { data: eventsData, loading: eventsLoading, error: eventsError, refetch: refetchEvents } = useFetch<CalEvent[]>(eventsUrl)
+  const {
+    data: eventsData,
+    loading: eventsLoading,
+    error: eventsError,
+    refetch: refetchEvents,
+  } = useFetch<CalEvent[]>(eventsUrl)
 
   const events: CalEvent[] = eventsData ?? []
   const loading = calsLoading || eventsLoading
   const loadError = eventsError ?? ''
 
-  function refetchAll() { refetchCals(); refetchEvents() }
+  function refetchAll() {
+    refetchCals()
+    refetchEvents()
+  }
 
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<CalEvent | null>(null)
@@ -113,13 +165,21 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
   const [fError, setFError] = useState('')
 
   function prev() {
-    if (month === 0) { setYear(y => y - 1); setMonth(11) } else setMonth(m => m - 1)
+    if (month === 0) {
+      setYear((y) => y - 1)
+      setMonth(11)
+    } else setMonth((m) => m - 1)
   }
   function next() {
-    if (month === 11) { setYear(y => y + 1); setMonth(0) } else setMonth(m => m + 1)
+    if (month === 11) {
+      setYear((y) => y + 1)
+      setMonth(0)
+    } else setMonth((m) => m + 1)
   }
   function goToday() {
-    const n = new Date(); setYear(n.getFullYear()); setMonth(n.getMonth())
+    const n = new Date()
+    setYear(n.getFullYear())
+    setMonth(n.getMonth())
     if (calView === 'week') {
       const day = n.getDay()
       const diff = day === 0 ? 6 : day - 1
@@ -130,22 +190,29 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
     }
   }
   function prevWeek() {
-    setWeekStart(d => {
-      const n = new Date(d); n.setDate(n.getDate() - 7); return n
+    setWeekStart((d) => {
+      const n = new Date(d)
+      n.setDate(n.getDate() - 7)
+      return n
     })
   }
   function nextWeek() {
-    setWeekStart(d => {
-      const n = new Date(d); n.setDate(n.getDate() + 7); return n
+    setWeekStart((d) => {
+      const n = new Date(d)
+      n.setDate(n.getDate() + 7)
+      return n
     })
   }
   function weekDays(): Date[] {
     return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(weekStart); d.setDate(weekStart.getDate() + i); return d
+      const d = new Date(weekStart)
+      d.setDate(weekStart.getDate() + i)
+      return d
     })
   }
   function weekRangeLabel(start: Date): string {
-    const end = new Date(start); end.setDate(start.getDate() + 6)
+    const end = new Date(start)
+    end.setDate(start.getDate() + 6)
     const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' }
     return `${start.toLocaleDateString('en', opts)} – ${end.toLocaleDateString('en', { ...opts, year: 'numeric' })}`
   }
@@ -153,14 +220,14 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
   function eventsForDay(date: Date): CalEvent[] {
     const iso = isoDate(date)
     return events
-      .filter(e => e.start_at.slice(0, 10) === iso)
-      .filter(e => !e.calendar_id || !hiddenCals.has(e.calendar_id))
+      .filter((e) => e.start_at.slice(0, 10) === iso)
+      .filter((e) => !e.calendar_id || !hiddenCals.has(e.calendar_id))
       .sort((a, b) => a.start_at.localeCompare(b.start_at))
   }
 
   function calColor(ev: CalEvent): string {
     if (ev.color) return ev.color
-    const cal = cals?.find(c => c.id === ev.calendar_id)
+    const cal = cals?.find((c) => c.id === ev.calendar_id)
     if (cal) return cal.color
     // D18: calendar event chip fallback fill = azure-soft (chips are interactive/drillable)
     return 'var(--gx-interactive-soft)'
@@ -190,20 +257,29 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
     setFEndTime(ev.end_at && ev.end_at.length > 10 ? ev.end_at.slice(11, 16) : '10:00')
     setFAllDay(ev.all_day)
     setFDesc(ev.description ?? '')
-    setFCalId(ev.calendar_id ?? (cals?.[0]?.id ?? ''))
+    setFCalId(ev.calendar_id ?? cals?.[0]?.id ?? '')
     setFColor(ev.color)
     setFError('')
     setModalOpen(true)
   }
 
   async function handleSave() {
-    if (!fTitle.trim()) { setFError('Title is required'); return }
-    setFSaving(true); setFError('')
+    if (!fTitle.trim()) {
+      setFError('Title is required')
+      return
+    }
+    setFSaving(true)
+    setFError('')
     const startAt = fAllDay ? fDate : `${fDate}T${fStartTime}:00`
     const endAt = fAllDay ? null : `${fDate}T${fEndTime}:00`
     const body = {
-      title: fTitle.trim(), start_at: startAt, end_at: endAt, all_day: fAllDay,
-      description: fDesc || null, calendar_id: fCalId || null, color: fColor,
+      title: fTitle.trim(),
+      start_at: startAt,
+      end_at: endAt,
+      all_day: fAllDay,
+      description: fDesc || null,
+      calendar_id: fCalId || null,
+      color: fColor,
     }
     try {
       let resp: Response
@@ -220,7 +296,11 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
           body: JSON.stringify(body),
         })
       }
-      if (!resp.ok) { setFError('Save failed'); setFSaving(false); return }
+      if (!resp.ok) {
+        setFError('Save failed')
+        setFSaving(false)
+        return
+      }
       setModalOpen(false)
       refetchAll()
     } catch {
@@ -247,9 +327,10 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
   }
 
   function toggleCal(id: string) {
-    setHiddenCals(prev => {
+    setHiddenCals((prev) => {
       const next = new Set(prev)
-      if (next.has(id)) next.delete(id); else next.add(id)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
       return next
     })
   }
@@ -261,21 +342,43 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
     return (
       <div className="minical">
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 'var(--gx-space-4)' }}>
-          <span style={{ fontWeight: 'var(--gx-weight-semibold)', fontSize: 'var(--gx-text-13)' }}>{MONTH_NAMES[month].slice(0, 3)} {year}</span>
+          <span style={{ fontWeight: 'var(--gx-weight-semibold)', fontSize: 'var(--gx-text-13)' }}>
+            {MONTH_NAMES[month].slice(0, 3)} {year}
+          </span>
           <span className="spacer" />
-          <button className="tb-icon" style={{ width: 26, height: 26 }} onClick={prev} aria-label="Previous month">
+          <button
+            className="tb-icon"
+            style={{ width: 26, height: 26 }}
+            onClick={prev}
+            aria-label="Previous month"
+          >
             <ChevronLeftIcon size={15} />
           </button>
-          <button className="tb-icon" style={{ width: 26, height: 26 }} onClick={next} aria-label="Next month">
+          <button
+            className="tb-icon"
+            style={{ width: 26, height: 26 }}
+            onClick={next}
+            aria-label="Next month"
+          >
             <ChevronRightIcon size={15} />
           </button>
         </div>
         <div className="minical-grid">
           {DAY_HEADERS.map((d, i) => (
-            <div key={`mh-${i}`} className="minical-h">{d[0]}</div>
+            <div key={`mh-${i}`} className="minical-h">
+              {d[0]}
+            </div>
           ))}
           {grid.flat().map((cell, idx) => {
-            if (!cell) return <button key={`mini-pad-${idx}`} className="minical-d" style={{ visibility: 'hidden' }} tabIndex={-1} />
+            if (!cell)
+              return (
+                <button
+                  key={`mini-pad-${idx}`}
+                  className="minical-d"
+                  style={{ visibility: 'hidden' }}
+                  tabIndex={-1}
+                />
+              )
             const iso = isoDate(cell)
             const isToday = iso === todayIso
             return (
@@ -301,35 +404,47 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
     const todayIso = todayStr()
     return (
       <div className="cal-grid" style={{ gridAutoRows: 'minmax(160px, 1fr)', minHeight: 200 }}>
-        {DAY_HEADERS.map(d => (
-          <div key={`wh-${d}`} className="cal-h">{d}</div>
+        {DAY_HEADERS.map((d) => (
+          <div key={`wh-${d}`} className="cal-h">
+            {d}
+          </div>
         ))}
-        {days.map(day => {
+        {days.map((day) => {
           const iso = isoDate(day)
           const dayEvs = events
-            .filter(e => e.start_at.slice(0, 10) === iso)
-            .filter(e => !e.calendar_id || !hiddenCals.has(e.calendar_id))
+            .filter((e) => e.start_at.slice(0, 10) === iso)
+            .filter((e) => !e.calendar_id || !hiddenCals.has(e.calendar_id))
             .sort((a, b) => a.start_at.localeCompare(b.start_at))
           const isToday = iso === todayIso
           return (
-            <div
-              key={iso}
-              className={'cal-cell big'}
-              onClick={() => openNew(iso)}
-            >
+            <div key={iso} className={'cal-cell big'} onClick={() => openNew(iso)}>
               <span className={'cal-day' + (isToday ? ' today' : '')}>{day.getDate()}</span>
               <div className="cal-evs">
-                {dayEvs.map(ev => {
+                {dayEvs.map((ev) => {
                   const tone = calColor(ev)
                   return (
                     <div
                       key={ev.id}
                       className="cal-ev"
-                      style={{ background: tone + '22', color: tone, borderLeft: '2px solid ' + tone }}
-                      onClick={e => { e.stopPropagation(); openEdit(ev) }}
+                      style={{
+                        background: tone + '22',
+                        color: tone,
+                        borderLeft: '2px solid ' + tone,
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        openEdit(ev)
+                      }}
                     >
                       {!ev.all_day && (
-                        <span className="mono" style={{ fontSize: 'var(--gx-text-10)', opacity: 0.85, marginRight: 'var(--gx-space-2)' }}>
+                        <span
+                          className="mono"
+                          style={{
+                            fontSize: 'var(--gx-text-10)',
+                            opacity: 0.85,
+                            marginRight: 'var(--gx-space-2)',
+                          }}
+                        >
                           {ev.start_at.slice(11, 16)}
                         </span>
                       )}
@@ -350,17 +465,17 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
 
   // Visible (non-hidden) events — feeds upcoming list AND KPI counts so the
   // KPIs match what the user can actually see on screen.
-  const visibleEvents = events.filter(e => !e.calendar_id || !hiddenCals.has(e.calendar_id))
+  const visibleEvents = events.filter((e) => !e.calendar_id || !hiddenCals.has(e.calendar_id))
 
   // Upcoming events (visible/non-hidden, future-only from "today" forward in this month).
   const upcoming = visibleEvents
-    .filter(e => e.start_at.slice(0, 10) >= today)
+    .filter((e) => e.start_at.slice(0, 10) >= today)
     .sort((a, b) => a.start_at.localeCompare(b.start_at))
     .slice(0, 6)
 
   // KPI derivation — counted from the events ALREADY fetched for the current
   // range. "This week" = Mon..Sun of the calendar week containing today.
-  const todayCount = visibleEvents.filter(e => e.start_at.slice(0, 10) === today).length
+  const todayCount = visibleEvents.filter((e) => e.start_at.slice(0, 10) === today).length
   const weekStartIso = (() => {
     const n = new Date()
     const day = n.getDay()
@@ -379,12 +494,12 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
     mon.setHours(0, 0, 0, 0)
     return isoDate(mon)
   })()
-  const thisWeekCount = visibleEvents.filter(e => {
+  const thisWeekCount = visibleEvents.filter((e) => {
     const d = e.start_at.slice(0, 10)
     return d >= weekStartIso && d <= weekEndIso
   }).length
 
-  // Sub-toolbar lives inside the body — the PageShell ActionBar's
+  // Sub-toolbar lives inside the body — the CommandBar's
   // ViewSwitcher contract is for canonical view-kinds (table/board/calendar/
   // map/timeline/gallery), not calendar sub-modes like month/week, so the
   // month↔week toggle + date navigator stay in-body alongside the range label.
@@ -392,8 +507,20 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
     calView === 'month' ? `${MONTH_NAMES[month]} ${year}` : weekRangeLabel(weekStart)
 
   const body = (
-    <div className="gx-comms" style={{ display: 'flex', flexDirection: 'column', minHeight: 0, height: '100%' }}>
-      <div className="cal-subbar" style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', marginBottom: 'var(--gx-space-4)', flexWrap: 'wrap' }}>
+    <div
+      className="gx-comms"
+      style={{ display: 'flex', flexDirection: 'column', minHeight: 0, height: '100%' }}
+    >
+      <div
+        className="cal-subbar"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 'var(--gx-space-5)',
+          marginBottom: 'var(--gx-space-4)',
+          flexWrap: 'wrap',
+        }}
+      >
         <div className="sub" style={{ color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-sm)' }}>
           {rangeLabel}
           {loading ? ' · loading…' : ''}
@@ -401,17 +528,39 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
         </div>
         <span className="spacer" style={{ flex: 1 }} />
         <div className="cal-nav">
-          <button className="tb-icon" onClick={calView === 'month' ? prev : prevWeek} aria-label="Previous">
+          <button
+            className="tb-icon"
+            onClick={calView === 'month' ? prev : prevWeek}
+            aria-label="Previous"
+          >
             <ChevronLeftIcon size={18} />
           </button>
-          <Button variant="secondary" size="sm" onClick={goToday}>Today</Button>
-          <button className="tb-icon" onClick={calView === 'month' ? next : nextWeek} aria-label="Next">
+          <Button variant="secondary" size="sm" onClick={goToday}>
+            Today
+          </Button>
+          <button
+            className="tb-icon"
+            onClick={calView === 'month' ? next : nextWeek}
+            aria-label="Next"
+          >
             <ChevronRightIcon size={18} />
           </button>
         </div>
         <div className="seg hide-sm">
-          <button type="button" className={calView === 'month' ? 'on' : ''} onClick={() => setCalView('month')}>Month</button>
-          <button type="button" className={calView === 'week' ? 'on' : ''} onClick={() => setCalView('week')}>Week</button>
+          <button
+            type="button"
+            className={calView === 'month' ? 'on' : ''}
+            onClick={() => setCalView('month')}
+          >
+            Month
+          </button>
+          <button
+            type="button"
+            className={calView === 'week' ? 'on' : ''}
+            onClick={() => setCalView('week')}
+          >
+            Week
+          </button>
         </div>
       </div>
 
@@ -422,8 +571,19 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
           {/* Calendar filters (toggle visibility) */}
           {(cals?.length ?? 0) > 0 && (
             <>
-              <div className="lbl" style={{ fontSize: 'var(--gx-text-10)', letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', margin: '18px 0 8px' }}>Calendars</div>
-              {cals!.map(cal => {
+              <div
+                className="lbl"
+                style={{
+                  fontSize: 'var(--gx-text-10)',
+                  letterSpacing: '.12em',
+                  textTransform: 'uppercase',
+                  color: 'var(--gx-text-3)',
+                  margin: '18px 0 8px',
+                }}
+              >
+                Calendars
+              </div>
+              {cals!.map((cal) => {
                 const on = !hiddenCals.has(cal.id)
                 return (
                   <label key={cal.id} className="cal-cal" onClick={() => toggleCal(cal.id)}>
@@ -436,7 +596,15 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
                     >
                       {on && <CheckIcon size={11} style={{ color: 'var(--gx-text-on-gold)' }} />}
                     </span>
-                    <span style={{ fontSize: 'var(--gx-text-sm)', color: on ? 'var(--gx-text-1)' : 'var(--gx-text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span
+                      style={{
+                        fontSize: 'var(--gx-text-sm)',
+                        color: on ? 'var(--gx-text-1)' : 'var(--gx-text-3)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
                       {cal.name}
                     </span>
                   </label>
@@ -448,9 +616,20 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
           {/* Upcoming list */}
           {upcoming.length > 0 && (
             <>
-              <div className="lbl" style={{ fontSize: 'var(--gx-text-10)', letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', margin: '18px 0 8px' }}>Upcoming</div>
+              <div
+                className="lbl"
+                style={{
+                  fontSize: 'var(--gx-text-10)',
+                  letterSpacing: '.12em',
+                  textTransform: 'uppercase',
+                  color: 'var(--gx-text-3)',
+                  margin: '18px 0 8px',
+                }}
+              >
+                Upcoming
+              </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                {upcoming.map(e => {
+                {upcoming.map((e) => {
                   const tone = calColor(e)
                   const d = new Date(e.start_at)
                   return (
@@ -459,15 +638,45 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
                       role="button"
                       tabIndex={0}
                       onClick={() => openEdit(e)}
-                      onKeyDown={(ke) => { if (ke.key === 'Enter' || ke.key === ' ') { ke.preventDefault(); openEdit(e) } }}
-                      style={{ display: 'flex', gap: 9, alignItems: 'flex-start', cursor: 'pointer' }}
+                      onKeyDown={(ke) => {
+                        if (ke.key === 'Enter' || ke.key === ' ') {
+                          ke.preventDefault()
+                          openEdit(e)
+                        }
+                      }}
+                      style={{
+                        display: 'flex',
+                        gap: 9,
+                        alignItems: 'flex-start',
+                        cursor: 'pointer',
+                      }}
                     >
-                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: tone, marginTop: 5, flexShrink: 0 }} />
+                      <span
+                        style={{
+                          width: 7,
+                          height: 7,
+                          borderRadius: '50%',
+                          background: tone,
+                          marginTop: 5,
+                          flexShrink: 0,
+                        }}
+                      />
                       <div style={{ fontSize: 'var(--gx-text-sm)', minWidth: 0, flex: 1 }}>
-                        <div style={{ fontWeight: 'var(--gx-weight-medium)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.title}</div>
+                        <div
+                          style={{
+                            fontWeight: 'var(--gx-weight-medium)',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {e.title}
+                        </div>
                         <div className="hint" style={{ fontSize: 'var(--gx-text-11)' }}>
                           {MONTH_NAMES[d.getMonth()].slice(0, 3)} {d.getDate()}
-                          {!e.all_day && e.start_at.length > 10 ? ` · ${e.start_at.slice(11, 16)}` : ''}
+                          {!e.all_day && e.start_at.length > 10
+                            ? ` · ${e.start_at.slice(11, 16)}`
+                            : ''}
                         </div>
                       </div>
                     </div>
@@ -478,21 +687,26 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
           )}
         </aside>
 
-        <div className="card" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1 }}>
+        <div
+          className="card"
+          style={{
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: 0,
+            flex: 1,
+          }}
+        >
           {calView === 'month' && (
             <div className="cal-grid full">
-              {DAY_HEADERS.map(d => (
-                <div key={d} className="cal-h">{d}</div>
+              {DAY_HEADERS.map((d) => (
+                <div key={d} className="cal-h">
+                  {d}
+                </div>
               ))}
               {grid.flat().map((cell, idx) => {
                 if (!cell) {
-                  return (
-                    <div
-                      key={`pad-${idx}`}
-                      className="cal-cell big off"
-                      aria-hidden="true"
-                    />
-                  )
+                  return <div key={`pad-${idx}`} className="cal-cell big off" aria-hidden="true" />
                 }
                 const dateStr = isoDate(cell)
                 const isToday = dateStr === today
@@ -501,24 +715,35 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
                 const overflow = dayEvents.length - visible.length
 
                 return (
-                  <div
-                    key={dateStr}
-                    className="cal-cell big"
-                    onClick={() => openNew(dateStr)}
-                  >
+                  <div key={dateStr} className="cal-cell big" onClick={() => openNew(dateStr)}>
                     <span className={'cal-day' + (isToday ? ' today' : '')}>{cell.getDate()}</span>
                     <div className="cal-evs">
-                      {visible.map(ev => {
+                      {visible.map((ev) => {
                         const tone = calColor(ev)
                         return (
                           <div
                             key={ev.id}
                             className="cal-ev"
-                            style={{ background: tone + '22', color: tone, borderLeft: '2px solid ' + tone, cursor: 'pointer' }}
-                            onClick={e => { e.stopPropagation(); openEdit(ev) }}
+                            style={{
+                              background: tone + '22',
+                              color: tone,
+                              borderLeft: '2px solid ' + tone,
+                              cursor: 'pointer',
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              openEdit(ev)
+                            }}
                           >
                             {!ev.all_day && ev.start_at.length > 10 && (
-                              <span className="mono" style={{ fontSize: 'var(--gx-text-10)', opacity: 0.85, marginRight: 'var(--gx-space-2)' }}>
+                              <span
+                                className="mono"
+                                style={{
+                                  fontSize: 'var(--gx-text-10)',
+                                  opacity: 0.85,
+                                  marginRight: 'var(--gx-space-2)',
+                                }}
+                              >
                                 {ev.start_at.slice(11, 16)}
                               </span>
                             )}
@@ -530,7 +755,10 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
                         <span
                           className="cal-more"
                           style={{ cursor: 'pointer' }}
-                          onClick={e => { e.stopPropagation(); openNew(dateStr) }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            openNew(dateStr)
+                          }}
                         >
                           +{overflow} more
                         </span>
@@ -553,20 +781,36 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
         title={editing ? 'Edit event' : 'New event'}
         size="md"
         footer={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', width: '100%' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--gx-space-3)',
+              width: '100%',
+            }}
+          >
             {editing && (
-              <Button variant="danger" size="sm"
-            type="button"  onClick={handleDelete} disabled={fSaving}>
+              <Button
+                variant="danger"
+                size="sm"
+                type="button"
+                onClick={handleDelete}
+                disabled={fSaving}
+              >
                 Delete
               </Button>
             )}
             <span style={{ flex: 1 }} />
-            <Button variant="ghost" size="md"
-            type="button"  onClick={() => setModalOpen(false)}>
+            <Button variant="ghost" size="md" type="button" onClick={() => setModalOpen(false)}>
               Cancel
             </Button>
-            <Button variant="primary" size="md"
-            type="button"  onClick={handleSave} disabled={fSaving}>
+            <Button
+              variant="primary"
+              size="md"
+              type="button"
+              onClick={handleSave}
+              disabled={fSaving}
+            >
               {fSaving ? 'Saving...' : 'Save'}
             </Button>
           </div>
@@ -578,7 +822,7 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
             <input
               className="inp inp-md"
               value={fTitle}
-              onChange={e => setFTitle(e.target.value)}
+              onChange={(e) => setFTitle(e.target.value)}
               placeholder="Event title"
               autoFocus
             />
@@ -589,12 +833,16 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
               type="date"
               className="inp inp-md"
               value={fDate}
-              onChange={e => setFDate(e.target.value)}
+              onChange={(e) => setFDate(e.target.value)}
             />
           </div>
           <div className="field">
             <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)' }}>
-              <input type="checkbox" checked={fAllDay} onChange={e => setFAllDay(e.target.checked)} />
+              <input
+                type="checkbox"
+                checked={fAllDay}
+                onChange={(e) => setFAllDay(e.target.checked)}
+              />
               All day
             </label>
           </div>
@@ -602,11 +850,21 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
             <>
               <div className="field">
                 <label>Start time</label>
-                <input type="time" className="inp inp-md" value={fStartTime} onChange={e => setFStartTime(e.target.value)} />
+                <input
+                  type="time"
+                  className="inp inp-md"
+                  value={fStartTime}
+                  onChange={(e) => setFStartTime(e.target.value)}
+                />
               </div>
               <div className="field">
                 <label>End time</label>
-                <input type="time" className="inp inp-md" value={fEndTime} onChange={e => setFEndTime(e.target.value)} />
+                <input
+                  type="time"
+                  className="inp inp-md"
+                  value={fEndTime}
+                  onChange={(e) => setFEndTime(e.target.value)}
+                />
               </div>
             </>
           )}
@@ -616,32 +874,49 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
               className="inp inp-area inp-md"
               rows={3}
               value={fDesc}
-              onChange={e => setFDesc(e.target.value)}
+              onChange={(e) => setFDesc(e.target.value)}
               placeholder="Optional description"
             />
           </div>
           {(cals?.length ?? 0) > 0 && (
             <div className="field">
               <label>Calendar</label>
-              <select className="inp inp-md" value={fCalId} onChange={e => setFCalId(e.target.value)}>
+              <select
+                className="inp inp-md"
+                value={fCalId}
+                onChange={(e) => setFCalId(e.target.value)}
+              >
                 <option value="">— none —</option>
-                {cals!.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
+                {cals!.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
                 ))}
               </select>
             </div>
           )}
           <div className="field">
             <label>Color</label>
-            <div style={{ display: 'flex', gap: 'var(--gx-space-3)', flexWrap: 'wrap', alignItems: 'center' }}>
-              {SWATCH_COLORS.map(c => (
+            <div
+              style={{
+                display: 'flex',
+                gap: 'var(--gx-space-3)',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+              }}
+            >
+              {SWATCH_COLORS.map((c) => (
                 <button
                   key={c}
                   type="button"
                   onClick={() => setFColor(fColor === c ? null : c)}
                   style={{
-                    width: 'var(--gx-space-12)', height: 'var(--gx-space-12)', borderRadius: '50%',
-                    background: c, border: 'none', cursor: 'pointer',
+                    width: 'var(--gx-space-12)',
+                    height: 'var(--gx-space-12)',
+                    borderRadius: '50%',
+                    background: c,
+                    border: 'none',
+                    cursor: 'pointer',
                     outline: fColor === c ? '2px solid var(--gx-gold)' : '2px solid transparent',
                     outlineOffset: 'var(--gx-space-1)',
                   }}
@@ -649,10 +924,18 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
                 />
               ))}
               {fColor && (
-                <Button variant="ghost" size="sm"
-            type="button"
-                  
-                  style={{ padding: '0 8px', height: 'var(--gx-space-12)', fontSize: 'var(--gx-text-11)', display: 'flex', alignItems: 'center', gap: 'var(--gx-space-2)' }}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  type="button"
+                  style={{
+                    padding: '0 8px',
+                    height: 'var(--gx-space-12)',
+                    fontSize: 'var(--gx-text-11)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 'var(--gx-space-2)',
+                  }}
                   onClick={() => setFColor(null)}
                 >
                   <CloseIcon size={10} /> Clear
@@ -660,7 +943,11 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
               )}
             </div>
           </div>
-          {fError && <p className="err" style={{ margin: 0 }}>{fError}</p>}
+          {fError && (
+            <p className="err" style={{ margin: 0 }}>
+              {fError}
+            </p>
+          )}
         </div>
       </Modal>
 
@@ -679,7 +966,11 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
       subtitle="Schedules & field dispatches"
       kpis={[
         { label: 'Today', value: todayCount, subtitle: todayCount === 0 ? 'no events' : undefined },
-        { label: 'This week', value: thisWeekCount, subtitle: thisWeekCount === 0 ? 'no events' : undefined },
+        {
+          label: 'This week',
+          value: thisWeekCount,
+          subtitle: thisWeekCount === 0 ? 'no events' : undefined,
+        },
       ]}
       primaryAction={{
         label: 'New event',

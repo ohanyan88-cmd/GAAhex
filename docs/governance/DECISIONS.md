@@ -9,6 +9,7 @@ Append-only log of reviewer↔executor rulings. One line per decision: `date · 
 - ✅ **Ph0** lock-in · ✅ **Ph1** brand-align/tokens (`06f9ed28`) · ✅ **Ph2** components (`8e67e609`) · ✅ **Ph3** i18n/formatters/gate
 - ✅ **Ph1a** nav rewire (`1e8ec1c9`) · ✅ **Ph1b** ASK ME → header · ✅ **Ph1c** gx-AppShell (`00b89605`)
 - ✅ **Ph1d** gx-CommandBar (`394deaa8`) · ✅ **Ph1e** gx-StatusBadge (`92e95092`)
+- 🔒 **Phase 1 SEALED (2026-06-15)** — close-out audit clean · canon docs in repo · tsc=0 vitest 66/66. Next: Phase 2 Workspace.
 - **Push:** held — commits only, no push until owner says.
 
 ---
@@ -55,3 +56,11 @@ Append-only log of reviewer↔executor rulings. One line per decision: `date · 
 - Ph1b · ASK ME → header · azure pill · responsive collapse · zero hardcoded · DONE.
 - Ph1c · commit `00b89605` · gx-AppShell composable (collapsed/navOpen state, skip-link, nav-scrim, logo swap, 3-col DOM) · App.tsx = thin wrapper · tsc=0 vitest 40/40 · DONE.
 - **Bilingual law reminder:** all Bro artifacts EN + HY always (L0).
+
+## Phase 1 Seal (2026-06-15)
+
+- Canon docs → `docs/governance/`: `ARCHITECTURE_LOCKED.md` · `REVIEWER_PROTOCOL.md` · `GAAHEX_BRO_OPERATING_MANUAL.md` (+ `.docx`) placed from owner's canon zip.
+- `GAAHEX_SYSTEM_STANDARD.md` → NOT duplicated into governance · single source stays at `docs/standards/GAAHEX_SYSTEM_STANDARD.md` (existing repo copy is the richer/canonical one: LAW-ST1 position block + repo-relative paths + standards-index #00). Duplicating = §0.3 one-source violation.
+- `DECISIONS.md` in canon zip = older (Ph1d ⏳ / Ph1e ⬜) · repo copy is newer/authoritative · NOT overwritten (README rule: overwrite only if newer).
+- `REVIEWER_PROTOCOL.md` → fixed broken paths on placement: `docs/decisions/DECISIONS.md` → `docs/governance/DECISIONS.md` (2×) · standard ref → `docs/standards/…` (refactor-on-sight; re-read must resolve).
+- Stale comment → `CalendarView.tsx:387` "PageShell ActionBar's" → "CommandBar's". Zero `ActionBar` refs remain in `frontend/src/`.
