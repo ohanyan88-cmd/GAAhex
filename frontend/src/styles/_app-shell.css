@@ -51,6 +51,9 @@
 .tb-icon:hover { background:var(--gx-hover); color:var(--gx-text-1); }
 .tb-icon .ndot { position:absolute; top:7px; right:7px; width:7px; height:7px; border-radius:50%; background:var(--gx-danger); border:1.5px solid var(--gx-topbar); }
 .tb-icon.on { background:var(--gx-hover); color:var(--gx-text-1); }
+/* ASK ME — platform AI entry point. Prominent pill in topbar (Phase 1b). */
+.tb-ask { display:inline-flex; align-items:center; gap:var(--gx-space-2); height:32px; padding:0 var(--gx-space-4); border:1px solid var(--gx-interactive-soft); border-radius:var(--gx-radius-full); background:var(--gx-interactive-soft); color:var(--gx-interactive); font-family:var(--gx-font-sans); font-size:var(--gx-text-13); font-weight:var(--gx-weight-medium); cursor:pointer; transition:all var(--gx-dur-fast); white-space:nowrap; flex-shrink:0; }
+.tb-ask:hover { border-color:var(--gx-interactive); color:var(--gx-interactive-hover); }
 .avatar { width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg,var(--cobalt-600),var(--cobalt-800)); color:var(--gx-on-primary); display:flex; align-items:center; justify-content:center; font-size:var(--gx-text-11); font-weight:var(--gx-weight-semibold); flex-shrink:0; overflow:hidden; }
 .avatar-img { width:100%; height:100%; object-fit:cover; display:block; }
 /* User-menu avatar = HEXAGON (brand motif). Width:height ≈ 1.13 → a regular flat-top hex. */
@@ -137,4 +140,6 @@
   .tb-search span:not(.kbd) { display:none; }
   .tenant span, .tb .btn span { display:none; }
   .tb .btn-primary { padding:0; width:34px; }
+  .tb-ask span { display:none; }
+  .tb-ask { padding:0; width:32px; border-radius:var(--gx-radius-md); }
 }

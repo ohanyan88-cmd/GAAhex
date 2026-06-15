@@ -63,7 +63,7 @@ import NocDashboardView from './views/NocDashboardView'
 import { NAV_SECTIONS, type NavItemDef, type NavSectionDef } from './lib/nav-config'
 import { loadDynamicNav } from './lib/nav-loader'
 import { useI18n, initI18n } from './lib/i18n'
-import { RowsIcon, ChevronRightIcon, ServerIcon } from './components/icons'
+import { RowsIcon, ChevronRightIcon, ServerIcon, SparkleIcon } from './components/icons'
 import {
   PanelLeft,
   LogIn,
@@ -774,6 +774,14 @@ export default function App() {
                   { title: 'Aren Tech', body: 'Fiber quote-ի հարց', time: '2օր' },
                 ]}
               />
+              <button
+                className="tb-ask"
+                onClick={() => navigate('/ask')}
+                aria-label={t('header.askMe', 'Ask me anything')}
+              >
+                <SparkleIcon size={14} />
+                <span>{t('header.askMeLabel', 'Ask me anything…')}</span>
+              </button>
               <TopbarMenu
                 icon={<Calendar size={18} />}
                 itemIcon={<Calendar size={16} />}
