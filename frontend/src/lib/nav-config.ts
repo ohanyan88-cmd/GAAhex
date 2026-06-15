@@ -1,11 +1,25 @@
 import type { ComponentType } from 'react'
 import {
-  HomeIcon, ChartIcon, UsersIcon, InboxIcon, ReceiptIcon,
-  ServerIcon, TruckIcon, PackageIcon, BriefcaseIcon,
-  SparkleIcon, MessageIcon, LayersIcon, ShieldIcon,
-  GearIcon, ActivityIcon, BuildingIcon,
-  EditIcon, BookmarkIcon, MailIcon, RowsIcon,
-  CreditCardIcon, ArrowRightIcon, CheckIcon,
+  HomeIcon,
+  ChartIcon,
+  UsersIcon,
+  InboxIcon,
+  ReceiptIcon,
+  ServerIcon,
+  TruckIcon,
+  PackageIcon,
+  BriefcaseIcon,
+  SparkleIcon,
+  LayersIcon,
+  ShieldIcon,
+  GearIcon,
+  ActivityIcon,
+  BuildingIcon,
+  EditIcon,
+  RowsIcon,
+  CreditCardIcon,
+  ArrowRightIcon,
+  CheckIcon,
 } from '../components/icons'
 
 export type NavItemDef = {
@@ -24,7 +38,7 @@ export type NavSectionDef = {
   items: NavItemDef[]
   /** Optional nested sub-sections rendered after `items` (one level of nesting supported). */
   subsections?: NavSectionDef[]
-  /** Restrict visibility to users with `can_configure` (i.e. the existing config.manage permission — our SuperAdmin gate). */
+  /** Restrict visibility to users with `can_configure` (SuperAdmin gate). */
   adminOnly?: boolean
   /** Pre-expanded on first render. */
   defaultOpen?: boolean
@@ -40,121 +54,228 @@ const i = (
   icon: NavItemDef['icon'],
   viewType?: string,
   viewArgs?: NavItemDef['viewArgs'],
-): NavItemDef =>
-  ({ id, label, icon, ...(viewType ? { viewType, ...(viewArgs ? { viewArgs } : {}) } : {}) })
+): NavItemDef => ({
+  id,
+  label,
+  icon,
+  ...(viewType ? { viewType, ...(viewArgs ? { viewArgs } : {}) } : {}),
+})
 
-const s = (id: string, label: string, icon: NavSectionDef['icon'], items: NavItemDef[], opts?: Partial<NavSectionDef>): NavSectionDef =>
-  ({ id, label, icon, items, ...opts })
+const s = (
+  id: string,
+  label: string,
+  icon: NavSectionDef['icon'],
+  items: NavItemDef[],
+  opts?: Partial<NavSectionDef>,
+): NavSectionDef => ({ id, label, icon, items, ...opts })
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Left navigation — locked spec rewritten 2026-06-01 per Gev's directive.
-// Hierarchy is the source of truth. Do not reorder, rename, or split items.
+// Left navigation — LOCKED SPEC 2026-06-15 per ARCHITECTURE_LOCKED.md.
+// 5 Platform Laws enforced. This file is the nav SST.
+// Do not reorder, rename, add, or remove items without owner sign-off.
 //
-// Admin grouping (2026-06-01 refinement): System + Dev Internals + Studio +
-// Records are no longer top-level. They live as sub-sections inside ADMIN PANEL,
-// which is gated by user.can_configure (the existing SuperAdmin permission).
+// Hidden items preserved as dead constants below NAV_SECTIONS:
+//   ERP_HIDDEN_SECTIONS  — Enterprise (HR · Procurement · Legal · Finance)
+//   PROJECTS_SECTION     — Projects standalone link
+// Routes + code for all hidden items are UNTOUCHED — nav only.
 // ─────────────────────────────────────────────────────────────────────────────
 export const NAV_SECTIONS: NavSectionDef[] = [
-
-  // HOME — LOCKED 2026-06-13 (Gev). Left nav holds only Workspace + Ask Me.
-  //   • Mail · Messenger · Calendar live in the GLOBAL TOP BAR (not the left nav).
-  //   • My Requests · My Documents · My Benefits · Knowledge Base are MERGED into the
-  //     Workspace page as the "Me" section (all four were the same `profile` view).
-  s('home', 'Home', HomeIcon, [
-    i('home-workspace',  'Workspace',      HomeIcon,      'home'),
-    i('home-ask',        'Ask Me',         SparkleIcon,   'ask'),
-  ], { defaultOpen: true }),
-
-
-  // CRM — LOCKED 2026-06-13 (Gev). Order is the source of truth: Pipeline · Leads ·
-  // Orders · Customers. Do not reorder, rename, add, or remove items.
-  s('crm', 'CRM', UsersIcon, [
-    i('crm-pipeline',       'Pipeline',       ArrowRightIcon, 'lead-pipeline'),
-    i('crm-leads',          'Leads',          InboxIcon,      'entity', { slug: 'leads' }),
-    i('crm-orders',         'Orders',         ReceiptIcon,    'entity', { slug: 'orders' }),
-    i('crm-customers',      'Customers',      UsersIcon,      'entity', { slug: 'customers' }),
-  ]),
-
-  s('billing_revenue', 'Billing & Revenue', ReceiptIcon, [
-    i('br-tariff-plans',        'Tariff Plans',        BookmarkIcon,   'tariff-plans'),
-    i('br-invoices',            'Invoices',            ReceiptIcon,    'invoices'),
-    i('br-payments',            'Payments',            CreditCardIcon, 'payments'),
-    i('br-collections',         'Collections',         InboxIcon,      'collections'),
-  ]),
-
-  s('tech_noc', 'Tech & NOC', ServerIcon, [
-    i('noc-dashboard',           'NMS',                       ServerIcon,   'noc-dashboard'),
-    i('noc-installation-board',  'Installation Board',       TruckIcon,    'installation-board'),
-    i('noc-support-tickets',     'Support Tickets',          InboxIcon,    'helpdesk'),
-    i('noc-support-dispatch',    'Dispatch Board',           ActivityIcon, 'dispatch-board'),
-    i('noc-inventory',           'Network & Stock Inventory',PackageIcon,  'network-inventory'),
-  ]),
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Operations — top-level group. Houses the Organisation page (/org → OrgPage:
-  // editable department chart + Branches + Departments tabs) and the platform-level
-  // Warehouse module (built later). (Old 13-layout OrgView removed 2026-06-13.)
-  // ─────────────────────────────────────────────────────────────────────────
-  s('operations', 'Operations', ActivityIcon, [
-    // ONE Organisation page (/org → OrgPage): Hierarchy (role/position) · Branches (geo) ·
-    // Departments are tabs INSIDE it, not separate nav entries (Gev 2026-06-12).
-    i('ops-organisation', 'Organisation', BuildingIcon, 'org'),
-    i('ops-warehouse',    'Warehouse',    PackageIcon,  'coming-soon', { id: 'warehouse', title: 'Warehouse', parent: 'Operations' }),
-  ], { defaultOpen: true }),
-
-  // PROJECTS — the ONLY addition to the locked left nav (Gev 2026-06-13). Standalone
-  // top-level link. Projects = project-type WorkItems (campaigns, infra builds, initiatives).
-  // Tasks (My Tasks · Work Items) live INSIDE Workspace, NOT here. Placeholder until built.
-  s('projects', 'Projects', LayersIcon, [], { standalone: true, viewType: 'projects' }),
-
-  s('analytics_ai', 'Analytics & AI', ChartIcon, [
-    i('aa-dashboards',        'Operational Dashboards', ChartIcon,   'dashboards'),
-    i('aa-reports-ai',        'Reports & AI Insights',  SparkleIcon, 'reports'),
-  ]),
-
-  s('enterprise', 'Enterprise', BriefcaseIcon, [
-    i('ent-finance',          'Back-Office Finance',     ChartIcon,   'entity', { slug: 'expenses' }),
-    i('ent-hr',               'Human Resources',         UsersIcon,   'entity', { slug: 'employees' }),
-    i('ent-procurement',      'Procurement & Vendors',   PackageIcon, 'entity', { slug: 'purchase-orders' }),
-    i('ent-legal',            'Legal & Contracts',       ShieldIcon,  'entity', { slug: 'contracts' }),
-  ]),
-  // (Organisation sub-menu moved to Operations 2026-06-12 — see the Operations group above.)
-
-  // ADMIN PANEL — SuperAdmin (user.can_configure) only. Houses Records (auto-injected
-  // dynamic entities) + System + Dev Internals + Studio as sub-sections.
-  s('admin_panel', 'Admin Panel', ShieldIcon, [], {
-    adminOnly: true,
-    subsections: [
-      // Records — placeholder. App.tsx injects the dynamic extra-entity items into this
-      // subsection's `items` at render time.
-      s('admin_records', 'Records', RowsIcon, []),
-
-      s('system', 'System', GearIcon, [
-        i('sys-users',                'Users',                 UsersIcon,  'entity', { slug: 'users' }),
-        i('sys-roles-permissions',    'Roles & Permissions',   ShieldIcon, 'entity', { slug: 'roles' }),
-        i('sys-settings',             'Settings',              GearIcon,   'settings'),
-        i('sys-integrations',         'Integrations',          LayersIcon, 'webhooks'),
-        i('sys-notifications-config', 'Notifications Config',  MailIcon,   'entity', { slug: 'notification-rules' }),
-      ]),
-
-      s('studio', 'Studio', SparkleIcon, [
-        // Communication config (Gev IA directive 2026-06-10) — Mail accounts + messaging Channels
-        // (SMS/Telegram/WhatsApp credentials) are configured HERE in Studio, not in the user nav.
-        i('std-mail-config',     'Mail Accounts',   MailIcon,       'mail'),
-        i('std-channels',        'Channels',        MessageIcon,    'channels'),
-        i('std-payment-methods', 'Payment Methods', CreditCardIcon, 'payment-methods'),
-        i('std-payment-gateway', 'Payment Gateway', CreditCardIcon, 'gateway'),
-        i('std-revenue-assurance','Revenue Assurance', ShieldIcon, 'revenue-assurance'),
-        i('std-experience',     'Experience',     SparkleIcon, 'studio'),
-        i('std-data',           'Data',           LayersIcon,  'studio'),
-        i('std-logic',          'Logic',          EditIcon,    'studio'),
-        i('std-security',       'Security',       ShieldIcon,  'studio'),
-        i('std-intelligence',   'Intelligence',   SparkleIcon, 'studio'),
-        i('std-quality',        'Quality',        CheckIcon,   'studio'),
-        i('std-release',        'Release',        PackageIcon, 'studio'),
-        i('std-governance',     'Governance',     ShieldIcon,  'studio'),
-        i('std-system-control', 'System Control', GearIcon,    'studio'),
-      ]),
-    ],
+  // WORKSPACE — Rule #1: Login always opens Workspace.
+  // Ask Me removed from nav → prominent header feature (Phase 1b).
+  s('home', 'Home', HomeIcon, [i('home-workspace', 'Workspace', HomeIcon, 'home')], {
+    defaultOpen: true,
   }),
+
+  // ── CORE PLATFORM ──────────────────────────────────────────────────────────
+
+  // CRM — Pipeline → Campaigns → Leads → Customers (Rule #4 chain)
+  // Orders removed: born from Pipeline #6 transition (SYSTEM ACTION) → lives in Operations.
+  s('crm', 'CRM', UsersIcon, [
+    i('crm-pipeline', 'Pipeline', ArrowRightIcon, 'lead-pipeline'),
+    i('crm-campaigns', 'Campaigns', SparkleIcon, 'coming-soon', {
+      id: 'campaigns',
+      title: 'Campaigns',
+      parent: 'CRM',
+    }),
+    i('crm-leads', 'Leads', InboxIcon, 'entity', { slug: 'leads' }),
+    i('crm-customers', 'Customers', UsersIcon, 'entity', { slug: 'customers' }),
+  ]),
+
+  // Operations — root entity = Order (SYSTEM-born, never manually created — Rule #4).
+  // Orders moved in from CRM. Work Orders = field execution of an Order.
+  s('operations', 'Operations', ActivityIcon, [
+    i('ops-orders', 'Orders', ReceiptIcon, 'entity', { slug: 'orders' }),
+    i('ops-work-orders', 'Work Orders', TruckIcon, 'coming-soon', {
+      id: 'work-orders',
+      title: 'Work Orders',
+      parent: 'Operations',
+    }),
+  ]),
+
+  // Billing (was "Billing & Revenue")
+  s('billing', 'Billing', ReceiptIcon, [
+    i('bil-invoices', 'Invoices', ReceiptIcon, 'invoices'),
+    i('bil-payments', 'Payments', CreditCardIcon, 'payments'),
+    i('bil-collections', 'Collections', InboxIcon, 'collections'),
+    i('bil-adjustments', 'Adjustments', EditIcon, 'coming-soon', {
+      id: 'adjustments',
+      title: 'Adjustments',
+      parent: 'Billing',
+    }),
+  ]),
+
+  // Network Operations (was "Tech & NOC")
+  // Rule #5 exception: NOC Dashboard = real-time monitoring → Left Nav ✅
+  // Routes untouched but hidden from nav:
+  //   /installation-board → Work Orders inner (Install type)
+  //   /helpdesk           → Customer 360 + Pipeline (Ticket Lifecycle)
+  //   /dispatch-board     → Orders → Dispatch View
+  //   /network-inventory  → Equipment inner view
+  s('network_ops', 'Network Operations', ServerIcon, [
+    i('noc-dashboard', 'NOC Dashboard', ServerIcon, 'noc-dashboard'),
+    i('noc-incidents', 'Incidents', ActivityIcon, 'coming-soon', {
+      id: 'incidents',
+      title: 'Incidents',
+      parent: 'Network Operations',
+    }),
+    i('noc-monitoring', 'Monitoring', ChartIcon, 'coming-soon', {
+      id: 'monitoring',
+      title: 'Monitoring',
+      parent: 'Network Operations',
+    }),
+    i('noc-radius', 'RADIUS Sessions', ServerIcon, 'coming-soon', {
+      id: 'radius',
+      title: 'RADIUS Sessions',
+      parent: 'Network Operations',
+    }),
+    i('noc-ipam', 'IPAM', LayersIcon, 'coming-soon', {
+      id: 'ipam',
+      title: 'IPAM',
+      parent: 'Network Operations',
+    }),
+    i('noc-fiber', 'Fiber Network', ActivityIcon, 'coming-soon', {
+      id: 'fiber',
+      title: 'Fiber Network',
+      parent: 'Network Operations',
+    }),
+  ]),
+
+  // Inventory (new section)
+  // Equipment consolidates Customer/Network/Field/Spare gear (inner views).
+  // Warehouses moved in from old Operations section.
+  s('inventory', 'Inventory', PackageIcon, [
+    i('inv-equipment', 'Equipment', PackageIcon, 'coming-soon', {
+      id: 'equipment',
+      title: 'Equipment',
+      parent: 'Inventory',
+    }),
+    i('inv-warehouses', 'Warehouses', PackageIcon, 'coming-soon', {
+      id: 'warehouse',
+      title: 'Warehouses',
+      parent: 'Inventory',
+    }),
+  ]),
+
+  // ── GENERAL ────────────────────────────────────────────────────────────────
+
+  // Reports (was "Analytics & AI")
+  // Operational Dashboards hidden → Workspace (Rule #5: non-real-time → Workspace only).
+  s('reports', 'Reports', ChartIcon, [
+    i('rep-executive', 'Executive Reports', ChartIcon, 'coming-soon', {
+      id: 'reports-executive',
+      title: 'Executive Reports',
+      parent: 'Reports',
+    }),
+    i('rep-sales', 'Sales Reports', ChartIcon, 'coming-soon', {
+      id: 'reports-sales',
+      title: 'Sales Reports',
+      parent: 'Reports',
+    }),
+    i('rep-customer', 'Customer Reports', ChartIcon, 'coming-soon', {
+      id: 'reports-customer',
+      title: 'Customer Reports',
+      parent: 'Reports',
+    }),
+    i('rep-technical', 'Technical Reports', ChartIcon, 'coming-soon', {
+      id: 'reports-technical',
+      title: 'Technical Reports',
+      parent: 'Reports',
+    }),
+    i('rep-financial', 'Financial Reports', ChartIcon, 'coming-soon', {
+      id: 'reports-financial',
+      title: 'Financial Reports',
+      parent: 'Reports',
+    }),
+  ]),
+
+  // Organization (new section — owner directive 2026-06-15)
+  // Users + Roles moved OUT of Admin Panel into Organization.
+  // Departments maps to existing /org route (OrgPage: Hierarchy · Branches).
+  s('organization', 'Organization', BuildingIcon, [
+    i('org-departments', 'Departments', BuildingIcon, 'org'),
+    i('org-employees', 'Employees', UsersIcon, 'entity', { slug: 'employees' }),
+    i('org-roles', 'Roles', ShieldIcon, 'entity', { slug: 'roles' }),
+    i('org-users', 'Users', UsersIcon, 'entity', { slug: 'users' }),
+  ]),
+
+  // Admin Panel — flattened to 7 items per locked spec (SuperAdmin only).
+  // Subsections removed from nav: Records engine stays (Studio → Entity Builder).
+  // System sub-items: Settings + Webhooks survive; Users/Roles moved to Organization.
+  // Studio collapsed to single nav entry; internals live on the Studio page.
+  s(
+    'admin_panel',
+    'Admin Panel',
+    ShieldIcon,
+    [
+      i('adm-settings', 'Settings', GearIcon, 'settings'),
+      i('adm-payment-gateways', 'Payment Gateways', CreditCardIcon, 'gateway'),
+      i('adm-audit-logs', 'Audit Logs', RowsIcon, 'coming-soon', {
+        id: 'audit-logs',
+        title: 'Audit Logs',
+        parent: 'Admin Panel',
+      }),
+      i('adm-system-health', 'System Health', ActivityIcon, 'coming-soon', {
+        id: 'system-health',
+        title: 'System Health',
+        parent: 'Admin Panel',
+      }),
+      i('adm-webhooks', 'Webhooks', LayersIcon, 'webhooks'),
+      i('adm-feature-flags', 'Feature Flags', CheckIcon, 'coming-soon', {
+        id: 'feature-flags',
+        title: 'Feature Flags',
+        parent: 'Admin Panel',
+      }),
+      i('adm-studio', 'Studio', SparkleIcon, 'studio'),
+    ],
+    { adminOnly: true },
+  ),
 ]
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ERP EXPANSION — HIDDEN · NOT DELETED
+// Routes + views + entity slugs are untouched. Phase N re-enables these.
+// To re-enable: splice into NAV_SECTIONS at the correct position.
+// ─────────────────────────────────────────────────────────────────────────────
+export const ERP_HIDDEN_SECTIONS: NavSectionDef[] = [
+  s('enterprise', 'Enterprise', BriefcaseIcon, [
+    i('ent-finance', 'Back-Office Finance', ChartIcon, 'entity', { slug: 'expenses' }),
+    i('ent-hr', 'Human Resources', UsersIcon, 'entity', { slug: 'employees' }),
+    i('ent-procurement', 'Procurement & Vendors', PackageIcon, 'entity', {
+      slug: 'purchase-orders',
+    }),
+    i('ent-legal', 'Legal & Contracts', ShieldIcon, 'entity', { slug: 'contracts' }),
+  ]),
+]
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HIDDEN ITEMS — routes + views untouched; removed from nav per locked spec
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Projects: not in locked Left Nav spec. Route /projects + view untouched.
+export const PROJECTS_SECTION: NavSectionDef = s('projects', 'Projects', LayersIcon, [], {
+  standalone: true,
+  viewType: 'projects',
+})
+
+// Tariff Plans: not in locked Billing spec. Route /tariff-plans + view untouched.
+// viewType: 'tariff-plans' — re-enable as Billing sub-item if needed in Phase N.
