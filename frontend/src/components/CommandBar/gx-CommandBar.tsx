@@ -120,7 +120,7 @@ export function GxCommandBar({
           {/* EN: View switcher chips — leftmost group.
               HY: View switcher chips — amenagetab group: */}
           {views && views.options.length > 0 && (
-            <div className="ps-views" role="tablist" aria-label="View">
+            <div className="ps-views" role="tablist" aria-label={t('shell.cb.viewLabel', 'View')}>
               {views.options.map((v) => (
                 <button
                   key={v}
