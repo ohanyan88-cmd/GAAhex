@@ -85,8 +85,7 @@
 .ps-header-tabs { flex: 1; display: flex; justify-content: center; align-items: center; }
 .ps-header-row--tabbed .ps-header-main { margin-right: 0; }
 
-/* Zone A title row: title block (left) + primary/secondary actions (right).
-   Actions live in the header now (not a separate ActionBar row). */
+/* Zone A title row: title block (left) + search (right). Actions live in Zone C (CommandBar). */
 .ps-header-row {
   display: flex;
   align-items: center;            /* search + action buttons sit on one line, vertically centered with the title */
@@ -218,7 +217,7 @@
   background: transparent;   /* reveal the .ps honeycomb field (was var(--gx-bg)) */
 }
 /* Separation line UNDER the KPI cards, mirroring the header's bottom divider ABOVE them —
-   but only when no ActionBar follows (the ActionBar already carries its own top divider, so
+   but only when no CommandBar follows (CommandBar carries its own top divider, so
    this avoids a double line). On pages like Leads (actions moved into the workspace) this gives
    the KPI band a clean closing rule just like its opening one (Gev 2026-06-11). */
 .ps-kpis:not(:has(+ .ps-actions)) {
@@ -251,7 +250,7 @@
   }
 }
 
-/* ─── Zone C · ActionBar ─────────────────────────────────────────────────── */
+/* ─── Zone C · CommandBar ────────────────────────────────────────────────── */
 
 .ps-actions {
   display: flex;

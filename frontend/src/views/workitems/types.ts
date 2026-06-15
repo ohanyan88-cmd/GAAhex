@@ -1,6 +1,6 @@
 import type { WorkItemKind, WorkItemPriority } from '../../lib/workitems'
 
-export type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
+export type { PillVariant } from '../../lib/status-constants'
 
 export type Tab = 'active' | 'all' | 'mine'
 

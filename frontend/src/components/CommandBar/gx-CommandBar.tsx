@@ -12,6 +12,7 @@
 //     action-ը rendervum é: Թ'unc — chi anc'num: Еrbeq mer button chunak'vac permission-i hamar:
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '../../primitives'
+import { t } from '../../lib/i18n'
 import type {
   PrimaryAction,
   SecondaryAction,
@@ -20,8 +21,9 @@ import type {
   BulkAction,
 } from '../../page-shell/types'
 
-// EN: Chip label for each view kind — driven from this map, no hardcoded strings downstream.
-// HY: Chip label amеn view kind-i hamar — map-ic é galis, verjum hardcoded string@ yel:
+// EN: English fallback labels per view kind — t() wraps each at the callsite so
+//     the map acts as the fallback only; translations come from the i18n dict.
+// HY: English fallback labels — t()-ə wrap é amеn callsite-um; translations-ə i18n dict-ic:
 const VIEW_LABEL: Record<ViewKind, string> = {
   table: 'Table',
   board: 'Board',
@@ -87,7 +89,9 @@ export function GxCommandBar({
         <>
           {/* EN: Bulk mode — selection badge + bulk action buttons + clear.
               HY: Bulk mode — əntrutyuni badge + bulk action buttons + clear: */}
-          <span className="ps-actions-selection">{selectionCount} selected</span>
+          <span className="ps-actions-selection">
+            {t('shell.cb.selected', `${selectionCount} selected`)}
+          </span>
           {bulkActions && bulkActions.length > 0 && (
             <div className="ps-actions-secondaries">
               {bulkActions.map((a, i) => (
@@ -107,7 +111,7 @@ export function GxCommandBar({
           )}
           {onClearSelection && (
             <Button variant="secondary" size="sm" type="button" onClick={onClearSelection}>
-              Clear
+              {t('shell.cb.clear', 'Clear')}
             </Button>
           )}
         </>
@@ -125,7 +129,7 @@ export function GxCommandBar({
                   aria-pressed={views.current === v}
                   onClick={() => views.onChange?.(v)}
                 >
-                  {VIEW_LABEL[v]}
+                  {t(`shell.view.${v}`, VIEW_LABEL[v])}
                 </button>
               ))}
             </div>

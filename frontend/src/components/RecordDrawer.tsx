@@ -14,10 +14,10 @@
 import { useId, useState, type ReactNode } from 'react'
 import Overlay from './Overlay'
 import { X, LayoutList, Clock, Link as LinkIcon, MessageSquare } from 'lucide-react'
-import { Button, StatusPill } from '../primitives'
+import { Button, StatusPill, type GxStatusBadgeVariant } from '../primitives'
 import { humanRef, humanizeEntity, looksLikeRawId } from '../lib/humanize'
 
-export type RecordDrawerStatusVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
+export type RecordDrawerStatusVariant = GxStatusBadgeVariant
 
 export interface RecordDrawerField {
   key: string

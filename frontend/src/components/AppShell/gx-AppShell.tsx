@@ -6,6 +6,7 @@
 //     state-ը, skip-link-ը, nav-scrim-ը, logo swap-ը: Consumer-ը content
 //     inject é chors slot-ով՝ header (render-prop), leftNav, contentArea, portals:
 import { useState, type ReactNode } from 'react'
+import { t } from '../../lib/i18n'
 
 // EN: Controls surface exposed to the header render-prop.
 // HY: Controls surface, որ փոխանցվում է header render-prop-ին:
@@ -91,7 +92,7 @@ export default function GxAppShell({
       {/* EN: Skip link — keyboard accessibility anchor.
           HY: Skip link — keyboard accessibility anchor: */}
       <a href="#main-content" className="skip-link">
-        Skip to content
+        {t('shell.skipToContent', 'Skip to content')}
       </a>
 
       {/* EN: Mobile nav-scrim — closes sidebar on outside click/Escape.
@@ -101,7 +102,7 @@ export default function GxAppShell({
           className="nav-scrim"
           role="button"
           tabIndex={-1}
-          aria-label="Close navigation"
+          aria-label={t('shell.closeNav', 'Close navigation')}
           onClick={() => setNavOpen(false)}
           onKeyDown={(e) => {
             if (e.key === 'Escape') setNavOpen(false)

@@ -75,7 +75,7 @@ export interface KPISpec {
   tooltip?: ReactNode
 }
 
-/* ─── Action bar ─────────────────────────────────────────────────────────── */
+/* ─── CommandBar ────────────────────────────────────────────────────────── */
 
 export interface PrimaryAction {
   label: string
@@ -182,7 +182,7 @@ export interface PageShellProps {
   /* Zone B — KPI bar */
   kpis?: KPISpec[]
 
-  /* Zone C — action bar */
+  /* Zone C — CommandBar */
   views?: ViewSwitcher
   primaryAction?: PrimaryAction
   secondaryActions?: SecondaryAction[]

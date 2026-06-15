@@ -10,3 +10,7 @@ export {
   type GxStatusBadgeProps as StatusPillProps,
   type GxStatusBadgeVariant,
 } from '../components/StatusBadge/gx-StatusBadge'
+
+// EN: Direct gx-names re-exported so primitives/index.ts can expose them flat.
+// HY: Ուղղակի gx-anvery re-export, vor primitives/index.ts-ը flat expose anel kari:
+export { GxStatusBadge, type GxStatusBadgeProps } from '../components/StatusBadge/gx-StatusBadge'
