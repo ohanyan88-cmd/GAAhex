@@ -10,8 +10,26 @@ export type { InvoiceStatus, SubscriptionStatus } from './billing'
 export type { PaymentOrderStatus } from './paymentgw'
 
 // ── Canonical StatusPill variant type (L-16) ──────────────────────────────────
-// Single definition — import from here instead of re-declaring in each view.
-export type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
+// EN: Single definition — import from here instead of re-declaring in each view.
+//     Matches GxStatusBadgeVariant (gx-StatusBadge.tsx) exactly.
+//     Legacy aliases (active/degraded/critical) kept for backward compat.
+// HY: Miakayn skazbnabanutʿyun — import el aysteghi amеn view-um verahastatman:
+//     Hamapatasuм é GxStatusBadgeVariant-in: Legacy aliases-ery patmut'yan hamar:
+export type PillVariant =
+  // Semantic core (preferred for new callsites)
+  | 'success'
+  | 'warning'
+  | 'danger'
+  | 'info'
+  | 'neutral'
+  // Legacy aliases (backward-compat)
+  | 'active'
+  | 'degraded'
+  | 'critical'
+  // ISP / network provisioning states
+  | 'online'
+  | 'provisioned'
+  | 'maintenance'
 
 /**
  * getStatusTone — canonical status→PillVariant mapper (L-16).
@@ -24,21 +42,32 @@ export type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info
  * Callers that do their own label formatting can ignore the return value's label
  * field and only use the variant.
  */
-export function getStatusTone(
-  status: string | null | undefined,
-  entityType?: string,
-): PillVariant {
+export function getStatusTone(status: string | null | undefined, entityType?: string): PillVariant {
   const v = (status ?? '').toUpperCase()
 
   // Universal positives
-  if (v === 'ACTIVE' || v === 'PAID' || v === 'DONE' || v === 'CLOSED' ||
-      v === 'RESOLVED' || v === 'ENABLED' || v === 'SENT' || v === 'AVAILABLE') {
+  if (
+    v === 'ACTIVE' ||
+    v === 'PAID' ||
+    v === 'DONE' ||
+    v === 'CLOSED' ||
+    v === 'RESOLVED' ||
+    v === 'ENABLED' ||
+    v === 'SENT' ||
+    v === 'AVAILABLE'
+  ) {
     return 'active'
   }
 
   // Universal criticals
-  if (v === 'FAILED' || v === 'BLOCKED' || v === 'EXPIRED' ||
-      v === 'TERMINATED' || v === 'EXHAUSTED' || v === 'BREACHED') {
+  if (
+    v === 'FAILED' ||
+    v === 'BLOCKED' ||
+    v === 'EXPIRED' ||
+    v === 'TERMINATED' ||
+    v === 'EXHAUSTED' ||
+    v === 'BREACHED'
+  ) {
     return 'critical'
   }
 
@@ -48,9 +77,17 @@ export function getStatusTone(
   }
 
   // Universal neutral (terminal non-error states)
-  if (v === 'CANCELLED' || v === 'CANCELED' || v === 'VOID' ||
-      v === 'DRAFT' || v === 'RETIRED' || v === 'DISABLED' ||
-      v === 'REMOVED' || v === 'ARCHIVED' || v === 'INACTIVE') {
+  if (
+    v === 'CANCELLED' ||
+    v === 'CANCELED' ||
+    v === 'VOID' ||
+    v === 'DRAFT' ||
+    v === 'RETIRED' ||
+    v === 'DISABLED' ||
+    v === 'REMOVED' ||
+    v === 'ARCHIVED' ||
+    v === 'INACTIVE'
+  ) {
     return 'neutral'
   }
 

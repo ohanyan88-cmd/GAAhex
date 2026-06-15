@@ -1,5 +1,11 @@
 export { Button } from './Button'
-export { StatusPill } from './StatusPill'
+export {
+  StatusPill,
+  GxStatusBadge,
+  type StatusPillProps,
+  type GxStatusBadgeProps,
+  type GxStatusBadgeVariant,
+} from './StatusPill'
 export { Input } from './Input'
 export { FormField } from './FormField'
 export { KPITile } from './KPITile'
@@ -10,9 +16,9 @@ export { KPITile } from './KPITile'
 // row-actions component).
 export { DataTableCell } from './DataTableCell'
 export { DetailTab, DetailTabList } from './DetailTab'
-export { StudioDrawer } from './StudioDrawer'  // DR-1
-export { Pagination } from './Pagination'  // T-P2-2
-export { LoadShell, type LoadState } from './LoadShell'  // T-P2-3
+export { StudioDrawer } from './StudioDrawer' // DR-1
+export { Pagination } from './Pagination' // T-P2-2
+export { LoadShell, type LoadState } from './LoadShell' // T-P2-3
 // Phase 2 — gx- component set (gx- = CSS/token prefix; PascalCase names per §3)
 export { Table, type Column, type TableProps, type TableStatus } from './Table'
 export { Chip, type ChipTone } from './Chip'
