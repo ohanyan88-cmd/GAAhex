@@ -1,26 +1,57 @@
-# GAAhex — Decision Log / Որոշումների մատյան
+# GAAhex — Decision Log
 
-> **EN:** The running, append-only record of material project decisions — one line per
-> decision, newest at the bottom. Format: `YYYY-MM-DD · <area> · <decision> → <rationale>`.
-> This is the audit trail of *what was decided and why*; the binding law lives in
-> `PROJECT_CONSTITUTION.md` and the standards. A decision here may not contradict a
-> higher governance layer (LAW-ST1) — if it would, the higher layer wins and this log
-> records the conflict, not an override.
->
-> **HY:** Նախագծի էական որոշումների ընթացիկ, միայն-ավելացվող մատյանը — մեկ տող մեկ
-> որոշում, ամենանորը՝ ներքևում։ Ձևաչափ՝ `ՏԱՐԵԹԻՎ · <ոլորտ> · <որոշում> → <պատճառ>`։
-> Սա *ինչ որոշվեց և ինչու*-ի audit trail-ն է. կապող օրենքը՝ `PROJECT_CONSTITUTION.md`-ում
-> ու standard-ներում։ Այստեղի որոշումը չի կարող հակասել ավելի բարձր governance շերտին
-> (LAW-ST1) — հակասելու դեպքում բարձր շերտը հաղթում է, ու մատյանը գրանցում է կոնֆլիկտը,
-> ոչ թե override։
+Append-only log of reviewer↔executor rulings. One line per decision: `date · phase · question → decision (why)`. Keeps review-bursts coherent without shared chat memory. Newest at the bottom.
 
-**Position:** Below the Constitution, PRM, Architecture and Standards. Append-only.
+---
+
+## Current status (update as phases close)
+- **Plan:** Architecture redesign LOCKED → Phase 1 (Shell+gx) → Phase 2 (Workspace) → Phase 3 (CRM→Leads).
+- ✅ **Ph0** lock-in · ✅ **Ph1** brand-align/tokens (`06f9ed28`) · ✅ **Ph2** components (`8e67e609`) · ✅ **Ph3** i18n/formatters/gate
+- ✅ **Ph1a** nav rewire (`1e8ec1c9`) · ✅ **Ph1b** ASK ME → header · ✅ **Ph1c** gx-AppShell (`00b89605`)
+- ⏳ **Ph1d** gx-CommandBar · ⬜ **Ph1e** gx-StatusBadge
+- **Push:** held — commits only, no push until owner says.
 
 ---
 
 ## Decisions
+- Ph1 · token naming → keep existing `--gx-{role}` names, amend §2 (rename = cosmetic risk).
+- Ph1 · `views/proto/*` → delete (git keeps history; capture patterns first).
+- Ph1 · wire casing → thin camelCase boundary at the data seam (opt-in, not blanket).
+- Ph1 · color tokens → theme-aware / semantic from the start (light = value-map).
+- Ph0 · standard registration → index-registration, not per-file banners.
+- Brand-align timing → focused pass before Ph2 so components inherit the right look. 4px-ladder = separate.
+- Fonts · Sora not in repo → self-host woff2, 3 faces (Sora=Latin · Noto Sans Armenian=AM · Noto Sans=Cyrillic/RU); `@font-face` + `unicode-range`; one `--gx-font-family`. Source gwfh.mranftl.com (OFL).
+- Light-mode bug → fix tokenized: pin dark-theme context on chrome (sidebar + auth panel). No hardcoded light hex.
+- Ph2 · scope → GO full Part B. Table = §5+§6+§7+longest-wins+all-states · SearchBox = presentational only · Chip = status-only uppercase · `can()` = real default-deny.
+- Ph2 · naming → `gx-` = CSS/token prefix; components keep PascalCase — no force-rename.
+- Ph2 · `can()` → default-deny + `'*'` wildcard FULL_ACCESS (zero regression now, ready for live perms).
+- Ph2 → Ph3 · sequencing → commit Ph2, GO Ph3, skip demo-adoption.
+- Ph3 · gate → A (RATCHET): lint+format on staged files only; typecheck+test global; block via husky+lint-staged+CI. No blanket reformat.
+- Ph3 · client-unify → one client (`bfetch`) + 401 everywhere; `login` stays raw; opt-in `camelKeys` seam.
+- Workflow → keep the split (Bro = executor · reviewer = chat-bursts). Continuity via repo docs.
 
-2026-06-15 · ML · start → AUDIT FIRST (characterize existing AI/ML surfaces real/heuristic/stub before any make-real or new-build; separate track from Ph4–6).
-2026-06-15 · ML · audit RESULT → 0 trained models, 0 fantasy. "AI" = 1 transparent heuristic (lead score) + a real-but-dormant LLM gateway (stub→real on key). Churn/RA-"anomaly" are deterministic SQL, correctly named. Lead-scorer STAYS heuristic (weights data-tunable later); the 6 ML methods are a future toolbox, not a now-build. Full record: Bro sealed memory ml-audit.
-2026-06-15 · ML/AI · provider enablement = data-governance GATE → free-tier LLM allowed ONLY on TEST/demo orgs (synthetic data, zero PII); NEVER pointed at live customer PII until provider data-use terms are confirmed (no-training + residency) or a no-train/paid key is used. Enable via gitignored backend/.env (AI_PROVIDER + AI_API_KEY); ships OFF by default (ai_provider="none"). Real provider path validated deterministically in tests/test_ai.py before any live key lands.
-2026-06-15 · UI/Ph4 · §1 shell EXEMPTION → the Studio module (`studio/StudioShell.tsx` + its panes) is exempt from the PageShell §1 requirement. Justification: Studio is a superadmin-only, IDE-like meta-configuration workspace (entity/field designer, workflows, webhooks, notifications config) with its own left config-tree + pane navigation model — not a business data page with KPIs/registry/actions. Forcing PageShell would break the IDE layout for zero user benefit. Exemption is CONFINED to `studio/`; every consumer-facing page still uses PageShell. (Note: `primitives/StudioDrawer` is NOT exempt — it already sits on the shared Overlay primitive.)
+---
+
+## Architecture Redesign — LOCKED (2026-06-15)
+
+- **5 Platform Laws:** #1 Workspace=Where I Work / Left Nav=Where Data Lives · #2 Left Nav=System Map · #3 Left Nav=Business Domains/Root Objects only · #4 SST=Single Point of Creation · #5 Dashboards→Workspace (exception: real-time monitoring).
+- **CRM** = Pipeline · Campaigns · Leads · Customers (Customer 360 = record workspace, not nav item).
+- **Operations** = Orders · Work Orders (Order = root, born from Pipeline #6 SYSTEM ACTION).
+- **Billing** = Invoices · Payments · Collections · Adjustments.
+- **Network Operations** = NOC Dashboard · Incidents · Monitoring · RADIUS Sessions · IPAM · Fiber Network.
+- **Inventory** = Equipment · Warehouses.
+- **Reports · Organization · Admin Panel** = General section.
+- **ERP Expansion** (HR/Procurement/Legal/Finance) = HIDDEN in nav, code/routes preserved, Phase N.
+- **Header** = ASK ME (Platform AI, replaces Search) · Calendar · Messages · Mail · Notifications · User Menu.
+- **RULE #001:** Customer created only at Pipeline #13 Activation. DB: `customer.lead_id UUID NOT NULL REFERENCES leads(id)`.
+
+## Phase 1 Decisions (2026-06-15)
+
+- Q1 · Support Tickets → HIDE · DO NOT DELETE · DO NOT MOVE TO NOC · keep route+entity+Pipeline Ticket Lifecycle · access via Customer 360 + deep links + Workspace · Phase 3 Customer Care decision pending.
+- Q2 · Users → Organization (Departments · Employees · Roles · Users) · moved from Admin Panel.
+- Q3 · Records → KEEP ENGINE · REMOVE NAV INJECTION · MOVE UNDER STUDIO → Entity Builder.
+- Organization final = 4 items: Departments · Employees · Roles · Users.
+- Ph1a · commit `1e8ec1c9` · nav rewire DONE · gate clean · sections 8→9 · items ~23→~31 · 9 hidden preserved · Admin Panel flattened · unused imports removed.
+- Ph1b · ASK ME → header · azure pill · responsive collapse · zero hardcoded · DONE.
+- Ph1c · commit `00b89605` · gx-AppShell composable (collapsed/navOpen state, skip-link, nav-scrim, logo swap, 3-col DOM) · App.tsx = thin wrapper · tsc=0 vitest 40/40 · DONE.
+- **Bilingual law reminder:** all Bro artifacts EN + HY always (L0).
